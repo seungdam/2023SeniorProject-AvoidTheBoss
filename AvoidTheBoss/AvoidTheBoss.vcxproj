@@ -72,12 +72,12 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)Binary\$(Configuration)\</OutDir>
-    <IncludePath>$(SolutionDir)\;C:\Users\erfrr\Desktop\2023SeniorProject\Avoid-The-Boss\Main_Server\ServerCoreEngine;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir);$(SolutionDir)ServerCoreEngine\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Library\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)Binary\$(Configuration)\</OutDir>
-    <IncludePath>$(SolutionDir)\;C:\Users\erfrr\Desktop\2023SeniorProject\Avoid-The-Boss\Main_Server\ServerCoreEngine;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir);$(SolutionDir)ServerCoreEngine\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Library\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
