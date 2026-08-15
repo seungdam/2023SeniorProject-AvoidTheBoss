@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "Types.h"
 #include "CoreGlobal.h"
@@ -28,7 +28,7 @@
 
 
 #include <windows.h>
-// C ·±Å¸ÀÓ Çì´õ ÆÄÀÏÀÔ´Ï´Ù.
+// C ëŸ°íƒ€ì„ í—¤ë” íŒŒì¼ì…ë‹ˆë‹¤.
 #include <stdlib.h>
 #include <malloc.h>
 #include <memory.h>
@@ -42,18 +42,18 @@
 #define BUFSIZE 512
 
 // ============ D3D Library ===========================
-//----D3D ¶óÀÌºê·¯¸® Çì´õ Æ÷ÇÔ
+//----D3D ë¼ì´ë¸ŒëŸ¬ë¦¬ í—¤ë” í¬í•¨
 
 #include <string>
 #include <wrl.h>
 #include <shellapi.h>
-#include <d3d12.h>	//Direct3D 12 API ÇÔ¼ö
+#include <d3d12.h>	//Direct3D 12 API í•¨ìˆ˜
 #include <dxgi1_4.h>
 #include <D3Dcompiler.h>
 
 #include "d3dx12.h"
 
-//DirectD2D 
+//DirectD2D
 #include <d3d11.h>
 #include <dwrite.h>
 #include <d3d11on12.h>
@@ -73,17 +73,17 @@
 #include <filesystem>
 #include <iosfwd>
 
-//----DirectXMath ¶óÀÌºê·¯¸®
-#include <DirectXMath.h> //º¤ÅÍ Çà·Ä °ü·Ã ÇÔ¼ö,±¸Á¶Ã¼,Å¬·¡½º Á¦°ø
-#include <DirectXPackedVector.h>//º¤ÅÍ °ü·Ã ÆĞÅ·µÈ ±¸Á¶Ã¼ Á¦°ø
-#include <DirectXColors.h>//»ö»ó Á¤ÀÇ Á¦°ø
-#include <DirectXCollision.h>//Ãæµ¹ °Ë»ç °ü·Ã ÇÔ¼ö,±¸Á¶Ã¼,Å¬·¡½º Á¦°ø 
+//----DirectXMath ë¼ì´ë¸ŒëŸ¬ë¦¬
+#include <DirectXMath.h> //ë²¡í„° í–‰ë ¬ ê´€ë ¨ í•¨ìˆ˜,êµ¬ì¡°ì²´,í´ë˜ìŠ¤ ì œê³µ
+#include <DirectXPackedVector.h>//ë²¡í„° ê´€ë ¨ íŒ¨í‚¹ëœ êµ¬ì¡°ì²´ ì œê³µ
+#include <DirectXColors.h>//ìƒ‰ìƒ ì •ì˜ ì œê³µ
+#include <DirectXCollision.h>//ì¶©ëŒ ê²€ì‚¬ ê´€ë ¨ í•¨ìˆ˜,êµ¬ì¡°ì²´,í´ë˜ìŠ¤ ì œê³µ
 
 
-//C:\Program Files(x86)\Windows Kits\10\Include\10.0.17763.0\um ¿¡¼­  DirectX·Î ½ÃÀÛÇÏ´Â ÆÄÀÏµé - Æ¯È÷ ¡°DirectXCollision.h¡±¿Í ¡°DirectXCollision.inl¡± ³»¿ë º¸±â
-//½Éµå ¼º´É»ó º¤ÅÍ ¿¬»ê ¿À¹ö·Îµå ÇÏÁö¸»ÀÚ
+//C:\Program Files(x86)\Windows Kits\10\Include\10.0.17763.0\um ì—ì„œ  DirectXë¡œ ì‹œì‘í•˜ëŠ” íŒŒì¼ë“¤ - íŠ¹íˆ â€œDirectXCollision.hâ€ì™€ â€œDirectXCollision.inlâ€ ë‚´ìš© ë³´ê¸°
+//ì‹¬ë“œ ì„±ëŠ¥ìƒ ë²¡í„° ì—°ì‚° ì˜¤ë²„ë¡œë“œ í•˜ì§€ë§ì
 
-//----DirectXMath ¶óÀÌºê·¯¸®¿¡ ¼±¾ğµÈ ÇÔ¼ö, ±¸Á¶Ã¼, Å¬·¡½º¸¦ »ç¿ëÇÒ ¼ö ÀÖ´Â ³×ÀÓ½ºÆäÀÌ½º
+//----DirectXMath ë¼ì´ë¸ŒëŸ¬ë¦¬ì— ì„ ì–¸ëœ í•¨ìˆ˜, êµ¬ì¡°ì²´, í´ë˜ìŠ¤ë¥¼ ì‚¬ìš©í•  ìˆ˜ ìˆëŠ” ë„¤ì„ìŠ¤í˜ì´ìŠ¤
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 
@@ -92,22 +92,22 @@ using namespace DirectX::PackedVector;
 
 
 
-bool XMVerifyCPUSupport(); // ÀÀ¿ëÇÁ·Î±×·¥¿¡¼­ SIMD ±â´É(º¤ÅÍ ¿¬»ê ¸í·ÉÁıÇÕ È®Àå ±â´É / º¤ÅÍÀÇ º´·Ä ¿¬»ê ) Á¦°ø¿©ºÎ È®ÀÎ 
+bool XMVerifyCPUSupport(); // ì‘ìš©í”„ë¡œê·¸ë¨ì—ì„œ SIMD ê¸°ëŠ¥(ë²¡í„° ì—°ì‚° ëª…ë ¹ì§‘í•© í™•ì¥ ê¸°ëŠ¥ / ë²¡í„°ì˜ ë³‘ë ¬ ì—°ì‚° ) ì œê³µì—¬ë¶€ í™•ì¸
 using namespace TriangleTests;
 using Microsoft::WRL::ComPtr;
 
-//----ÀÓÆ÷Æ® ¶óÀÌºê·¯¸®
+//----ì„í¬íŠ¸ ë¼ì´ë¸ŒëŸ¬ë¦¬
 #pragma comment(lib, "d3dcompiler.lib")
-#pragma comment(lib, "d3d12.lib") //Á¤Àû Direct3D 12 API ½ºÅÓ ¶óÀÌºê·¯¸®
+#pragma comment(lib, "d3d12.lib") //ì •ì  Direct3D 12 API ìŠ¤í… ë¼ì´ë¸ŒëŸ¬ë¦¬
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "dxguid.lib")
 
-// -------D2D ¶óÀÌºê·¯¸®
+// -------D2D ë¼ì´ë¸ŒëŸ¬ë¦¬
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "dwrite.lib")
 
-//----Å¬¶óÀÌ¾ğÆ® ¿µ¿ª Å©±â ¹× ÈÄ¸é ¹öÆÛ Å©±â
+//----í´ë¼ì´ì–¸íŠ¸ ì˜ì—­ í¬ê¸° ë° í›„ë©´ ë²„í¼ í¬ê¸°
 #define FRAME_BUFFER_WIDTH  1920 //1200
 #define FRAME_BUFFER_HEIGHT 1080 //900
 
@@ -148,10 +148,10 @@ const float IDPW_Y_OFFSET = FontSize / 2.0f;
 
 
 #define _WITH_CB_WORLD_MATRIX_DESCRIPTOR_TABLE
-//----ÀüÃ¼ È­¸é ¸ğµå·Î ½ÃÀÛ
+//----ì „ì²´ í™”ë©´ ëª¨ë“œë¡œ ì‹œì‘
 //#define _WITH_SWAPCHAIN_FULLSCREEN_STATE
 
-//1.0f = 1m 
+//1.0f = 1m
 #define UNIT 1.0f // 1m = 1 unit
 
 #define PLAYERNUM 4
@@ -163,8 +163,8 @@ extern UINT	gnCbvSrvDescriptorIncrementSize;
 extern UINT	gnRtvDescriptorIncrementSize;
 extern UINT gnDsvDescriptorIncrementSize;
 
-extern ID3D12Resource* CreateBufferResource(ID3D12Device5* pd3dDevice, 
-	
+extern ID3D12Resource* CreateBufferResource(ID3D12Device5* pd3dDevice,
+
 	ID3D12GraphicsCommandList4* pd3dCommandList, void* pData, UINT nBytes, D3D12_HEAP_TYPE d3dHeapType = D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATES d3dResourceStates = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, ID3D12Resource** ppd3dUploadBuffer = NULL);
 extern ID3D12Resource* CreateTextureResourceFromDDSFile(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList, const wchar_t* pszFileName, ID3D12Resource** ppd3dUploadBuffer, D3D12_RESOURCE_STATES d3dResourceStates = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
@@ -195,10 +195,10 @@ enum Layout
 };
 
 
-//3Â÷¿ø º¤ÅÍÀÇ ¿¬»ê
+//3ì°¨ì› ë²¡í„°ì˜ ì—°ì‚°
 namespace Vector3
 {
-	//3-Â÷¿ø º¤ÅÍ°¡ ¿µ º¤ÅÍÀÎ Áö¸¦ ¹İÈ¯ÇÏ´Â ÇÔ¼öÀÌ´Ù. 
+	//3-ì°¨ì› ë²¡í„°ê°€ ì˜ ë²¡í„°ì¸ ì§€ë¥¼ ë°˜í™˜í•˜ëŠ” í•¨ìˆ˜ì´ë‹¤.
 	inline bool IsZero(XMFLOAT3& xmf3Vector)
 	{
 		if (::IsZero(xmf3Vector.x) && ::IsZero(xmf3Vector.y) && ::IsZero(xmf3Vector.z))
@@ -289,7 +289,7 @@ namespace Vector3
 			xmmtxTransform));
 		return(xmf3Result);
 	}
-	//Çà·ÄÀ» »ç¿ëÇÏ¿© º¤ÅÍº¯È¯
+	//í–‰ë ¬ì„ ì‚¬ìš©í•˜ì—¬ ë²¡í„°ë³€í™˜
 	inline XMFLOAT3 TransformCoord(const XMFLOAT3& xmf3Vector, const XMMATRIX& xmmtxTransform)
 	{
 		XMFLOAT3 xmf3Result;
@@ -303,10 +303,10 @@ namespace Vector3
 	}
 }
 
-//4Â÷¿ø º¤ÅÍÀÇ ¿¬»ê
+//4ì°¨ì› ë²¡í„°ì˜ ì—°ì‚°
 namespace Vector4
 {
-	//4-Â÷¿ø º¤ÅÍ¿Í ½ºÄ®¶ó(½Ç¼ö)ÀÇ °öÀ» ¹İÈ¯ÇÏ´Â ÇÔ¼öÀÌ´Ù.
+	//4-ì°¨ì› ë²¡í„°ì™€ ìŠ¤ì¹¼ë¼(ì‹¤ìˆ˜)ì˜ ê³±ì„ ë°˜í™˜í•˜ëŠ” í•¨ìˆ˜ì´ë‹¤.
 	inline XMFLOAT4 Multiply(float fScalar, XMFLOAT4& xmf4Vector)
 	{
 		XMFLOAT4 xmf4Result;
@@ -329,7 +329,7 @@ namespace Vector4
 	}
 }
 
-//Çà·ÄÀÇ ¿¬»ê
+//í–‰ë ¬ì˜ ì—°ì‚°
 namespace Matrix4x4
 {
 	inline XMFLOAT4X4 Identity()

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 enum class KEY_TYPE
 {
@@ -30,23 +30,22 @@ enum class KEY_TYPE
 
 enum class KEY_STATUS : int8
 {
-	KEY_NONE = -1, // ¾ÖÃÊ¿¡ ´©¸¥ ÀûÀÌ ¾ø´Â °æ¿ì
-	KEY_UP = 0, // Å°¸¦ ´­·¶´Ù ¶®À» °æ¿ì
-	KEY_PRESS = 1, // Ã³À½ ´©¸¥ °Í
-	KEY_DOWN = 2,  // ÀÌ¹Ì ´­·ÁÀÖ´Â °Í
-	
-	
+	KEY_NONE = -1, // ì• ì´ˆì— ëˆ„ë¥¸ ì ì´ ì—†ëŠ” ê²½ìš°
+	KEY_UP = 0, // í‚¤ë¥¼ ëˆŒë €ë‹¤ ë• ì„ ê²½ìš°
+	KEY_PRESS = 1, // ì²˜ìŒ ëˆ„ë¥¸ ê²ƒ
+	KEY_DOWN = 2,  // ì´ë¯¸ ëˆŒë ¤ìˆëŠ” ê²ƒ
+
+
 };
 
-// Å° ÀÔ·Â Ã³¸®ÇÏ±â À§ÇÑ °Í ½Ì±ÛÅæ ÆĞÅÏÀ¸·Î »ı¼ºÇÑ´Ù.
+// í‚¤ ì…ë ¥ ì²˜ë¦¬í•˜ê¸° ìœ„í•œ ê²ƒ ì‹±ê¸€í†¤ íŒ¨í„´ìœ¼ë¡œ ìƒì„±í•œë‹¤.
 class InputManager
 {
 private:
-	static InputManager* instance;
 	static int8 m_keyBuffer[256];
 private:
-	InputManager() 
-	{ 
+	InputManager()
+	{
 		for (int i = 0; i < 256; ++i) m_keyBuffer[i] = (int8)KEY_STATUS::KEY_NONE;
 	}
 	InputManager(const InputManager& ref) {}
@@ -55,11 +54,11 @@ private:
 	static void Update(const int32 key);
 	static void SetKeyPress(const int32 key);
 	static void SetKeyUp(const int32 key);
-public:	
-static InputManager& GetInstance() 
+public:
+static InputManager& GetInstance()
 {
-	if (instance == nullptr) instance = new InputManager();
-	return *instance;
+	static InputManager instance;
+	return instance;
 }
 public:
 

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "GameObject.h"
 
 enum class CLIENT_TYPE
@@ -32,74 +32,74 @@ static const char* g_pstrFirstCharactorRefernece[4] =
 	"Model/Character/Character_Cap_1st_View.bin",
 };
 
-#define BOSS_ATTACK_TIME 25 //25ÇÁ·¹ÀÓ (±âÁ¸ 65)
-#define BOSS_RUNATTACK_TIME 25 //25ÇÁ·¹ÀÓ (±âÁ¸ 65)
+#define BOSS_ATTACK_TIME 25 //25í”„ë ˆì„ (ê¸°ì¡´ 65)
+#define BOSS_RUNATTACK_TIME 25 //25í”„ë ˆì„ (ê¸°ì¡´ 65)
 
-#define EMPLOYEE_ATTACKED_TIME 30 //20ÇÁ·¹ÀÓ (±âÁ¸ 65)
-#define EMPLOYEE_DOWN_TIME 20 //25ÇÁ·¹ÀÓ (±âÁ¸ 65)
-#define EMPLOYEE_STAND_TIME 30 //25ÇÁ·¹ÀÓ (±âÁ¸ 65)
-#define EMPLOYEE_INTERACTION_TIME 40 //20ÇÁ·¹ÀÓ
+#define EMPLOYEE_ATTACKED_TIME 30 //20í”„ë ˆì„ (ê¸°ì¡´ 65)
+#define EMPLOYEE_DOWN_TIME 20 //25í”„ë ˆì„ (ê¸°ì¡´ 65)
+#define EMPLOYEE_STAND_TIME 30 //25í”„ë ˆì„ (ê¸°ì¡´ 65)
+#define EMPLOYEE_INTERACTION_TIME 40 //20í”„ë ˆì„
 
 class CPlayer : public CGameObject
 {
 	friend class CSession;
 	friend class InteractionEvent;
 protected:
-	 
+
 	XMFLOAT3					m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	XMFLOAT3					m_xmf3Right = XMFLOAT3(1.0f, 0.0f, 0.0f);
 	XMFLOAT3					m_xmf3Up = XMFLOAT3(0.0f, 1.0f, 0.0f);
 	XMFLOAT3					m_xmf3Look = XMFLOAT3(0.0f, 0.0f, 1.0f);
 	XMFLOAT3					m_xmf3Scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
-	
+
 	float m_fPitch;
 	float m_fYaw;
 	float m_fRoll;
 
-	XMFLOAT3 m_xmf3Velocity; // ÇÃ·¹ÀÌ¾î ¼Óµµ
-	XMFLOAT3 m_xmf3Gravity;  // Áß·Â
-	float m_fFriction;       // ¸¶Âû·Â
+	XMFLOAT3 m_xmf3Velocity; // í”Œë ˆì´ì–´ ì†ë„
+	XMFLOAT3 m_xmf3Gravity;  // ì¤‘ë ¥
+	float m_fFriction;       // ë§ˆì°°ë ¥
 
 
 
 public:
-	// ÇÃ·¹ÀÌ¾î Ä«¸Ş¶ó
+	// í”Œë ˆì´ì–´ ì¹´ë©”ë¼
 	CCamera* m_pCamera = nullptr;
 
-	uint8 m_ctype = -1; // ÀÚ½ÅÀÇ Ä³¸¯ÅÍ Å¸ÀÔÀ» ±¸Çö
+	uint8 m_ctype = -1; // ìì‹ ì˜ ìºë¦­í„° íƒ€ì…ì„ êµ¬í˜„
 
 	CLIENT_TYPE m_clientType = CLIENT_TYPE::OTHER_PLAYER;
 
-	int16 m_sid = -1; // ÀÚ½ÅÀ¸ Session Id
-	std::mutex m_lock; // ÀÚ½ÅÀÇ Lock
+	int16 m_sid = -1; // ìì‹ ìœ¼ Session Id
+	std::mutex m_lock; // ìì‹ ì˜ Lock
 
 	BoundingSphere m_playerBV; // BV = bounding volume
 	CHARACTER_TYPE m_nCharacterType;
-	
-	bool m_hide = false;// ÇÃ·¹ÀÌ¾î¸¦ °¡¸± °ÍÀÌ³Ä ±×¸± °ÍÀÌ³Ä
-	
-	// 05-21 Ãß°¡
-	int32 m_hp = 3; // hp´Â 5·Î ¼³Á¤
+
+	bool m_hide = false;// í”Œë ˆì´ì–´ë¥¼ ê°€ë¦´ ê²ƒì´ëƒ ê·¸ë¦´ ê²ƒì´ëƒ
+
+	// 05-21 ì¶”ê°€
+	int32 m_hp = 3; // hpëŠ” 5ë¡œ ì„¤ì •
 	int32 m_idx = 0;
 	int32 m_chartype = -1; // 0 boss 1, emp;
-	// 05-22 Ãß°¡
+	// 05-22 ì¶”ê°€
 	int32 m_behavior = (int32)PLAYER_BEHAVIOR::IDLE;
 
 	bool m_bOnMoveSound = false;
-	virtual void SetOnMoveSound(bool bOnMoveSound) 
+	virtual void SetOnMoveSound(bool bOnMoveSound)
 	{
 		m_bOnMoveSound = bOnMoveSound;
 	}
-	virtual bool GetOnMoveSound() 
+	virtual bool GetOnMoveSound()
 	{
 		return m_bOnMoveSound;
 	}
 
-	
-public: 
+
+public:
 	CPlayer();
 	virtual ~CPlayer();
-	
+
 	XMFLOAT3 GetPosition() const { return(m_xmf3Position); }
 	XMFLOAT3 GetLookVector() { return(m_xmf3Look); }
 	XMFLOAT3 GetUpVector() { return(m_xmf3Up); }
@@ -111,7 +111,7 @@ public:
 	}
 	void SetVelocity(const XMFLOAT3& xmf3Velocity) { m_xmf3Velocity = xmf3Velocity; }
 	void SetPlayerSid(const int16& sid) { m_sid = sid; }
-	void SetPosition(const XMFLOAT3& xmf3Position) 
+	void SetPosition(const XMFLOAT3& xmf3Position)
 	{
 		m_xmf3Position = xmf3Position;
 	}
@@ -124,29 +124,29 @@ public:
 	void SetCamera(CCamera* pCamera) { m_pCamera = pCamera; }
 	CCamera* GetCamera() { return(m_pCamera); }
 
-	//ÇÃ·¹ÀÌ¾î¸¦ È¸ÀüÇÏ´Â ÇÔ¼öÀÌ´Ù. 
+	//í”Œë ˆì´ì–´ë¥¼ íšŒì „í•˜ëŠ” í•¨ìˆ˜ì´ë‹¤.
 	virtual void Rotate(float x, float y, float z);
 	virtual void CreateShaderVariables(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4
 		* pd3dCommandList);
 	virtual void ReleaseShaderVariables();
 	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList4* pd3dCommandList);
 
-	//Ä«¸Ş¶ó¸¦ º¯°æÇÏ±â À§ÇÏ¿© È£ÃâÇÏ´Â ÇÔ¼öÀÌ´Ù. 
+	//ì¹´ë©”ë¼ë¥¼ ë³€ê²½í•˜ê¸° ìœ„í•˜ì—¬ í˜¸ì¶œí•˜ëŠ” í•¨ìˆ˜ì´ë‹¤.
 	CCamera* OnChangeCamera(DWORD nNewCameraMode, DWORD nCurrentCameraMode);
 	virtual CCamera* ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed) { return(NULL); }
 
-	//ÇÃ·¹ÀÌ¾îÀÇ À§Ä¡¿Í È¸ÀüÃàÀ¸·ÎºÎÅÍ ¿ùµå º¯È¯ Çà·ÄÀ» »ı¼ºÇÏ´Â ÇÔ¼öÀÌ´Ù. 
+	//í”Œë ˆì´ì–´ì˜ ìœ„ì¹˜ì™€ íšŒì „ì¶•ìœ¼ë¡œë¶€í„° ì›”ë“œ ë³€í™˜ í–‰ë ¬ì„ ìƒì„±í•˜ëŠ” í•¨ìˆ˜ì´ë‹¤.
 	virtual void OnPrepareRender();
-	//ÇÃ·¹ÀÌ¾îÀÇ Ä«¸Ş¶ó°¡ 3ÀÎÄª Ä«¸Ş¶óÀÏ ¶§ ÇÃ·¹ÀÌ¾î(¸Ş½¬)¸¦ ·»´õ¸µÇÑ´Ù. 
+	//í”Œë ˆì´ì–´ì˜ ì¹´ë©”ë¼ê°€ 3ì¸ì¹­ ì¹´ë©”ë¼ì¼ ë•Œ í”Œë ˆì´ì–´(ë©”ì‰¬)ë¥¼ ë Œë”ë§í•œë‹¤.
 	virtual void Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pCamera, bool bRaster);
 
-public: //04-29 Ãß°¡ÇÔ¼ö 
+public: //04-29 ì¶”ê°€í•¨ìˆ˜
 	virtual uint8 ProcessInput() { return 0; };
 	virtual void SetAnimationTrack(int32 num) {};
 	virtual void Move(const int16& dwDirection, float fDistance);
 	virtual void Update(float fTimeElapsed, CLIENT_TYPE ptype);
 	virtual void LateUpdate() {};
-	// 05-22 Ãß°¡ ÇÔ¼ö
+	// 05-22 ì¶”ê°€ í•¨ìˆ˜
 	virtual void AnimTrackUpdate(float ,CLIENT_TYPE) {};
 	virtual void SetBehavior(PLAYER_BEHAVIOR b) { m_behavior = (int32)b; };
 	virtual int32 GetBehavior() { return m_behavior; }

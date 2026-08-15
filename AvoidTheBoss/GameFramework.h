@@ -1,7 +1,7 @@
-#pragma once
-//----CGameFramework Å¬·¡½º
-//----1 Direct3D µğ¹ÙÀÌ½º »ı¼º°ú °ü¸® 
-//----2 È­¸é Ãâ·ÂÀ» À§ÇÑ Ã³¸® - °ÔÀÓ °´Ã¼ »ı¼º°ú °ü¸®, »ç¿ëÀÚ ÀÔ·Â, ¾Ö´Ï¸ŞÀÌ¼Ç ÀÛ¾÷
+ï»¿#pragma once
+//----CGameFramework í´ë˜ìŠ¤
+//----1 Direct3D ë””ë°”ì´ìŠ¤ ìƒì„±ê³¼ ê´€ë¦¬
+//----2 í™”ë©´ ì¶œë ¥ì„ ìœ„í•œ ì²˜ë¦¬ - ê²Œì„ ê°ì²´ ìƒì„±ê³¼ ê´€ë¦¬, ì‚¬ìš©ì ì…ë ¥, ì• ë‹ˆë©”ì´ì…˜ ì‘ì—…
 
 #include "Camera.h"
 #include "DXSampleHelper.h"
@@ -12,29 +12,29 @@ class CScene;
 class UIManager;
 class SceneManager;
 
-// ÀÌ ÀÚ½À¼­¿¡¼­´Â ´ÜÀÏ ÇÏÀ§ ¼öÁØ pResult¿¡¼­ AS¸¸ »ç¿ë
-// ÃÖ»óÀ§ ASÀÇ °æ¿ì µ¿Àû º¯°æÀ» ±¸ÇöÇÒ °¡´É¼ºÀ» µÎ°í »ı¼ºÇÑ ±¸Á¶Ã¼ÀÌ´Ù.
-// °¡¼Ó±¸Á¶ ¼³¸íÀÚ(¹öÆÛ) ±¸Ãà
+// ì´ ììŠµì„œì—ì„œëŠ” ë‹¨ì¼ í•˜ìœ„ ìˆ˜ì¤€ pResultì—ì„œ ASë§Œ ì‚¬ìš©
+// ìµœìƒìœ„ ASì˜ ê²½ìš° ë™ì  ë³€ê²½ì„ êµ¬í˜„í•  ê°€ëŠ¥ì„±ì„ ë‘ê³  ìƒì„±í•œ êµ¬ì¡°ì²´ì´ë‹¤.
+// ê°€ì†êµ¬ì¡° ì„¤ëª…ì(ë²„í¼) êµ¬ì¶•
 // #DXR
 struct AccelerationStructureBuffers
 {
-	ComPtr<ID3D12Resource> pScratch; // Scratch memory for AS builder ½ºÅ©·¡Ä¡ ¸Ş¸ğ¸®
-	ComPtr<ID3D12Resource> pResult; // Where the AS is ±¸Á¶ ½ÇÁ¦ ÀúÀå¼Ò
-	ComPtr<ID3D12Resource> pInstanceDesc; // Hold the matrices of the instances ÃÖ»óÀ§ °¡¼Ó ±¸Á¶ ÀÎ½ºÅÏ½º ¸ÅÆ®¸¯½º 
+	ComPtr<ID3D12Resource> pScratch; // Scratch memory for AS builder ìŠ¤í¬ë˜ì¹˜ ë©”ëª¨ë¦¬
+	ComPtr<ID3D12Resource> pResult; // Where the AS is êµ¬ì¡° ì‹¤ì œ ì €ì¥ì†Œ
+	ComPtr<ID3D12Resource> pInstanceDesc; // Hold the matrices of the instances ìµœìƒìœ„ ê°€ì† êµ¬ì¡° ì¸ìŠ¤í„´ìŠ¤ ë§¤íŠ¸ë¦­ìŠ¤
 };
 
 class CGameFramework
 {
 
-public:	
+public:
 	enum class SCENESTATE { TITLE = 0, LOBBY = 1, ROOM = 2, INGAME = 3, RESULT = 4 };
-	
+
 	friend class queueEvent;
 	friend class moveEvnet;
 	friend class posEvent;
 	friend class InteractionEvent;
 	friend class FrameEvent;
-	
+
 	friend class CEmployee;
 	friend class CBoss;
 
@@ -55,52 +55,52 @@ private:
 	int	m_nWndClientWidth = FRAME_BUFFER_WIDTH;
 	int	m_nWndClientHeight = FRAME_BUFFER_HEIGHT;
 
-	
+
 	IDXGIFactory4*				m_pdxgiFactory = NULL;
-	//DXGI ÆÑÅä¸® ÀÎÅÍÆäÀÌ½º¿¡ ´ëÇÑ Æ÷ÀÎÅÍÀÌ´Ù. 
+	//DXGI íŒ©í† ë¦¬ ì¸í„°í˜ì´ìŠ¤ì— ëŒ€í•œ í¬ì¸í„°ì´ë‹¤.
 	IDXGISwapChain3*			m_pdxgiSwapChain = NULL;
-	//½º¿Ò Ã¼ÀÎ ÀÎÅÍÆäÀÌ½º¿¡ ´ëÇÑ Æ÷ÀÎÅÍÀÌ´Ù. ÁÖ·Î µğ½ºÇÃ·¹ÀÌ¸¦ Á¦¾îÇÏ±â À§ÇÏ¿© ÇÊ¿äÇÏ´Ù.		
-	ID3D12Device5*				m_pd3dDevice = NULL;								//5.14 ±¤¼±ÃßÀû Device5·Î ¹öÀü º¯°æ
-	//Direct3D µğ¹ÙÀÌ½º ÀÎÅÍÆäÀÌ½º¿¡ ´ëÇÑ Æ÷ÀÎÅÍÀÌ´Ù. ÁÖ·Î ¸®¼Ò½º¸¦ »ı¼ºÇÏ±â À§ÇÏ¿© ÇÊ¿äÇÏ´Ù.
+	//ìŠ¤ì™‘ ì²´ì¸ ì¸í„°í˜ì´ìŠ¤ì— ëŒ€í•œ í¬ì¸í„°ì´ë‹¤. ì£¼ë¡œ ë””ìŠ¤í”Œë ˆì´ë¥¼ ì œì–´í•˜ê¸° ìœ„í•˜ì—¬ í•„ìš”í•˜ë‹¤.
+	ID3D12Device5*				m_pd3dDevice = NULL;								//5.14 ê´‘ì„ ì¶”ì  Device5ë¡œ ë²„ì „ ë³€ê²½
+	//Direct3D ë””ë°”ì´ìŠ¤ ì¸í„°í˜ì´ìŠ¤ì— ëŒ€í•œ í¬ì¸í„°ì´ë‹¤. ì£¼ë¡œ ë¦¬ì†ŒìŠ¤ë¥¼ ìƒì„±í•˜ê¸° ìœ„í•˜ì—¬ í•„ìš”í•˜ë‹¤.
 
 	bool						m_bMsaa4xEnable = false;
 	UINT						m_nMsaa4xQualityLevels = 0;
-	//MSAA ´ÙÁß »ùÇÃ¸µÀ» È°¼ºÈ­ÇÏ°í ´ÙÁß »ùÇÃ¸µ ·¹º§À» ¼³Á¤ÇÑ´Ù.
+	//MSAA ë‹¤ì¤‘ ìƒ˜í”Œë§ì„ í™œì„±í™”í•˜ê³  ë‹¤ì¤‘ ìƒ˜í”Œë§ ë ˆë²¨ì„ ì„¤ì •í•œë‹¤.
 
 	static const UINT			m_nSwapChainBuffers = 2;
-	//½º¿Ò Ã¼ÀÎÀÇ ÈÄ¸é ¹öÆÛÀÇ °³¼öÀÌ´Ù. 
+	//ìŠ¤ì™‘ ì²´ì¸ì˜ í›„ë©´ ë²„í¼ì˜ ê°œìˆ˜ì´ë‹¤.
 	UINT						m_nSwapChainBufferIndex = 0;
-	//ÇöÀç ½º¿Ò Ã¼ÀÎÀÇ ÈÄ¸é ¹öÆÛ ÀÎµ¦½ºÀÌ´Ù.
+	//í˜„ì¬ ìŠ¤ì™‘ ì²´ì¸ì˜ í›„ë©´ ë²„í¼ ì¸ë±ìŠ¤ì´ë‹¤.
 
 	ID3D12Resource*				m_ppd3dSwapChainBackBuffers[m_nSwapChainBuffers];
 	ID3D12DescriptorHeap*		m_pd3dRtvDescriptorHeap;
 	UINT						m_nRtvDescriptorIncrementSize;
-	//·»´õ Å¸°Ù ¹öÆÛ, ¼­¼úÀÚ Èü ÀÎÅÍÆäÀÌ½º Æ÷ÀÎÅÍ, ·»´õ Å¸°Ù ¼­¼úÀÚ ¿ø¼ÒÀÇ Å©±âÀÌ´Ù.
+	//ë Œë” íƒ€ê²Ÿ ë²„í¼, ì„œìˆ ì í™ ì¸í„°í˜ì´ìŠ¤ í¬ì¸í„°, ë Œë” íƒ€ê²Ÿ ì„œìˆ ì ì›ì†Œì˜ í¬ê¸°ì´ë‹¤.
 
 	ID3D12Resource*				m_pd3dDepthStencilBuffer;
 	ID3D12DescriptorHeap*		m_pd3dDsvDescriptorHeap;
 	UINT						m_nDsvDescriptorIncrementSize;
-	//±íÀÌ-½ºÅÙ½Ç ¹öÆÛ, ¼­¼úÀÚ Èü ÀÎÅÍÆäÀÌ½º Æ÷ÀÎÅÍ, ±íÀÌ-½ºÅÙ½Ç ¼­¼úÀÚ ¿ø¼ÒÀÇ Å©±âÀÌ´Ù.
+	//ê¹Šì´-ìŠ¤í…ì‹¤ ë²„í¼, ì„œìˆ ì í™ ì¸í„°í˜ì´ìŠ¤ í¬ì¸í„°, ê¹Šì´-ìŠ¤í…ì‹¤ ì„œìˆ ì ì›ì†Œì˜ í¬ê¸°ì´ë‹¤.
 
 	ID3D12CommandQueue*			m_pd3dCommandQueue;
 	ID3D12CommandAllocator*		m_pd3dCommandAllocator;
-	ID3D12GraphicsCommandList4*	m_pd3dCommandList;		//5.14 ±¤¼±ÃßÀû ¹öÀü 4·Î º¯°æ
-	//¸í·É Å¥, ¸í·É ÇÒ´çÀÚ, ¸í·É ¸®½ºÆ® ÀÎÅÍÆäÀÌ½º Æ÷ÀÎÅÍÀÌ´Ù.
+	ID3D12GraphicsCommandList4*	m_pd3dCommandList;		//5.14 ê´‘ì„ ì¶”ì  ë²„ì „ 4ë¡œ ë³€ê²½
+	//ëª…ë ¹ í, ëª…ë ¹ í• ë‹¹ì, ëª…ë ¹ ë¦¬ìŠ¤íŠ¸ ì¸í„°í˜ì´ìŠ¤ í¬ì¸í„°ì´ë‹¤.
 
-	// °ÔÀÓ ÇÁ·¹ÀÓ¿öÅ©¿¡ ÇÊ¿äÇÑ °¢Á¾ ¸Å´ÏÀúµé
+	// ê²Œì„ í”„ë ˆì„ì›Œí¬ì— í•„ìš”í•œ ê°ì¢… ë§¤ë‹ˆì €ë“¤
 protected:
 	SceneManager*				m_SceneManager = nullptr;
 	UIManager*					m_UIRenderer   = nullptr;
 #if defined(_DEBUG)
-	ID3D12Debug*				m_pd3dDebugController;
+	ID3D12Debug*				m_pd3dDebugController = nullptr;
 #endif
 
 	ID3D12Fence					*m_pd3dFence;
 	UINT64						m_nFenceValues[m_nSwapChainBuffers];
 	HANDLE						m_hFenceEvent;
-	//Ææ½º ÀÎÅÍÆäÀÌ½º Æ÷ÀÎÅÍ, Ææ½ºÀÇ °ª, ÀÌº¥Æ® ÇÚµéÀÌ´Ù.
-	
-	//´ÙÀ½Àº ÇÁ·¹ÀÓ ·¹ÀÌÆ®¸¦ ÁÖ À©µµ¿ìÀÇ Ä¸¼Ç¿¡ Ãâ·ÂÇÏ±â À§ÇÑ ¹®ÀÚ¿­ÀÌ´Ù. 
+	//íœìŠ¤ ì¸í„°í˜ì´ìŠ¤ í¬ì¸í„°, íœìŠ¤ì˜ ê°’, ì´ë²¤íŠ¸ í•¸ë“¤ì´ë‹¤.
+
+	//ë‹¤ìŒì€ í”„ë ˆì„ ë ˆì´íŠ¸ë¥¼ ì£¼ ìœˆë„ìš°ì˜ ìº¡ì…˜ì— ì¶œë ¥í•˜ê¸° ìœ„í•œ ë¬¸ìì—´ì´ë‹¤.
 	WCHAR										m_pszFrameRate[500];
 public:
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext>  m_d3d11DeviceContext;
@@ -119,40 +119,40 @@ public:
 	CGameFramework();
 	~CGameFramework();
 
-	//ÇÁ·¹ÀÓ¿öÅ©¸¦ ÃÊ±âÈ­ÇÏ´Â ÇÔ¼öÀÌ´Ù(ÁÖ À©µµ¿ì°¡ »ı¼ºµÇ¸é È£ÃâµÈ´Ù). 
+	//í”„ë ˆì„ì›Œí¬ë¥¼ ì´ˆê¸°í™”í•˜ëŠ” í•¨ìˆ˜ì´ë‹¤(ì£¼ ìœˆë„ìš°ê°€ ìƒì„±ë˜ë©´ í˜¸ì¶œëœë‹¤).
 	bool OnCreate(HINSTANCE hInstance, HWND hMainWnd);
 	void OnDestroy();
 
 	void CreateSwapChain();
-	void CreateDirect3DDevice();	
+	void CreateDirect3DDevice();
 	void CreateCommandQueueAndList();
-	//½º¿Ò Ã¼ÀÎ, µğ¹ÙÀÌ½º, ¼­¼úÀÚ Èü, ¸í·É Å¥/ÇÒ´çÀÚ/¸®½ºÆ®¸¦ »ı¼ºÇÏ´Â ÇÔ¼öÀÌ´Ù. 
-	
-	
+	//ìŠ¤ì™‘ ì²´ì¸, ë””ë°”ì´ìŠ¤, ì„œìˆ ì í™, ëª…ë ¹ í/í• ë‹¹ì/ë¦¬ìŠ¤íŠ¸ë¥¼ ìƒì„±í•˜ëŠ” í•¨ìˆ˜ì´ë‹¤.
+
+
 	void CreateRtvAndDsvDescriptorHeaps();
 
 	void CreateRenderTargetViews();
 	void CreateDepthStencilView();
-	//·»´õ Å¸°Ù ºä¿Í ±íÀÌ-½ºÅÙ½Ç ºä¸¦ »ı¼ºÇÏ´Â ÇÔ¼öÀÌ´Ù.
+	//ë Œë” íƒ€ê²Ÿ ë·°ì™€ ê¹Šì´-ìŠ¤í…ì‹¤ ë·°ë¥¼ ìƒì„±í•˜ëŠ” í•¨ìˆ˜ì´ë‹¤.
 
-	//----ÀüÃ¼ È­¸é ¸ğµå F9
+	//----ì „ì²´ í™”ë©´ ëª¨ë“œ F9
 	void ChangeSwapChainState();
 
 	void BuildScenes();
 	void ReleaseScenes();
-	//·»´õ¸µÇÒ ¸Ş½¬¿Í °ÔÀÓ °´Ã¼¸¦ »ı¼ºÇÏ°í ¼Ò¸êÇÏ´Â ÇÔ¼öÀÌ´Ù. 
+	//ë Œë”ë§í•  ë©”ì‰¬ì™€ ê²Œì„ ê°ì²´ë¥¼ ìƒì„±í•˜ê³  ì†Œë©¸í•˜ëŠ” í•¨ìˆ˜ì´ë‹¤.
 
-	//ÇÁ·¹ÀÓ¿öÅ©ÀÇ ÇÙ½É(»ç¿ëÀÚ ÀÔ·Â, ¾Ö´Ï¸ŞÀÌ¼Ç, ·»´õ¸µ)À» ±¸¼ºÇÏ´Â ÇÔ¼öÀÌ´Ù. 
+	//í”„ë ˆì„ì›Œí¬ì˜ í•µì‹¬(ì‚¬ìš©ì ì…ë ¥, ì• ë‹ˆë©”ì´ì…˜, ë Œë”ë§)ì„ êµ¬ì„±í•˜ëŠ” í•¨ìˆ˜ì´ë‹¤.
 	void ProcessInput();
 	void UpdateObject();
 	void AnimateObjects();
 	void FrameAdvance();
 	void WaitForGpuComplete();
-	//CPU¿Í GPU¸¦ µ¿±âÈ­ÇÏ´Â ÇÔ¼öÀÌ´Ù.
+	//CPUì™€ GPUë¥¼ ë™ê¸°í™”í•˜ëŠ” í•¨ìˆ˜ì´ë‹¤.
 	void Render();
 	void MoveToNextFrame();
 
-	// ¾À °ü·Ã ÇÔ¼ö Ãß°¡ 07-03~ 07-04
+	// ì”¬ ê´€ë ¨ í•¨ìˆ˜ ì¶”ê°€ 07-03~ 07-04
 	void ChangeScene(SCENESTATE ss);
 public:
 	void OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM
@@ -161,14 +161,14 @@ public:
 		lParam);
 	LRESULT CALLBACK OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 		LPARAM lParam);
-	//À©µµ¿ìÀÇ ¸Ş½ÃÁö(Å°º¸µå, ¸¶¿ì½º ÀÔ·Â)¸¦ Ã³¸®ÇÏ´Â ÇÔ¼öÀÌ´Ù. 
+	//ìœˆë„ìš°ì˜ ë©”ì‹œì§€(í‚¤ë³´ë“œ, ë§ˆìš°ìŠ¤ ì…ë ¥)ë¥¼ ì²˜ë¦¬í•˜ëŠ” í•¨ìˆ˜ì´ë‹¤.
 
-	void CheckRaytracingSupport(); //±¤¼±ÃßÀû Áö¿ø Ã¼Å© ÇÔ¼ö D3D12_FEATURE_D3D12_OPTIONS5
+	void CheckRaytracingSupport(); //ê´‘ì„ ì¶”ì  ì§€ì› ì²´í¬ í•¨ìˆ˜ D3D12_FEATURE_D3D12_OPTIONS5
 
 	virtual void OnKeyDown(UINT8 key);
-	bool m_raster = true; // ·¡½ºÅÍÈ­ »óÅÂ·Î ½ÃÀÛ, ·¡½ºÅÍÈ­ off ½Ã ±¤¼±ÃßÀû »óÅÂ
+	bool m_raster = true; // ë˜ìŠ¤í„°í™” ìƒíƒœë¡œ ì‹œì‘, ë˜ìŠ¤í„°í™” off ì‹œ ê´‘ì„ ì¶”ì  ìƒíƒœ
 
-	// °¡¼Ó ±¸Á¶ ±¸Ãà
+	// ê°€ì† êµ¬ì¡° êµ¬ì¶•
 private:
 	//ComPtr<ID3D12Resource> m_bottomLevelAS; // Storage for the bottom Level AS
 	//nv_helpers_dx12::TopLevelASGenerator m_topLevelASGenerator;
@@ -179,15 +179,15 @@ private:
 //	///
 //	/// \param vVertexBuffers : pair of buffer and vertex count
 //	/// \return AccelerationStructureBuffers for TLAS
-//	AccelerationStructureBuffers CreateBottomLevelAS(std::vector<std::pair<ComPtr<ID3D12Resource>, uint32_t>> vVertexBuffers); //  GPU ¸Ş¸ğ¸®ÀÇ Á¤Á¡ ¹öÆÛ ¹× Á¤Á¡ ¼ö ÇÏÀ§ ·¹º§ AS¸¦ »ı¼º
+//	AccelerationStructureBuffers CreateBottomLevelAS(std::vector<std::pair<ComPtr<ID3D12Resource>, uint32_t>> vVertexBuffers); //  GPU ë©”ëª¨ë¦¬ì˜ ì •ì  ë²„í¼ ë° ì •ì  ìˆ˜ í•˜ìœ„ ë ˆë²¨ ASë¥¼ ìƒì„±
 //
 //	/// Create the main acceleration structure that holds
 //	/// all instances of the scene
 //	/// \param instances : pair of BLAS and transform
-//	void CreateTopLevelAS(const std::vector<std::pair<ComPtr<ID3D12Resource>, DirectX::XMMATRIX>>& instances); // ÃÖÇÏÀ§ AS ¹× º¯È¯ Çà·Ä ¿¡¼­ ÃÖ»óÀ§ AS¸¦ »ı¼º
+//	void CreateTopLevelAS(const std::vector<std::pair<ComPtr<ID3D12Resource>, DirectX::XMMATRIX>>& instances); // ìµœí•˜ìœ„ AS ë° ë³€í™˜ í–‰ë ¬ ì—ì„œ ìµœìƒìœ„ ASë¥¼ ìƒì„±
 //
 //	/// Create all acceleration structures, bottom and top
-//	void CreateAccelerationStructures(); //À§ÀÇ ¹æ¹ıÀ» ÇÔ²² ¹ÙÀÎµù
+//	void CreateAccelerationStructures(); //ìœ„ì˜ ë°©ë²•ì„ í•¨ê»˜ ë°”ì¸ë”©
 };
 
 extern CGameFramework mainGame;

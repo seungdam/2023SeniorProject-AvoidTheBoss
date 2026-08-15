@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "CScene.h"
 
 const int32 MAX_ROOM = 100;
@@ -32,9 +32,9 @@ public:
 
 	void ChangePage(int32);
 	void UpdateRoomText(int32, int32);
-	void UpdateRoomStatus(int32 rn, int32 mem) 
-	{ 
-		m_rooms[rn].member = mem; 
+	void UpdateRoomStatus(int32 rn, int32 mem)
+	{
+		m_rooms[rn].member = mem;
 		for (int i = 0; i < 5; ++i)UpdateRoomText(i, -1);
 	};
 	Room& GetRoom(int32 rm) { return m_rooms[rm]; }
@@ -45,8 +45,8 @@ class CTitleScene : public CScene
 {
 	int32 focus = 0;
 	bool cap = false;
-	
-	
+
+
 
 	Timer m_timer;
 public:
@@ -77,7 +77,7 @@ public:
 	std::mutex m_memLock;
 	int32 m_rmnum = 0;
 public:
-	CRoomScene() 
+	CRoomScene()
 	{
 		for (auto& i : m_members) i.isReady = false;
 	}
@@ -86,8 +86,8 @@ public:
 	virtual void BuildObjects(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList);
 	virtual void ProcessInput(HWND& hWnd);
 	virtual void Update(HWND& hWnd);
-	virtual void UpdateReady(int32 sid, bool val) 
-	{ 
+	virtual void UpdateReady(int32 sid, bool val)
+	{
 		for (auto& i : m_members)
 		{
 			if(sid == i.m_sid) i.isReady = val;
@@ -104,31 +104,31 @@ class CResultScene : public CScene
 public:
 	int32 m_pidx = -1;
 	int32 m_case = 0; // 1  escape 2 arrested
-	
-	
-	// »çÀå
-	// Å»Ãâ Á÷¿ø ¼ö
-	int32 m_exitPlayerCnt = 0;
-	// Á×ÀÎ È½¼ö
 
-	// Á÷¿ø
-	int32 m_deadCnt;   //  Á×Àº È½¼ö
-	int32 m_activeCnt; //  ¹ßÀü±â È°¼ºÈ­ È½¼ö
+
+	// ì‚¬ìž¥
+	// íƒˆì¶œ ì§ì› ìˆ˜
+	int32 m_exitPlayerCnt = 0;
+	// ì£½ì¸ íšŸìˆ˜
+
+	// ì§ì›
+	int32 m_deadCnt;   //  ì£½ì€ íšŸìˆ˜
+	int32 m_activeCnt; //  ë°œì „ê¸° í™œì„±í™” íšŸìˆ˜
 
 	Timer m_timer;
-	float m_showTime = 4.0f; // °á°úÃ¢ º¸¿©ÁÖ´Â ½Ã°¢
-	
+	float m_showTime = 4.0f; // ê²°ê³¼ì°½ ë³´ì—¬ì£¼ëŠ” ì‹œê°
+
 public:
 	CResultScene() {}
 	~CResultScene() {}
 	virtual void BuildObjects(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList) {};
 	virtual void ProcessInput(HWND& hWnd) {};
-	virtual void Update(HWND& hWnd) 
+	virtual void Update(HWND& hWnd)
 	{
 		m_timer.Tick(0.0f);
 		if (m_showTime > 0) m_showTime -= m_timer.GetTimeElapsed();
 		if (m_showTime < 0)
-		{	
+		{
 			m_showTime = 4.0f;
 			mainGame.ChangeScene(CGameFramework::SCENESTATE::LOBBY);
 		}
@@ -136,6 +136,6 @@ public:
 	virtual void ReleaseUploadBuffers() {};
 	virtual void ReleaseObjects() {}
 	virtual void Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pCamera, bool bRaster) {};
-	
+
 	virtual void MouseAction(const POINT& mp) override {};
 };

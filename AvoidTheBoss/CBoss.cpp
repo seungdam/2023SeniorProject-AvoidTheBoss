@@ -1,4 +1,4 @@
-#include "pch.h"
+Ôªø#include "pch.h"
 #include "CBoss.h"
 #include "CEmployee.h"
 #include "CBullet.h"
@@ -26,7 +26,7 @@ CBoss::CBoss(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4  * pd3dComman
 		m_pSkinnedAnimationController2->SetTrackAnimationSet(0, 0);//Idle
 		m_pSkinnedAnimationController2->SetTrackAnimationSet(1, 1);//Run
 		m_pSkinnedAnimationController2->SetTrackAnimationSet(2, 2);//Shoot
-		m_pSkinnedAnimationController2->SetTrackAnimationSet(3, 3);//RunningShoot 
+		m_pSkinnedAnimationController2->SetTrackAnimationSet(3, 3);//RunningShoot
 
 		CLoadedModelInfo* pBossUpperModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Character/Boss_Shooting_Run_UpperBody.bin", NULL, Layout::PLAYER);
 		SetChild(pBossUpperModel->m_pModelRootObject, true);
@@ -38,8 +38,8 @@ CBoss::CBoss(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4  * pd3dComman
 		m_pSkinnedAnimationController->SetTrackAnimationSet(0, 1);//Idle
 		m_pSkinnedAnimationController->SetTrackAnimationSet(1, 2);//Run
 		m_pSkinnedAnimationController->SetTrackAnimationSet(2, 3);//Shoot 2
-		m_pSkinnedAnimationController->SetTrackAnimationSet(3, 0);//RunningShoot 
-		
+		m_pSkinnedAnimationController->SetTrackAnimationSet(3, 0);//RunningShoot
+
 		m_pSkinnedAnimationController1->SetTrackAnimationSet(0, 1);//Idle
 		m_pSkinnedAnimationController1->SetTrackAnimationSet(1, 0);//Run
 		m_pSkinnedAnimationController1->SetTrackAnimationSet(2, 2);//Run
@@ -62,7 +62,7 @@ CBoss::CBoss(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4  * pd3dComman
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(3, false);
 	}
-	else if (m_pCamera->m_nMode == (DWORD)THIRD_PERSON_CAMERA) 
+	else if (m_pCamera->m_nMode == (DWORD)THIRD_PERSON_CAMERA)
 	{
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
@@ -119,7 +119,7 @@ CCamera* CBoss::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		break;
 	}
 	m_pCamera->SetPosition(Vector3::Add(m_xmf3Position, m_pCamera->GetOffset()));
-	
+
 	Update(fTimeElapsed, m_clientType);
 
 	return(m_pCamera);
@@ -139,7 +139,7 @@ void CBoss::PrepareAnimate()
 }
 
 void CBoss::Move(const int16& dwDirection, float fDistance)
-{	
+{
 	CPlayer::Move(dwDirection, BOSS_VELOCITY);
 }
 
@@ -176,10 +176,10 @@ void CBoss::Update(float fTimeElapsed, CLIENT_TYPE ptype)
 {
 	if (CLIENT_TYPE::OWNER == m_clientType)
 		m_IsFirst = true;
-	
+
 	if (CLIENT_TYPE::OTHER_PLAYER  == m_clientType || m_pCamera->m_nMode == (DWORD)THIRD_PERSON_CAMERA)
 		m_IsFirst = false;
-	
+
 
 	CPlayer::Update(fTimeElapsed, ptype);
 
@@ -193,16 +193,16 @@ void CBoss::Update(float fTimeElapsed, CLIENT_TYPE ptype)
 		m_pBullet->SetBulletPosition(GetPosition());
 		m_pBullet->Update(fTimeElapsed);
 	}
-	
-	AnimationLogicUpdate(); // ƒ≈∏¿” ∞ËªÍ
 
-	AimationStateUpdate(); // æ÷¥œ∏ﬁ¿Ãº« ∆Æ∑¢ ªÛ≈¬ ∞·¡§
+	AnimationLogicUpdate(); // Ïø®ÌÉÄÏûÑ Í≥ÑÏÇ∞
 
-	AnimTrackUpdate(); // æ÷¥œ∏ﬁ¿Ãº« ∆Æ∑¢ ªÛ≈¬ ∫Ø∞Ê
+	AimationStateUpdate(); // Ïï†ÎãàÎ©îÏù¥ÏÖò Ìä∏Îûô ÏÉÅÌÉú Í≤∞Ï†ï
+
+	AnimTrackUpdate(); // Ïï†ÎãàÎ©îÏù¥ÏÖò Ìä∏Îûô ÏÉÅÌÉú Î≥ÄÍ≤Ω
 
 	LateUpdate(fTimeElapsed, ptype);
 
-	
+
 }
 
 void CBoss::LateUpdate(float fTimeElapsed, CLIENT_TYPE ptype)
@@ -223,7 +223,7 @@ void CBoss::AnimationLogicUpdate()
 			return;
 		}
 		m_standAttackAnimTime++;
-		
+
 	}
 }
 
@@ -246,7 +246,7 @@ void CBoss::SetIdleAnimTrack()
 	if (CLIENT_TYPE::OWNER == m_clientType)
 	{
 		if (m_pSkinnedAnimationController2 == nullptr) return;
-		m_pSkinnedAnimationController2->SetTrackEnable(0, true); // æ∆¿ÃµÈ
+		m_pSkinnedAnimationController2->SetTrackEnable(0, true); // ÏïÑÏù¥Îì§
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
@@ -257,7 +257,7 @@ void CBoss::SetIdleAnimTrack()
 		m_pSkinnedAnimationController2->SetTrackPosition(3, 0.0f);
 
 		if (m_pSkinnedAnimationController == nullptr) return;
-		m_pSkinnedAnimationController->SetTrackEnable(0, false); // æ∆¿ÃµÈ
+		m_pSkinnedAnimationController->SetTrackEnable(0, false); // ÏïÑÏù¥Îì§
 		m_pSkinnedAnimationController->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController->SetTrackEnable(3, false);
@@ -267,7 +267,7 @@ void CBoss::SetIdleAnimTrack()
 		m_pSkinnedAnimationController->SetTrackPosition(2, 0.0f);
 		m_pSkinnedAnimationController->SetTrackPosition(3, 0.0f);
 
-		// ===============  «œ√º ===========================
+		// ===============  ÌïòÏ≤¥ ===========================
 		if (m_pSkinnedAnimationController1 == nullptr) return;
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false); // IDLE
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);  // Run
@@ -278,7 +278,7 @@ void CBoss::SetIdleAnimTrack()
 	else if (CLIENT_TYPE::OTHER_PLAYER == m_clientType)
 	{
 		if (m_pSkinnedAnimationController2 == nullptr) return;
-		m_pSkinnedAnimationController2->SetTrackEnable(0, false); // æ∆¿ÃµÈ
+		m_pSkinnedAnimationController2->SetTrackEnable(0, false); // ÏïÑÏù¥Îì§
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
@@ -289,7 +289,7 @@ void CBoss::SetIdleAnimTrack()
 		m_pSkinnedAnimationController2->SetTrackPosition(3, 0.0f);
 
 		if (m_pSkinnedAnimationController == nullptr) return;
-		m_pSkinnedAnimationController->SetTrackEnable(0, true); // æ∆¿ÃµÈ
+		m_pSkinnedAnimationController->SetTrackEnable(0, true); // ÏïÑÏù¥Îì§
 		m_pSkinnedAnimationController->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController->SetTrackEnable(3, false);
@@ -299,7 +299,7 @@ void CBoss::SetIdleAnimTrack()
 		m_pSkinnedAnimationController->SetTrackPosition(2, 0.0f);
 		m_pSkinnedAnimationController->SetTrackPosition(3, 0.0f);
 
-		// ===============  «œ√º ===========================
+		// ===============  ÌïòÏ≤¥ ===========================
 		if (m_pSkinnedAnimationController1 == nullptr) return;
 		m_pSkinnedAnimationController1->SetTrackEnable(0, true); // IDLE
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);  // Run
@@ -325,9 +325,9 @@ void CBoss::SetRunAnimTrack()
 		m_pSkinnedAnimationController2->SetTrackPosition(3, 0.0f);
 
 		if (m_pSkinnedAnimationController == nullptr) return;
-		// ================= ªÛ√º =========================
+		// ================= ÏÉÅÏ≤¥ =========================
 		m_pSkinnedAnimationController->SetTrackEnable(0, false);
-		m_pSkinnedAnimationController->SetTrackEnable(1, false); // ¥ﬁ∏Æ±‚
+		m_pSkinnedAnimationController->SetTrackEnable(1, false); // Îã¨Î¶¨Í∏∞
 		m_pSkinnedAnimationController->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController->SetTrackEnable(3, false);
 
@@ -336,7 +336,7 @@ void CBoss::SetRunAnimTrack()
 		m_pSkinnedAnimationController->SetTrackPosition(2, 0.0f);
 		m_pSkinnedAnimationController->SetTrackPosition(3, 0.0f);
 
-		// ===============  «œ√º ===========================
+		// ===============  ÌïòÏ≤¥ ===========================
 		if (m_pSkinnedAnimationController1 == nullptr) return;
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false); // IDLE
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);  // Run
@@ -358,9 +358,9 @@ void CBoss::SetRunAnimTrack()
 		m_pSkinnedAnimationController2->SetTrackPosition(3, 0.0f);
 
 		if (m_pSkinnedAnimationController == nullptr) return;
-		// ================= ªÛ√º =========================
+		// ================= ÏÉÅÏ≤¥ =========================
 		m_pSkinnedAnimationController->SetTrackEnable(0, false);
-		m_pSkinnedAnimationController->SetTrackEnable(1, true); // ¥ﬁ∏Æ±‚
+		m_pSkinnedAnimationController->SetTrackEnable(1, true); // Îã¨Î¶¨Í∏∞
 		m_pSkinnedAnimationController->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController->SetTrackEnable(3, false);
 
@@ -369,7 +369,7 @@ void CBoss::SetRunAnimTrack()
 		m_pSkinnedAnimationController->SetTrackPosition(2, 0.0f);
 		m_pSkinnedAnimationController->SetTrackPosition(3, 0.0f);
 
-		// ===============  «œ√º ===========================
+		// ===============  ÌïòÏ≤¥ ===========================
 		if (m_pSkinnedAnimationController1 == nullptr) return;
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false); // IDLE
 		m_pSkinnedAnimationController1->SetTrackEnable(1, true);  // Run
@@ -377,7 +377,7 @@ void CBoss::SetRunAnimTrack()
 		m_pSkinnedAnimationController1->SetTrackPosition(0, 0.0f);
 		m_pSkinnedAnimationController1->SetTrackPosition(1, 0.0f);
 	}
-	
+
 }
 
 void CBoss::SetAttackAnimTrack()
@@ -385,7 +385,7 @@ void CBoss::SetAttackAnimTrack()
 	if (CLIENT_TYPE::OWNER == m_clientType)
 	{
 		if (m_pSkinnedAnimationController2 == nullptr) return;
-		m_pSkinnedAnimationController2->SetTrackEnable(0, false); // æ∆¿ÃµÈ
+		m_pSkinnedAnimationController2->SetTrackEnable(0, false); // ÏïÑÏù¥Îì§
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, true);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
@@ -403,7 +403,7 @@ void CBoss::SetAttackAnimTrack()
 		if (m_pSkinnedAnimationController == nullptr) return;
 		m_pSkinnedAnimationController->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController->SetTrackEnable(1, false);
-		m_pSkinnedAnimationController->SetTrackEnable(2, false); // ∞¯∞›
+		m_pSkinnedAnimationController->SetTrackEnable(2, false); // Í≥µÍ≤©
 		m_pSkinnedAnimationController->SetTrackEnable(3, false);
 
 		m_pSkinnedAnimationController->SetTrackPosition(0, 0.0f);
@@ -411,7 +411,7 @@ void CBoss::SetAttackAnimTrack()
 		m_pSkinnedAnimationController->SetTrackPosition(2, 0.0f);
 		m_pSkinnedAnimationController->SetTrackPosition(3, 0.0f);
 
-		// ===============  «œ√º ===========================
+		// ===============  ÌïòÏ≤¥ ===========================
 		if (m_pSkinnedAnimationController1 == nullptr) return;
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false); // IDLE
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);  // Run
@@ -423,7 +423,7 @@ void CBoss::SetAttackAnimTrack()
 	else if (CLIENT_TYPE::OTHER_PLAYER == m_clientType)
 	{
 		if (m_pSkinnedAnimationController2 == nullptr) return;
-		m_pSkinnedAnimationController2->SetTrackEnable(0, false); // æ∆¿ÃµÈ
+		m_pSkinnedAnimationController2->SetTrackEnable(0, false); // ÏïÑÏù¥Îì§
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
@@ -436,7 +436,7 @@ void CBoss::SetAttackAnimTrack()
 		if (m_pSkinnedAnimationController == nullptr) return;
 		m_pSkinnedAnimationController->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController->SetTrackEnable(1, false);
-		m_pSkinnedAnimationController->SetTrackEnable(2, true); // ∞¯∞›
+		m_pSkinnedAnimationController->SetTrackEnable(2, true); // Í≥µÍ≤©
 		m_pSkinnedAnimationController->SetTrackEnable(3, false);
 
 		m_pSkinnedAnimationController->SetTrackPosition(0, 0.0f);
@@ -444,7 +444,7 @@ void CBoss::SetAttackAnimTrack()
 		m_pSkinnedAnimationController->SetTrackPosition(2, 0.0f);
 		m_pSkinnedAnimationController->SetTrackPosition(3, 0.0f);
 
-		// ===============  «œ√º ===========================
+		// ===============  ÌïòÏ≤¥ ===========================
 		if (m_pSkinnedAnimationController1 == nullptr) return;
 		m_pSkinnedAnimationController1->SetTrackEnable(0, true); // IDLE
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);  // Run
@@ -481,7 +481,7 @@ void CBoss::SetRunAttackAnimTrack()
 		m_pSkinnedAnimationController->SetTrackPosition(3, 0.0f);
 
 		if (m_pSkinnedAnimationController1 == nullptr) return;
-		// ===============  «œ√º ===========================
+		// ===============  ÌïòÏ≤¥ ===========================
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false); // IDLE
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);  // Run
 
@@ -513,7 +513,7 @@ void CBoss::SetRunAttackAnimTrack()
 		m_pSkinnedAnimationController->SetTrackPosition(3, 0.0f);
 
 		if (m_pSkinnedAnimationController1 == nullptr) return;
-		// ===============  «œ√º ===========================
+		// ===============  ÌïòÏ≤¥ ===========================
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false); // IDLE
 		m_pSkinnedAnimationController1->SetTrackEnable(1, true);  // Run
 
@@ -539,7 +539,7 @@ void CBoss::AnimTrackUpdate()
 			if (!GetOnMoveSound()&& CLIENT_TYPE::OWNER == m_clientType)
 			{
 				SoundManager::GetInstance().PlayObjectSound(10, 5);
-				SetOnMoveSound(true);			
+				SetOnMoveSound(true);
 			}
 			break;
 		case (int32)PLAYER_BEHAVIOR::ATTACK:
@@ -567,7 +567,7 @@ uint8 CBoss::ProcessInput()
 	else	 SetBehavior(PLAYER_BEHAVIOR::IDLE);
 
 	CGameScene* gs = static_cast<CGameScene*>(mainGame.m_SceneManager->GetSceneByIdx(3));
-	// 1. ∞¯∞› ≈∞∏¶ ¥≠∑∂¿ª ∞ÊøÏ √≥∏Æ 
+	// 1. Í≥µÍ≤© ÌÇ§Î•º ÎàåÎ†ÄÏùÑ Í≤ΩÏö∞ Ï≤òÎ¶¨
 	if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::SPACE) == (uint8)KEY_STATUS::KEY_PRESS && !GetOnAttack())
 	{
 		SetOnAttack(true);

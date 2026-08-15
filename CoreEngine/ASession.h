@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "IocpObject.h"
 
 class ASession : public IocpObject
@@ -12,6 +12,6 @@ public:
 	RWLOCK;
 public:
 	virtual HANDLE GetHandle() { return 0; };
-	virtual void Processing(class IocpEvent* iocpEvent, int32 numBytes) {} // ¾î¶² ÀÏ°¨À¸·Î  Iocp¿¡ µî·ÏÇß´Ï?
+	virtual void Processing(class IocpEvent* iocpEvent, int32 numBytes) {} // ì–´ë–¤ ì¼ê°ìœ¼ë¡œ  Iocpì— ë“±ë¡í–ˆë‹ˆ?
 };
 

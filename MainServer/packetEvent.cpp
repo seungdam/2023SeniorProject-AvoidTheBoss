@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "packetEvent.h"
 #include "CGameManager.h"
 void InteractionEvent::Task()
@@ -8,15 +8,15 @@ void InteractionEvent::Task()
 	CGameManager& gm = targetRoom._gameLogic;
 	switch ((EVENT_TYPE)eventId)
 	{
-		//============= ½ºÀ§Ä¡ °ü·Ã ÀÌº¥Æ® ===================
+		//============= ìŠ¤ìœ„ì¹˜ ê´€ë ¨ ì´ë²¤íŠ¸ ===================
 	case EVENT_TYPE::SWITCH_ONE_START_EVENT:
 	case EVENT_TYPE::SWITCH_TWO_START_EVENT:
 	case EVENT_TYPE::SWITCH_THREE_START_EVENT:
 	{
 		SGenerator& targetGen = gm.GetGeneratorByIdx(eventId - (uint8)EVENT_TYPE::SWITCH_ONE_START_EVENT);
-		if (!targetGen._IsActive && !targetGen._IsOnInteraction) // ¹ßÀü±â »óÈ£ÀÛ¿ëÀÌ °¡´ÉÇÒ °æ¿ì
+		if (!targetGen._IsActive && !targetGen._IsOnInteraction) // ë°œì „ê¸° ìƒí˜¸ì‘ìš©ì´ ê°€ëŠ¥í•  ê²½ìš°
 		{
-			// °ËÁõ ÈÄ »óÈ£ÀÛ¿ë »óÅÂ·Î º¯°æ
+			// ê²€ì¦ í›„ ìƒí˜¸ì‘ìš© ìƒíƒœë¡œ ë³€ê²½
 			if (!targetGen.CanInteraction(roomNum, _sid))
 			{
 				std::cout << "Bug Detected\n";
@@ -24,7 +24,7 @@ void InteractionEvent::Task()
 			}
 			else
 			{
-				
+
 				targetGen.GenInteractionOn(true);
 				SC_EVENTPACKET packet;
 				packet.size = sizeof(SC_EVENTPACKET);
@@ -43,22 +43,22 @@ void InteractionEvent::Task()
 		}
 	}
 	break;
-	case EVENT_TYPE::SWITCH_ONE_END_EVENT: // »óÈ£ÀÛ¿ë µµÁß¿¡ ³¡³½ °æ¿ì
-	case EVENT_TYPE::SWITCH_TWO_END_EVENT: // »óÈ£ÀÛ¿ë µµÁß¿¡ ³¡³½ °æ¿ì
-	case EVENT_TYPE::SWITCH_THREE_END_EVENT: // »óÈ£ÀÛ¿ë µµÁß¿¡ ³¡³½ °æ¿ì
+	case EVENT_TYPE::SWITCH_ONE_END_EVENT: // ìƒí˜¸ì‘ìš© ë„ì¤‘ì— ëë‚¸ ê²½ìš°
+	case EVENT_TYPE::SWITCH_TWO_END_EVENT: // ìƒí˜¸ì‘ìš© ë„ì¤‘ì— ëë‚¸ ê²½ìš°
+	case EVENT_TYPE::SWITCH_THREE_END_EVENT: // ìƒí˜¸ì‘ìš© ë„ì¤‘ì— ëë‚¸ ê²½ìš°
 	{
 		SGenerator& targetGen = gm.GetGeneratorByIdx(eventId - (uint8)EVENT_TYPE::SWITCH_ONE_END_EVENT);
-		if (!targetGen._IsActive && targetGen._IsOnInteraction) // ¹ßÀü±â »óÈ£ÀÛ¿ëÀÌ µµÁß¿¡ ¹ß»ıÇÑ °æ¿ì
+		if (!targetGen._IsActive && targetGen._IsOnInteraction) // ë°œì „ê¸° ìƒí˜¸ì‘ìš©ì´ ë„ì¤‘ì— ë°œìƒí•œ ê²½ìš°
 		{
-	
-			// »óÈ£ÀÛ¿ë »óÅÂ·Î º¯°æ
+
+			// ìƒí˜¸ì‘ìš© ìƒíƒœë¡œ ë³€ê²½
 			targetGen.GenInteractionOn(false);
 			SC_EVENTPACKET packet;
 			packet.size = sizeof(SC_EVENTPACKET);
 			packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
-			packet.eventId = eventId; // 0: ¹ßÀü±â ½ÃÀÛ // ¹ßÀü±â Á¾·á // 1: ¹ßÀü±â ¿Ï·á // 2: »çÀå´Ô °ø°İ Ã³¸® // 3: »çÀå´Ô °ø°İ ÄğÅ¸ÀÓ
+			packet.eventId = eventId; // 0: ë°œì „ê¸° ì‹œì‘ // ë°œì „ê¸° ì¢…ë£Œ // 1: ë°œì „ê¸° ì™„ë£Œ // 2: ì‚¬ì¥ë‹˜ ê³µê²© ì²˜ë¦¬ // 3: ì‚¬ì¥ë‹˜ ê³µê²© ì¿¨íƒ€ì„
 
-			// ¾Ö´Ï¸ŞÀÌ¼Ç Äµ½½ ÆĞÅ¶ Àü¼Û
+			// ì• ë‹ˆë©”ì´ì…˜ ìº”ìŠ¬ íŒ¨í‚· ì „ì†¡
 			S2C_ANIMPACKET animPacket;
 			animPacket.size = sizeof(S2C_ANIMPACKET);
 			animPacket.type = (uint8)S_GAME_PACKET_TYPE::ANIM;
@@ -71,11 +71,11 @@ void InteractionEvent::Task()
 	}
 	break;
 
-	case EVENT_TYPE::SWITCH_ONE_ACTIVATE_EVENT: // »óÈ£ÀÛ¿ë µµÁß¿¡ ³¡³½ °æ¿ì
-	case EVENT_TYPE::SWITCH_TWO_ACTIVATE_EVENT: // »óÈ£ÀÛ¿ë µµÁß¿¡ ³¡³½ °æ¿ì
-	case EVENT_TYPE::SWITCH_THREE_ACTIVATE_EVENT: // »óÈ£ÀÛ¿ë µµÁß¿¡ ³¡³½ °æ¿ì
+	case EVENT_TYPE::SWITCH_ONE_ACTIVATE_EVENT: // ìƒí˜¸ì‘ìš© ë„ì¤‘ì— ëë‚¸ ê²½ìš°
+	case EVENT_TYPE::SWITCH_TWO_ACTIVATE_EVENT: // ìƒí˜¸ì‘ìš© ë„ì¤‘ì— ëë‚¸ ê²½ìš°
+	case EVENT_TYPE::SWITCH_THREE_ACTIVATE_EVENT: // ìƒí˜¸ì‘ìš© ë„ì¤‘ì— ëë‚¸ ê²½ìš°
 	{
-		
+
 		SGenerator& targetGen = gm.GetGeneratorByIdx(eventId - (uint8)EVENT_TYPE::SWITCH_ONE_ACTIVATE_EVENT);
 		targetGen.GenActivate(true);
 		SC_EVENTPACKET packet;
@@ -83,13 +83,13 @@ void InteractionEvent::Task()
 		packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
 		packet.eventId = eventId;
 		targetRoom.BroadCasting(&packet);
-		// ÀÏ´Ü È°¼ºÈ­ »ç½Ç ¾Ë¸®±â
+		// ì¼ë‹¨ í™œì„±í™” ì‚¬ì‹¤ ì•Œë¦¬ê¸°
 
 
 	}
 	break;
-	
-	// ============== ±ú¿ì±â °ü·Ã ÀÌº¥Æ® =============
+
+	// ============== ê¹¨ìš°ê¸° ê´€ë ¨ ì´ë²¤íŠ¸ =============
 	case EVENT_TYPE::RESCUE_PLAYER_ONE:
 	case EVENT_TYPE::RESCUE_PLAYER_TWO:
 	case EVENT_TYPE::RESCUE_PLAYER_THREE:
@@ -99,7 +99,7 @@ void InteractionEvent::Task()
 		if (!p.m_bIsRescue)
 		{
 			p.m_bIsRescue = true;
-			
+
 			SC_EVENTPACKET packet;
 			packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
 			packet.size = sizeof(SC_EVENTPACKET);
@@ -122,7 +122,7 @@ void InteractionEvent::Task()
 	{
 		SPlayer& p = gm.GetPlayerByIdx((int8)eventId - (int8)EVENT_TYPE::RESCUE_CANCEL_PLAYER_ONE);
 		if (p.m_bIsRescue) p.m_bIsRescue = false;
-		
+
 
 		SC_EVENTPACKET packet;
 		packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
@@ -192,9 +192,9 @@ void moveEvent::Task()
 	CGameManager& gm = ServerIocpCore._rmgr->GetRoom(roomNum)._gameLogic;
 	Room& targetRoom = ServerIocpCore._rmgr->GetRoom(roomNum);
 	//SPlayer& targetPlayer = gm.GetPlayerBySid(_sid);
-	
+
 	gm.GetPlayerBySid(_sid).SetDirection(_dir);
-	
+
 	if (gm.GetPlayerBySid(_sid).m_idx == 0) gm.GetPlayerBySid(_sid).Move(_key, BOSS_VELOCITY);
 	else gm.GetPlayerBySid(_sid).Move(_key, EMPLOYEE_VELOCITY);
 
@@ -206,10 +206,10 @@ void moveEvent::Task()
 		packet.type = (uint8)S_GAME_PACKET_TYPE::SPOS;
 		packet.x = gm.GetPlayerBySid(_sid).GetPosition().x;
 		packet.z = gm.GetPlayerBySid(_sid).GetPosition().z;
-		
+
 		targetRoom.BroadCastingExcept(&packet, _sid);
 	}
-	
+
 };
 
 void AttackEvent::Task()
@@ -219,9 +219,9 @@ void AttackEvent::Task()
 	CGameManager& gm = ServerIocpCore._rmgr->GetRoom(roomNum)._gameLogic;
 	bool retVal = ServerIocpCore._rmgr->GetRoom(roomNum).ProcessAttackEvent(_wf, _tidx);
 	SPlayer& emp = gm.GetPlayerByIdx(_tidx);
-	
-	
-	
+
+
+
 	if (retVal)
 	{
 		emp.ProcessAttack();
@@ -231,7 +231,7 @@ void AttackEvent::Task()
 		epacket.eventId = (int32)EVENT_TYPE::ATTACKED_PLAYER_ONE + (int32)_tidx;
 
 		ServerIocpCore._rmgr->GetRoom(roomNum).BroadCasting(&epacket);
-	
+
 
 	}
 }

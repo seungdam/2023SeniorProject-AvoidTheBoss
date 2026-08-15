@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "CSound.h"
 #include "Camera.h"
 #include "CBoss.h"
@@ -68,7 +68,7 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetShaderResourceViewDesc(D3D12_RESOURCE_DESC d3
 void CScene::CreateCbvSrvDescriptorHeaps(ID3D12Device5* pd3dDevice, int nConstantBufferViews, int nShaderResourceViews)
 {
 	D3D12_DESCRIPTOR_HEAP_DESC d3dDescriptorHeapDesc;
-	d3dDescriptorHeapDesc.NumDescriptors = nConstantBufferViews + nShaderResourceViews; //CBVs + SRVs 
+	d3dDescriptorHeapDesc.NumDescriptors = nConstantBufferViews + nShaderResourceViews; //CBVs + SRVs
 	d3dDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	d3dDescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	d3dDescriptorHeapDesc.NodeMask = 0;
@@ -290,7 +290,7 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device5* pd3dDevi
 
 void CScene::CreateShaderVariables(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList)
 {
-	UINT ncbElementBytes = ((sizeof(LIGHTS) + 255) & ~255); //256ÀÇ ¹è¼ö
+	UINT ncbElementBytes = ((sizeof(LIGHTS) + 255) & ~255); //256ì˜ ë°°ìˆ˜
 	m_pd3dcbLights = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 
 	m_pd3dcbLights->Map(0, NULL, (void**)&m_pcbMappedLights);
@@ -309,6 +309,8 @@ void CScene::ReleaseShaderVariables()
 	{
 		m_pd3dcbLights->Unmap(0, NULL);
 		m_pd3dcbLights->Release();
+		m_pd3dcbLights = nullptr;
+		m_pcbMappedLights = nullptr;
 	}
 }
 
@@ -324,12 +326,15 @@ void CScene::ReleaseUploadBuffers()
 void CScene::ReleaseObjects()
 {
 	if (m_pd3dGraphicsRootSignature) m_pd3dGraphicsRootSignature->Release();
+	m_pd3dGraphicsRootSignature = nullptr;
 	if (m_pd3dCbvSrvDescriptorHeap) m_pd3dCbvSrvDescriptorHeap->Release();
+	m_pd3dCbvSrvDescriptorHeap = nullptr;
 
 	if (m_ppGameObjects)
 	{
 		for (int i = 0; i < m_nGameObjects; i++) if (m_ppGameObjects[i]) m_ppGameObjects[i]->Release();
 		delete[] m_ppGameObjects;
+		m_ppGameObjects = nullptr;
 	}
 
 	if (m_ppShaders)
@@ -344,19 +349,23 @@ void CScene::ReleaseObjects()
 			m_ppShaders[i] = nullptr;
 		}
 		delete[] m_ppShaders;
+		m_ppShaders = nullptr;
 	}
 
-	if (m_pSkyBox) delete m_pSkyBox;
+	delete m_pSkyBox;
+	m_pSkyBox = nullptr;
 
 	if (m_ppHierarchicalGameObjects)
 	{
 		for (int i = 0; i < m_nHierarchicalGameObjects; i++) if (m_ppHierarchicalGameObjects[i]) m_ppHierarchicalGameObjects[i]->Release();
 		delete[] m_ppHierarchicalGameObjects;
+		m_ppHierarchicalGameObjects = nullptr;
 	}
 
 	ReleaseShaderVariables();
 
-	if (m_pLights) delete[] m_pLights;
+	delete[] m_pLights;
+	m_pLights = nullptr;
 }
 
 void CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
@@ -365,7 +374,7 @@ void CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 	{
 	case WM_LBUTTONDOWN:
 	case WM_RBUTTONDOWN:
-		//¸¶¿ì½º Ä¸ÃÄ¸¦ ÇÏ°í ÇöÀç ¸¶¿ì½º À§Ä¡¸¦ °¡Á®¿Â´Ù.
+		//ë§ˆìš°ìŠ¤ ìº¡ì³ë¥¼ í•˜ê³  í˜„ì¬ ë§ˆìš°ìŠ¤ ìœ„ì¹˜ë¥¼ ê°€ì ¸ì˜¨ë‹¤.
 	{
 		int xPos = GET_X_LPARAM(lParam);
 		int yPos = GET_Y_LPARAM(lParam);
@@ -378,7 +387,7 @@ void CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam,
 	break;
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
-		//¸¶¿ì½º Ä¸ÃÄ¸¦ ÇØÁ¦ÇÑ´Ù. 
+		//ë§ˆìš°ìŠ¤ ìº¡ì³ë¥¼ í•´ì œí•œë‹¤.
 		::ReleaseCapture();
 		break;
 	case WM_MOUSEMOVE:

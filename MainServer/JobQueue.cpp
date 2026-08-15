@@ -1,10 +1,10 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "JobQueue.h"
 
 Scheduler::Scheduler()
 {
-	_BeginTickPoint = Clock::now(); // ½ÃÀÛ ½ÃÁ¡Àº Áö±İ
-	_CurrentTick = GetCurrentTick(); // ÇöÀç Æ½ °ª ÃÊ±âÈ­
+	_BeginTickPoint = Clock::now(); // ì‹œì‘ ì‹œì ì€ ì§€ê¸ˆ
+	_CurrentTick = GetCurrentTick(); // í˜„ì¬ í‹± ê°’ ì´ˆê¸°í™”
 }
 
 void Scheduler::PushTask(QueueEvent* task, float after)
@@ -24,16 +24,16 @@ void Scheduler::PushTask(QueueEvent* task)
 void Scheduler::DoTasks()
 {
 	/// tick update
-	_CurrentTick = GetCurrentTick(); // ÇöÀç Æ½°ªÀ» ±¸ÇÑ´Ù.
+	_CurrentTick = GetCurrentTick(); // í˜„ì¬ í‹±ê°’ì„ êµ¬í•œë‹¤.
 
 	while (!_TaskQueue.empty())
 	{
-		QueueEvent* jobElem = _TaskQueue.top(); // °¡Àå ¿ì¼±ÀûÀ¸·Î ³ª¿Í¾ßÇÒ ÀÌº¥Æ®¿¡ ´ëÇØ¼­
-		if (_CurrentTick < jobElem->generateTime) continue; // ¾ÆÁ÷ È£ÃâÇÒ ½ÃÁ¡ÀÌ µÇÁö ¾Ê¾ÒÀ» °æ¿ì ·çÇÁ¸¦ ³ª¿Â´Ù.
-		jobElem->Task(); // ¸¸¾à È£ÃâÇÒ ½ÃÁ¡ÀÌ µÆ´Ù¸é ÇØ´ç ÀâÀ» ¼öÇàÇÏ°í queue¿¡¼­ Á¦°Å
+		QueueEvent* jobElem = _TaskQueue.top(); // ê°€ì¥ ìš°ì„ ì ìœ¼ë¡œ ë‚˜ì™€ì•¼í•  ì´ë²¤íŠ¸ì— ëŒ€í•´ì„œ
+		if (_CurrentTick < jobElem->generateTime) continue; // ì•„ì§ í˜¸ì¶œí•  ì‹œì ì´ ë˜ì§€ ì•Šì•˜ì„ ê²½ìš° ë£¨í”„ë¥¼ ë‚˜ì˜¨ë‹¤.
+		jobElem->Task(); // ë§Œì•½ í˜¸ì¶œí•  ì‹œì ì´ ëë‹¤ë©´ í•´ë‹¹ ì¡ì„ ìˆ˜í–‰í•˜ê³  queueì—ì„œ ì œê±°
 		_TaskQueue.pop();
 		delete jobElem;
-		
+
 	}
 
 }
@@ -50,11 +50,11 @@ void Scheduler::DoNormalTasks()
 	/// tick update
 	while (!_normalQueue.empty())
 	{
-		QueueEvent* jobElem = _normalQueue.front(); // °¡Àå ¿ì¼±ÀûÀ¸·Î ³ª¿Í¾ßÇÒ ÀÌº¥Æ®¿¡ ´ëÇØ¼­
+		QueueEvent* jobElem = _normalQueue.front(); // ê°€ì¥ ìš°ì„ ì ìœ¼ë¡œ ë‚˜ì™€ì•¼í•  ì´ë²¤íŠ¸ì— ëŒ€í•´ì„œ
 		_normalQueue.pop();
 		if (jobElem != nullptr)
 		{
-			jobElem->Task(); // ¸¸¾à È£ÃâÇÒ ½ÃÁ¡ÀÌ µÆ´Ù¸é ÇØ´ç ÀâÀ» ¼öÇàÇÏ°í queue¿¡¼­ Á¦°Å
+			jobElem->Task(); // ë§Œì•½ í˜¸ì¶œí•  ì‹œì ì´ ëë‹¤ë©´ í•´ë‹¹ ì¡ì„ ìˆ˜í–‰í•˜ê³  queueì—ì„œ ì œê±°
 			delete jobElem;
 		}
 	}

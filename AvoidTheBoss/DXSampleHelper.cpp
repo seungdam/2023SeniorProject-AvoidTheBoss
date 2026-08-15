@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "DXSampleHelper.h"
 
 inline HRESULT ReadDataFromFile(LPCWSTR filename, byte** data, UINT* size)

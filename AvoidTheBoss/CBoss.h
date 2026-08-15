@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "Player.h"
 class CBullet;
 
@@ -7,7 +7,7 @@ class CBoss : public CPlayer
 	friend class CSession;
 private:
 	CGameObject* m_RightHands = NULL;
-private: // 06/11 --> 06/13 Ãß°¡
+private: // 06/11 --> 06/13 ì¶”ê°€
 	int32 m_runAttackAnimTime = 0;
 	int32 m_standAttackAnimTime = 0;
 	bool  m_IsOnAttack = false ;
@@ -21,14 +21,14 @@ public:
 	virtual CCamera* ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed);
 	virtual void Rotate(float x, float y, float z);
 	virtual void PrepareAnimate();
-	// ========== ÇÃ·¹ÀÌ¾î Á¶ÀÛ °ü·Ã ============
-	virtual uint8 ProcessInput(); // 04-29 Ãß°¡
+	// ========== í”Œë ˆì´ì–´ ì¡°ì‘ ê´€ë ¨ ============
+	virtual uint8 ProcessInput(); // 04-29 ì¶”ê°€
 	virtual void Move(const int16& dwDirection, float fDistance);
 	virtual void Update(float fTimeElapsed, CLIENT_TYPE ptype);
 	virtual void LateUpdate(float ,CLIENT_TYPE);
-	
 
-	// ============= ¾Ö´Ï¸ŞÀÌ¼Ç Æ®·¢ ¼ÂÆÃ °ü·Ã ============ // 05-22 Ãß°¡ ÇÔ¼ö
+
+	// ============= ì• ë‹ˆë©”ì´ì…˜ íŠ¸ë™ ì…‹íŒ… ê´€ë ¨ ============ // 05-22 ì¶”ê°€ í•¨ìˆ˜
 	void AnimationLogicUpdate();
 	void AimationStateUpdate();
 
@@ -36,7 +36,7 @@ public:
 	void SetRunAnimTrack();
 	void SetAttackAnimTrack();
 	void SetRunAttackAnimTrack();
-	virtual void AnimTrackUpdate(); 
+	virtual void AnimTrackUpdate();
 
 	void SetOnAttack(bool value) { m_IsOnAttack = value; }
 	bool GetOnAttack() { return m_IsOnAttack; }

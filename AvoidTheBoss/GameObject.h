@@ -1,4 +1,4 @@
-//------------------------------------------------------- ----------------------
+ï»¿//------------------------------------------------------- ----------------------
 // File: Object.h
 //-----------------------------------------------------------------------------
 
@@ -207,9 +207,9 @@ public:
 	void SetAnimationCallbackHandler(CAnimationCallbackHandler *pCallbackHandler);
 
 	void HandleCallback();
-}; //¾Ö´Ï¸ŞÀÌ¼Ç 1°³
+}; //ì• ë‹ˆë©”ì´ì…˜ 1ê°œ
 
-class CAnimationSets //¾Ö´Ï¸ŞÀÌ¼Ç ÁıÇÕ
+class CAnimationSets //ì• ë‹ˆë©”ì´ì…˜ ì§‘í•©
 {
 private:
 	int								m_nReferences = 0;
@@ -226,7 +226,7 @@ public:
 	int								m_nAnimationSets = 0;
 	CAnimationSet					**m_pAnimationSets = NULL;
 
-	int								m_nAnimatedBoneFrames = 0; 
+	int								m_nAnimatedBoneFrames = 0;
 	CGameObject						**m_ppAnimatedBoneFrameCaches = NULL; //[m_nAnimatedBoneFrames]
 
 public:
@@ -235,7 +235,7 @@ public:
 	void SetAnimationCallbackHandler(int nAnimationSet, CAnimationCallbackHandler *pCallbackHandler);
 };
 
-class CAnimationTrack //µ¿ÀÛ Á¦¾î·Î ¼º´É °³¼± 
+class CAnimationTrack //ë™ì‘ ì œì–´ë¡œ ì„±ëŠ¥ ê°œì„ 
 {
 public:
 	CAnimationTrack() { }
@@ -276,7 +276,7 @@ public:
 	void PrepareSkinning();
 };
 
-class CAnimationController //¾Ö´Ï¸ŞÀÌ¼Ç ºí·»µù / ¾Ö´Ï¸ŞÀÌ¼Ç ÁıÇÕ ÀüÃ¼ ¿É¼ÇÀÇ ÀÚ·á±¸Á¶
+class CAnimationController //ì• ë‹ˆë©”ì´ì…˜ ë¸”ë Œë”© / ì• ë‹ˆë©”ì´ì…˜ ì§‘í•© ì „ì²´ ì˜µì…˜ì˜ ìë£Œêµ¬ì¡°
 {
 public:
 	CAnimationController(ID3D12Device5 *pd3dDevice, ID3D12GraphicsCommandList4  *pd3dCommandList, int nAnimationTracks, CLoadedModelInfo *pModel);
@@ -435,7 +435,7 @@ public:
 class CSkyBox : public CGameObject
 {
 public:
-	CSkyBox(ID3D12Device5 *pd3dDevice, 
+	CSkyBox(ID3D12Device5 *pd3dDevice,
 		ID3D12GraphicsCommandList4   *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature);
 	virtual ~CSkyBox();
 

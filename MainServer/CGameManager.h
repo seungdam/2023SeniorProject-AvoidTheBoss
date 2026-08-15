@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "SPlayer.h"
 #include "SGenerator.h"
 #include "WorldRewinder.h"
@@ -13,16 +13,16 @@ class CGameManager
 {
 	friend class Room;
 protected:
-	bool	_bExitReady = false; // Å»Ãâ Á¶°ÇÀÌ ¿Ï·á µÆ´Â°¡.
+	bool	_bExitReady = false; // íƒˆì¶œ ì¡°ê±´ì´ ì™„ë£Œ ëëŠ”ê°€.
 
 
 	SPlayer _players[4];
 	SGenerator _generators[3];
 	GAMESTATE _gState = GAMESTATE::NONE;
-	std::shared_mutex _jobQueueLock; // eventQueue °ü¸®¿ë Lock
+	std::shared_mutex _jobQueueLock; // eventQueue ê´€ë¦¬ìš© Lock
 protected:
 	Rewinder<30> _history;
-	Scheduler* _jobQueue; // ¹æ¿¡ ¼ÓÇØ ÀÖ´Â Å¬¶óÀÌ¾ğÆ®°¡ ¾ß±âÇÑ ÀÌº¥Æ® Å¥
+	Scheduler* _jobQueue; // ë°©ì— ì†í•´ ìˆëŠ” í´ë¼ì´ì–¸íŠ¸ê°€ ì•¼ê¸°í•œ ì´ë²¤íŠ¸ í
 public:
 	CGameManager();
 	~CGameManager();

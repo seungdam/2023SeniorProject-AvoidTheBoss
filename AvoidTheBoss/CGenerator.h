@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "GameObject.h"
 
 #define BUTTON_ANIM_FRAME 50
@@ -14,17 +14,17 @@ public:
 	CGameObject** m_ppPipe = NULL;
 	CGameObject* m_pButton = NULL;
 	CGameObject* m_pBody = NULL;
-public: //06-03 Ãß°¡
+public: //06-03 ì¶”ê°€
 	int m_idx = -1;
 	float m_maxGuage = 100;
 	float m_curGuage = 0;
 	float m_guageSpeed = 10.0f;
 public:
 	std::mutex m_lock;
-	bool m_bGenActive = false; // --> ¹ßÀü±â°¡ È°¼ºÈ­ µÇ¾ú´Â°¡
-	bool m_bOnInteraction = false; // --> ¹ßÀü±â°¡ »óÈ£ÀÛ¿ë ÁßÀÎ°¡?
+	bool m_bGenActive = false; // --> ë°œì „ê¸°ê°€ í™œì„±í™” ë˜ì—ˆëŠ”ê°€
+	bool m_bOnInteraction = false; // --> ë°œì „ê¸°ê°€ ìƒí˜¸ìž‘ìš© ì¤‘ì¸ê°€?
 	bool m_bAlreadyOn = false;
-	bool m_bOnGenAnimation = false; // ¹ßÀü±â ¾Ö´Ï¸ÞÀÌ¼Ç È°¼ºÈ­ ¿©ºÎ
+	bool m_bOnGenAnimation = false; // ë°œì „ê¸° ì• ë‹ˆë©”ì´ì…˜ í™œì„±í™” ì—¬ë¶€
 	bool m_nPipeStartAnimation[3];
 public:
 	int  m_nButtonAnimationCount = BUTTON_ANIM_FRAME;
@@ -33,7 +33,7 @@ public:
 	float m_AnimationDegree = 0.0f;
 public:
 	CGenerator();
-	CGenerator(const CGenerator& other) : 
+	CGenerator(const CGenerator& other) :
 		CGameObject(other),
 		radius(other.radius),
 		m_nPipe(other.m_nPipe),
@@ -63,7 +63,7 @@ public:
 			}
 		}
 	}
-	virtual ~CGenerator() {};
+	virtual ~CGenerator() { delete[] m_ppPipe; };
 	float GetRadius() { return radius; }
 
 	virtual void SetNormalVector();
@@ -84,8 +84,8 @@ public:
 	virtual void ResetState()
 	{
 		m_curGuage = 0;
-		m_bGenActive = false; // --> ¹ßÀü±â°¡ È°¼ºÈ­ µÇ¾ú´Â°¡
-		m_bOnInteraction = false; // --> ¹ßÀü±â°¡ »óÈ£ÀÛ¿ë ÁßÀÎ°¡?
+		m_bGenActive = false; // --> ë°œì „ê¸°ê°€ í™œì„±í™” ë˜ì—ˆëŠ”ê°€
+		m_bOnInteraction = false; // --> ë°œì „ê¸°ê°€ ìƒí˜¸ìž‘ìš© ì¤‘ì¸ê°€?
 		m_bAlreadyOn = false;
 
 		m_ppPipe[0]->SetPosition(0.09313595f, 1.839607f,-0.1005933f);

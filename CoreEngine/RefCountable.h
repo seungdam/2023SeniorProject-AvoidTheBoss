@@ -1,13 +1,13 @@
-#pragma once
+ï»¿#pragma once
 #include <iostream>
-// ÀÏ¹İÀûÀÎ ·¹ÆÛ·±½º Ä«¿îÆ®
+// ì¼ë°˜ì ì¸ ë ˆí¼ëŸ°ìŠ¤ ì¹´ìš´íŠ¸
 class RefCountable
 {
 public:
 	RefCountable(): _refCnt(1) { }
 	virtual  ~RefCountable() { }
 	int32 AddRef() { return ++_refCnt; }
-	int32 ReleaseRef() 
+	int32 ReleaseRef()
 	{
 		int32 ref = --_refCnt;
 		if (ref == 0)
@@ -21,37 +21,37 @@ protected:
 	Atomic<int32> _refCnt;
 };
 
-// Á÷Á¢ ½º¸¶Æ® Æ÷ÀÎÅÍ ±¸Çö
+// ì§ì ‘ ìŠ¤ë§ˆíŠ¸ í¬ì¸í„° êµ¬í˜„
 template <class T>
-class SharedPtr 
+class SharedPtr
 {
 public:
 	SharedPtr() {}
 	SharedPtr(T* obj) { Set(obj); };
 	~SharedPtr() { Release(); };
 
-	//º¹»ç
+	//ë³µì‚¬
 	SharedPtr(const SharedPtr& rhs) { Set(rhs._obj); }
-	//ÀÌµ¿
+	//ì´ë™
 	SharedPtr(SharedPtr&& rhs) { _obj = rhs._obj; rhs = nullptr; }
-	// »ó¼Ó º¹»ç ºÎ¸ğ ÀÚ½Ä ¾÷ ´Ù¿î Ä³½ºÆÃ °¡´É
+	// ìƒì† ë³µì‚¬ ë¶€ëª¨ ìì‹ ì—… ë‹¤ìš´ ìºìŠ¤íŒ… ê°€ëŠ¥
 	template <class U>
 	SharedPtr(const SharedPtr<U>& rhs) { Set(static_cast<T*>(rhs._obj)); }
-// ¿¬»êÀÚ
-	//º¹»ç ´ëÀÔ
+// ì—°ì‚°ì
+	//ë³µì‚¬ ëŒ€ì…
 	SharedPtr& operator=(const SharedPtr<T>& rhs)
 	{
-		
+
 		if (_obj != rhs._obj)
 		{
-			
+
 			Release(); // 3->2
 			Set(rhs._obj);
 		}
 		return *this;
-		
+
 	}
-	// ÀÌµ¿ ´ëÀÔ
+	// ì´ë™ ëŒ€ì…
 	 SharedPtr& operator=(SharedPtr&& rhs)
 	{
 		 std::cout << typeid(this).name() << std::endl;
@@ -67,7 +67,7 @@ public:
 	bool	 operator!=(const SharedPtr& rhs) const { return (_obj != rhs._obj); }
 	bool	 operator!=(T* robj) const { return (_obj != robj); }
 	bool	 operator<(const SharedPtr& rhs) { return (_obj < rhs._obj); }
-	
+
 	T*		 operator* () { return _obj; }
 	const T* operator* () const { return _obj; };
 		     operator T* () const { return _obj; }
@@ -75,13 +75,13 @@ public:
 	const T* operator->() const { return _obj; }
 
 	bool IsNull() { return (_obj == nullptr); }
-// ======= ±â´É ========
+// ======= ê¸°ëŠ¥ ========
 private:
 	inline void Set(T* obj)
 	{
 		_obj = obj; // ref 2
 		if(_obj != nullptr) _obj->AddRef();
-		
+
 	}
 
 	inline void Release()

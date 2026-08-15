@@ -1,8 +1,8 @@
-#pragma once
+ï»¿#pragma once
 
 //=================
 // CRASH
-// ÀÎÀ§ÀûÀÎ Å©·¯½¬¸¦ ÀÏÀ¸Å°°Ô ¸¸µå´Â ¸ÅÅ©·Î
+// ì¸ìœ„ì ì¸ í¬ëŸ¬ì‰¬ë¥¼ ì¼ìœ¼í‚¤ê²Œ ë§Œë“œëŠ” ë§¤í¬ë¡œ
 // ===================
 #define MOUTPUT
 #define MINPUT
@@ -15,7 +15,7 @@
 #define RLock  std::shared_lock<std::shared_mutex> rl(_lock);
 #define WLock  std::unique_lock<std::shared_mutex> wr(_lock);
 
-// room  Å¬·¡½º¿¡¼­ ¸®½ºÆ® °ü¸®ÇÒ ¶§ »ç¿ëÇÏ´Â ¶ô
+// room  í´ë˜ìŠ¤ì—ì„œ ë¦¬ìŠ¤íŠ¸ ê´€ë¦¬í•  ë•Œ ì‚¬ìš©í•˜ëŠ” ë½
 #define RMListLock std::shared_mutex _listLock;
 #define RListLock std::shared_lock<std::shared_mutex> lrl(_listLock);
 #define WListLock std::unique_lock<std::shared_mutex> lwl(_listLock);
@@ -44,4 +44,3 @@ __analysis_assume(crash != nullptr); 		 \
 	}										\
 											\
 }											\
-										

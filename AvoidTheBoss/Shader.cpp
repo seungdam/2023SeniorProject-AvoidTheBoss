@@ -1,4 +1,4 @@
-//-----------------------------------------------------------------------------
+﻿//-----------------------------------------------------------------------------
 // File: Shader.cpp
 //-----------------------------------------------------------------------------
 
@@ -15,7 +15,7 @@ CShader::~CShader()
 {
 	ReleaseShaderVariables();
 
-	if (m_pd3dPipelineState) { 
+	if (m_pd3dPipelineState) {
 		m_pd3dPipelineState->Release();
 		m_pd3dPipelineState = nullptr;
 	};
@@ -46,65 +46,14 @@ D3D12_SHADER_BYTECODE CShader::CompileShaderFromFile(const WCHAR *pszFileName, L
 	nCompileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
 
-	ID3DBlob *pd3dErrorBlob = NULL;
+	ComPtr<ID3DBlob> pd3dErrorBlob;
 	HRESULT hResult = ::D3DCompileFromFile(pszFileName, NULL, D3D_COMPILE_STANDARD_FILE_INCLUDE, pszShaderName, pszShaderProfile, nCompileFlags, 0, ppd3dShaderBlob, &pd3dErrorBlob);
-	char *pErrorString = NULL;
-	if (pd3dErrorBlob) pErrorString = (char *)pd3dErrorBlob->GetBufferPointer();
+	if (pd3dErrorBlob) ::OutputDebugStringA(static_cast<char*>(pd3dErrorBlob->GetBufferPointer()));
 
-	D3D12_SHADER_BYTECODE d3dShaderByteCode;
+	D3D12_SHADER_BYTECODE d3dShaderByteCode = {};
+	if (FAILED(hResult) || !*ppd3dShaderBlob) return d3dShaderByteCode;
 	d3dShaderByteCode.BytecodeLength = (*ppd3dShaderBlob)->GetBufferSize();
 	d3dShaderByteCode.pShaderBytecode = (*ppd3dShaderBlob)->GetBufferPointer();
-
-	return(d3dShaderByteCode);
-}
-
-#define _WITH_WFOPEN
-//#define _WITH_STD_STREAM
-
-#ifdef _WITH_STD_STREAM
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <sstream>
-#endif
-
-D3D12_SHADER_BYTECODE CShader::ReadCompiledShaderFromFile(WCHAR *pszFileName, ID3DBlob **ppd3dShaderBlob)
-{
-	UINT nReadBytes = 0;
-#ifdef _WITH_WFOPEN
-	FILE *pFile = NULL;
-	::_wfopen_s(&pFile, pszFileName, L"rb");
-	::fseek(pFile, 0, SEEK_END);
-	int nFileSize = ::ftell(pFile);
-	BYTE *pByteCode = new BYTE[nFileSize];
-	::rewind(pFile);
-	nReadBytes = (UINT)::fread(pByteCode, sizeof(BYTE), nFileSize, pFile);
-	::fclose(pFile);
-#endif
-#ifdef _WITH_STD_STREAM
-	std::ifstream ifsFile;
-	ifsFile.open(pszFileName, std::ios::in | std::ios::ate | std::ios::binary);
-	nReadBytes = (int)ifsFile.tellg();
-	BYTE *pByteCode = new BYTE[*pnReadBytes];
-	ifsFile.seekg(0);
-	ifsFile.read((char *)pByteCode, nReadBytes);
-	ifsFile.close();
-#endif
-
-	D3D12_SHADER_BYTECODE d3dShaderByteCode;
-	if (ppd3dShaderBlob)
-	{
-		*ppd3dShaderBlob = NULL;
-		HRESULT hResult = D3DCreateBlob(nReadBytes, ppd3dShaderBlob);
-		memcpy((*ppd3dShaderBlob)->GetBufferPointer(), pByteCode, nReadBytes);
-		d3dShaderByteCode.BytecodeLength = (*ppd3dShaderBlob)->GetBufferSize();
-		d3dShaderByteCode.pShaderBytecode = (*ppd3dShaderBlob)->GetBufferPointer();
-	}
-	else
-	{
-		d3dShaderByteCode.BytecodeLength = nReadBytes;
-		d3dShaderByteCode.pShaderBytecode = pByteCode;
-	}
 
 	return(d3dShaderByteCode);
 }
@@ -312,9 +261,9 @@ D3D12_SHADER_BYTECODE CStandardShader::CreateVertexShader()
 
 D3D12_SHADER_BYTECODE CStandardShader::CreatePixelShader()
 {
-	
+
 	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSStandard", "ps_5_1", &m_pd3dPixelShaderBlob));
-	
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -370,7 +319,7 @@ void CStandardObjectsShader::ReleaseObjects()
 {
 	if (m_ppObjects)
 	{
-		for (int j = 0; j < m_nObjects; j++) 
+		for (int j = 0; j < m_nObjects; j++)
 			if (m_ppObjects[j])
 			{
 				//const std::type_info& typeInfo = typeid(m_ppObjects[j]);
@@ -389,7 +338,7 @@ void CStandardObjectsShader::AnimateObjects(float fTimeElapsed)
 
 void CStandardObjectsShader::ReleaseUploadBuffers()
 {
-	for (int j = 0; j < m_nObjects; j++) 
+	for (int j = 0; j < m_nObjects; j++)
 		if (m_ppObjects[j]) {
 			m_ppObjects[j]->ReleaseUploadBuffers();
 		}
@@ -558,7 +507,7 @@ void CBulletObjectsShader::BuildObjects(ID3D12Device5* pd3dDevice,ID3D12Graphics
 	m_nObjects = BULLET_NUMBER;
 	m_ppObjects = new CGameObject * [m_nObjects];
 
-	CGameObject* pBullet = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/�Ѿ�/green_bullet.bin", this, Layout::BULLET);
+	CGameObject* pBullet = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/총알/green_bullet.bin", this, Layout::BULLET);
 	for (int i = 0; i < m_nObjects; i++)
 	{
 		m_ppObjects[i] = new CBullet();
@@ -797,7 +746,7 @@ void CGeneratorObjectsShader::BuildObjects(ID3D12Device5* pd3dDevice, ID3D12Grap
 	m_ppObjects[0] = new CGenerator();
 	m_ppObjects[0]->SetChild(pGenerator1 ,true);
 	m_ppObjects[0]->SetPosition(XMFLOAT3(-22.884f, 0.0f, 2.46665f));
-	m_ppObjects[0]->Rotate(0.0f, 90.0f, 0.0f); 
+	m_ppObjects[0]->Rotate(0.0f, 90.0f, 0.0f);
 	m_ppObjects[0]->OnPrepareAnimate();
 	m_ppObjects[0]->SetNormalVector();
 	m_ppObjects[0]->objLayer = Layout::GENERATOR;
@@ -852,7 +801,7 @@ void CHitEffectObjectsShader::BuildObjects(ID3D12Device5* pd3dDevice, ID3D12Grap
 {
 	m_nObjects = 1;
 	m_ppObjects = new CGameObject * [m_nObjects];
-	
+
 	CGameObject* pHit = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/hit.bin", this, Layout::EFFECT);
 	pHit->m_type = 1;
 	m_ppObjects[0] = new CHitEffect();

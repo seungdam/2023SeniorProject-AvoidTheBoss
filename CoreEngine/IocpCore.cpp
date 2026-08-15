@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "IocpCore.h"
 #include "ASession.h"
 #include "SocketUtil.h"
@@ -6,9 +6,9 @@
 
 IocpCore::IocpCore()
 {
-	_hIocp = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0); // iocp ÇÚµé »ı¼º
-	
-	ASSERT_CRASH(_hIocp != INVALID_HANDLE_VALUE); 
+	_hIocp = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0); // iocp í•¸ë“¤ ìƒì„±
+
+	ASSERT_CRASH(_hIocp != INVALID_HANDLE_VALUE);
 }
 
 IocpCore::~IocpCore()
@@ -17,36 +17,36 @@ IocpCore::~IocpCore()
 
 }
 
-// º¸ÅëÀº Å¬¶óÀÌ¾ğÆ® ¼ÒÄÏÀ» ¹Ş¾Æ ÀÌ¸¦ Àû¿ëÇß´Ù.
+// ë³´í†µì€ í´ë¼ì´ì–¸íŠ¸ ì†Œì¼“ì„ ë°›ì•„ ì´ë¥¼ ì ìš©í–ˆë‹¤.
 
-bool IocpCore::Register(IocpObject* iocpObj) 
+bool IocpCore::Register(IocpObject* iocpObj)
 {
     return ::CreateIoCompletionPort(iocpObj->GetHandle(), _hIocp,/*key*/reinterpret_cast<ULONG_PTR>(iocpObj), 0);
-	// ³ªÁß¿¡ °¡¸é ¼ÒÄÏ ¿Ü¿¡µµ ´Ù¾çÇÑ °ªµéÀ» Ãß°¡ÇÒ ¼ö ÀÖ´Ù.
-	// iocpObj->GetHandle() --> º¸ÅëÀº ¼ÒÄÏÀ» ´ã´Â´Ù.
-	// Å°°ªÀ¸·Î ÀÚ±âÀÚ½ÅÀ» µî·ÏÇÑ´Ù. Æ÷ÀÎÅÍÀÇ Å©±â´Â ¶È°°À¸´Ï±î~
+	// ë‚˜ì¤‘ì— ê°€ë©´ ì†Œì¼“ ì™¸ì—ë„ ë‹¤ì–‘í•œ ê°’ë“¤ì„ ì¶”ê°€í•  ìˆ˜ ìˆë‹¤.
+	// iocpObj->GetHandle() --> ë³´í†µì€ ì†Œì¼“ì„ ë‹´ëŠ”ë‹¤.
+	// í‚¤ê°’ìœ¼ë¡œ ìê¸°ìì‹ ì„ ë“±ë¡í•œë‹¤. í¬ì¸í„°ì˜ í¬ê¸°ëŠ” ë˜‘ê°™ìœ¼ë‹ˆê¹Œ~
 }
 
-bool IocpCore::Processing(uint32_t time_limit) // worker thread ±â´É ¿Ï·áµÈ ºñµ¿±â ÅëÁö ¸í·ÉµéÀ» ¹Ş¾Æ¿Í ÀûÀıÇÏ°Ô Ã³¸®ÇÑ´Ù.
+bool IocpCore::Processing(uint32_t time_limit) // worker thread ê¸°ëŠ¥ ì™„ë£Œëœ ë¹„ë™ê¸° í†µì§€ ëª…ë ¹ë“¤ì„ ë°›ì•„ì™€ ì ì ˆí•˜ê²Œ ì²˜ë¦¬í•œë‹¤.
 {
-	DWORD numOfBytes(0); // ¸î ¹ÙÀÌÆ®°¡ Àü¼ÛµÇ¾ú´Â°¡?
-	IocpObject* iocpObject = nullptr; // ÀÏ°¨ÀÌ ¿Ï·áµÈ iocpObjectÀÇ Á¾·ù¸¦ º¹¿øÇÏ±â À§ÇÑ IocpObject
-	IocpEvent* iocpEvent = nullptr; // ÀÏ°¨ÀÌ ¿Ï·áµÈ iocpEventÀÇ Á¾·ù(AcceptÀÎ°¡?)
-	
-	BOOL retVal = ::GetQueuedCompletionStatus(_hIocp, OUT & numOfBytes, reinterpret_cast<PULONG_PTR>(&iocpObject), // ÇÏÁö¸¸ ÀÌ·¸°Ô iocpObject¸¦ ÀÎÀÚ·Î ³Ñ°ÜÁÖ°Ô µÇ¸é, ´Ù¸¥ ½º·¹µå¿¡¼­ ÀÌ ¿ÀºêÁ§Æ®¸¦ »èÁ¦ÇßÀ» ¶§, ¹®Á¦°¡ »ı±æ ¼öµµ ÀÖ´Ù. --> 
-		//¾ÖÃÊ¿¡ iocpEvent¿¡¼­ ÇØ´ç iocp°´Ã¼µé¿¡ °üÇÑ Á¤º¸(ÇØ´ç ÀÌº¥Æ®¸¦ È£ÃâÇÑ ÁÖÀÎ iocp°´Ã¼µé)À» ´ã°í ÀÖµµ·ÏÇÏÀÚ.
+	DWORD numOfBytes(0); // ëª‡ ë°”ì´íŠ¸ê°€ ì „ì†¡ë˜ì—ˆëŠ”ê°€?
+	IocpObject* iocpObject = nullptr; // ì¼ê°ì´ ì™„ë£Œëœ iocpObjectì˜ ì¢…ë¥˜ë¥¼ ë³µì›í•˜ê¸° ìœ„í•œ IocpObject
+	IocpEvent* iocpEvent = nullptr; // ì¼ê°ì´ ì™„ë£Œëœ iocpEventì˜ ì¢…ë¥˜(Acceptì¸ê°€?)
+
+	BOOL retVal = ::GetQueuedCompletionStatus(_hIocp, OUT & numOfBytes, reinterpret_cast<PULONG_PTR>(&iocpObject), // í•˜ì§€ë§Œ ì´ë ‡ê²Œ iocpObjectë¥¼ ì¸ìë¡œ ë„˜ê²¨ì£¼ê²Œ ë˜ë©´, ë‹¤ë¥¸ ìŠ¤ë ˆë“œì—ì„œ ì´ ì˜¤ë¸Œì íŠ¸ë¥¼ ì‚­ì œí–ˆì„ ë•Œ, ë¬¸ì œê°€ ìƒê¸¸ ìˆ˜ë„ ìˆë‹¤. -->
+		//ì• ì´ˆì— iocpEventì—ì„œ í•´ë‹¹ iocpê°ì²´ë“¤ì— ê´€í•œ ì •ë³´(í•´ë‹¹ ì´ë²¤íŠ¸ë¥¼ í˜¸ì¶œí•œ ì£¼ì¸ iocpê°ì²´ë“¤)ì„ ë‹´ê³  ìˆë„ë¡í•˜ì.
 		OUT reinterpret_cast<LPOVERLAPPED*>(&iocpEvent), time_limit);
-	
-	if (!retVal) // ½ÇÆĞÇß´Ù¸é ¿¡·¯ÄÚµå È®ÀÎ
+
+	if (!retVal) // ì‹¤íŒ¨í–ˆë‹¤ë©´ ì—ëŸ¬ì½”ë“œ í™•ì¸
 	{
 		int32 errCode = ::WSAGetLastError();
 		switch (errCode)
 		{
-			case WAIT_TIMEOUT: // time_limitÀÌ INFINITE°¡ ¾Æ´Ñ °æ¿ì ==> ³ªÁß¿¡ ´ÙÁß Á¢¼Ó ½Ã, Á¢¼Ó ½Ã°£¿¡ µû¶ó ÁöÁ¤ °¡´É
+			case WAIT_TIMEOUT: // time_limitì´ INFINITEê°€ ì•„ë‹Œ ê²½ìš° ==> ë‚˜ì¤‘ì— ë‹¤ì¤‘ ì ‘ì† ì‹œ, ì ‘ì† ì‹œê°„ì— ë”°ë¼ ì§€ì • ê°€ëŠ¥
 				std::cout << "Time Out Plz Check Your Network Condition" << std::endl;
 				return false;
 			default:
-				// TODO : ·Î±× Âï±â
+				// TODO : ë¡œê·¸ ì°ê¸°
 			{
 				std::cout << ::WSAGetLastError() << "\n";
 				ASession* s = static_cast<ASession*>(iocpObject);
@@ -56,7 +56,7 @@ bool IocpCore::Processing(uint32_t time_limit) // worker thread ±â´É ¿Ï·áµÈ ºñµ¿
 		}
 	}
 
-	// Å¬¶óÀÌ¾ğÆ®°¡ Á¤»óÀûÀ¸·Î Á¾·áÇÑ °æ¿ì
+	// í´ë¼ì´ì–¸íŠ¸ê°€ ì •ìƒì ìœ¼ë¡œ ì¢…ë£Œí•œ ê²½ìš°
 	if (numOfBytes == 0 && (iocpEvent->_comp == EventType::Recv || iocpEvent->_comp == EventType::Send))
 	{
 		//Disconnect
@@ -65,8 +65,8 @@ bool IocpCore::Processing(uint32_t time_limit) // worker thread ±â´É ¿Ï·áµÈ ºñµ¿
 		if (iocpEvent->_comp == EventType::Send) delete iocpEvent;
 		return false;
 	}
-	iocpObject->Processing(iocpEvent, numOfBytes); // ¼º°øÇÏ¸é Àü¹İÀûÀÎ ÇÁ·Î¼¼½ÌÀ» ½ÃÀÛÇØº¸ÀÚ
-	
+	iocpObject->Processing(iocpEvent, numOfBytes); // ì„±ê³µí•˜ë©´ ì „ë°˜ì ì¸ í”„ë¡œì„¸ì‹±ì„ ì‹œì‘í•´ë³´ì
+
 	return true;
 }
 

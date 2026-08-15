@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "SPlayer.h"
 
 struct POS
@@ -15,7 +15,7 @@ public:
 };
 
 
-class WorldStatus // ¼­¹ö¿¡¼­ °¡Áö°í ÀÖÀ» Á¤º¸
+class WorldStatus // ì„œë²„ì—ì„œ ê°€ì§€ê³  ìˆì„ ì •ë³´
 {
 public:
 	WorldStatus() { ResetWorldState(); }
@@ -26,8 +26,8 @@ public:
 	XMFLOAT3 GetPos(int32 idx) { return XMFLOAT3(_pPos[idx].x, 0.f, _pPos[idx].z); }
 	void PrintWorldInfo() {}
 public:
-	POS			_pPos[4];		//  ÇÃ·¹ÀÌ¾î À§Ä¡
-	uint32		_myWorldFrame; //  ÀÚ±â ÀÚ½ÅÀÇ ¿ùµå ÇÁ·¹ÀÓ
+	POS			_pPos[4];		//  í”Œë ˆì´ì–´ ìœ„ì¹˜
+	uint32		_myWorldFrame; //  ìê¸° ìì‹ ì˜ ì›”ë“œ í”„ë ˆì„
 	XMFLOAT3	_bossDir;
 };
 
@@ -42,22 +42,22 @@ public:
 
 	void SetWorldStatusByFrame(uint32 frame, const WorldStatus& obj)
 	{
-		// ÇöÀç ½Ã°¢º¸°¡ °ú°Å¿¡ »ğÀÔÀº ¾ÈµÊ
+		// í˜„ì¬ ì‹œê°ë³´ê°€ ê³¼ê±°ì— ì‚½ì…ì€ ì•ˆë¨
 		if (frame < _curFrame)
 			return;
 
-		// ÇöÀç ½Ã°¢ÀÌ Rewind¸¦ À§ÇØ º¸°üÇÒ ¼ö ÀÖ´Â ÃÖ´ë¸¦ ³Ñ´Â °æ¿ì
+		// í˜„ì¬ ì‹œê°ì´ Rewindë¥¼ ìœ„í•´ ë³´ê´€í•  ìˆ˜ ìˆëŠ” ìµœëŒ€ë¥¼ ë„˜ëŠ” ê²½ìš°
 		if (frame >= _curFrame + MAX_REWIND)
 		{
-			_curFrame = frame; // ´Ù½Ã ¿ùµå ¹è¿­ÀÇ Ã¹¹øÂ°·Î µÇµ¹¾Æ°¡ Ã¤¿ì±â ½ÃÀÛÇÑ´Ù. 
+			_curFrame = frame; // ë‹¤ì‹œ ì›”ë“œ ë°°ì—´ì˜ ì²«ë²ˆì§¸ë¡œ ë˜ëŒì•„ê°€ ì±„ìš°ê¸° ì‹œì‘í•œë‹¤.
 			_frameIndex = 0;
 			_worldHistory.fill(obj);
 			return;
 		}
 
-		const WorldStatus& prevWorld = _worldHistory[_frameIndex]; // °ú°ÅÀÇ ¿ùµå »óÅÂ
+		const WorldStatus& prevWorld = _worldHistory[_frameIndex]; // ê³¼ê±°ì˜ ì›”ë“œ ìƒíƒœ
 
-		// ÇöÀç ÇÁ·¹ÀÓ Á÷Àü±îÁö ¹Ù·ÎÀü ÃÖ½Å°ª Ã¤¿ì±â
+		// í˜„ì¬ í”„ë ˆì„ ì§ì „ê¹Œì§€ ë°”ë¡œì „ ìµœì‹ ê°’ ì±„ìš°ê¸°
 		while (_curFrame < frame)
 		{
 			++_frameIndex;
@@ -67,41 +67,41 @@ public:
 			_worldHistory[_frameIndex] = prevWorld;
 			++_curFrame;
 		}
-	
+
 		_worldHistory[_frameIndex] = obj;
 	}
 
-	WorldStatus GetWorldStatusByFrame(uint32 frame) const // °ËÁõÀ» À§ÇØ ÇØ´çÇÏ´Â ÇÁ·¹ÀÓÀÇ ¿ùµå »óÅÂ¸¦ °¡Á®¿Â´Ù.
+	WorldStatus GetWorldStatusByFrame(uint32 frame) const // ê²€ì¦ì„ ìœ„í•´ í•´ë‹¹í•˜ëŠ” í”„ë ˆì„ì˜ ì›”ë“œ ìƒíƒœë¥¼ ê°€ì ¸ì˜¨ë‹¤.
 	{
-		// ÇöÀç °¡Áö°í ÀÖ´Â°Íº¸´Ù ¹Ì·¡ÀÇ °ªÀ» ¿ä±¸ÇÒ ¶§´Â ±×³É ÃÖ½Å°ª ¸®ÅÏ
+		// í˜„ì¬ ê°€ì§€ê³  ìˆëŠ”ê²ƒë³´ë‹¤ ë¯¸ë˜ì˜ ê°’ì„ ìš”êµ¬í•  ë•ŒëŠ” ê·¸ëƒ¥ ìµœì‹ ê°’ ë¦¬í„´
 		if (frame > _curFrame) return _worldHistory[_frameIndex];
 
-		// ¹üÀ§¹Û °ú°ÅÀÇ °ªÀ» ¿ä±¸ÇÒ¶§´Â °¡Àå °ú°Å°ª ¸®ÅÏ
+		// ë²”ìœ„ë°– ê³¼ê±°ì˜ ê°’ì„ ìš”êµ¬í• ë•ŒëŠ” ê°€ì¥ ê³¼ê±°ê°’ ë¦¬í„´
 		auto delta = _curFrame - frame;
 		if (delta >= MAX_REWIND)
 		{
 			return _worldHistory[(_frameIndex + 1) % MAX_REWIND];
 		}
-		// ÇöÀç ÇÁ·¹ÀÓ ÀÎµ¦½º -  ÇÁ·¹ÀÓ Â÷ÀÌ°ª Ex) ÇöÀç 30 ÇÁ·¹ÀÓ±îÁö °ªÀÌ Ã¤¿öÁ³´Âµ¥ 25 ÇÁ·¹ÀÓÀÇ ¿ùµå »óÅÂ¸¦ ±¸ÇÑ´Ù delta = 5 30 + 30 - 5 % 30 = 25;
+		// í˜„ì¬ í”„ë ˆì„ ì¸ë±ìŠ¤ -  í”„ë ˆì„ ì°¨ì´ê°’ Ex) í˜„ì¬ 30 í”„ë ˆì„ê¹Œì§€ ê°’ì´ ì±„ì›Œì¡ŒëŠ”ë° 25 í”„ë ˆì„ì˜ ì›”ë“œ ìƒíƒœë¥¼ êµ¬í•œë‹¤ delta = 5 30 + 30 - 5 % 30 = 25;
 
 		return _worldHistory[(_frameIndex + MAX_REWIND - delta) % MAX_REWIND];
 	}
 	void AddHistory(SPlayer* players)
-	{	
+	{
 		    _lastWorldStatus._pPos[0] = players[0].GetPosition();
 			_lastWorldStatus._bossDir = players[0].GetLook();
 
 			_lastWorldStatus._pPos[1] = players[1].GetPosition();
 			_lastWorldStatus._pPos[2] = players[2].GetPosition();
 			_lastWorldStatus._pPos[3] = players[3].GetPosition();
-			
+
 			++_lastWorldStatus._myWorldFrame;
 			SetWorldStatusByFrame(_lastWorldStatus._myWorldFrame, _lastWorldStatus);
 	}
 	bool IsAttackAvailable(uint32 frame, int32 targetIdx)
 	{
 		WorldStatus cw = GetWorldStatusByFrame(frame);
-		// °ø°İÀÌ °ËÁõ °¡´ÉÇÑ °ÍÀÎÁö È®ÀÎÇÏ´Â ·ÎÁ÷
+		// ê³µê²©ì´ ê²€ì¦ ê°€ëŠ¥í•œ ê²ƒì¸ì§€ í™•ì¸í•˜ëŠ” ë¡œì§
 		float rayDist = 10.0f;
 		XMFLOAT3 bossLoc = cw.GetPos(0);
 		XMFLOAT3 targetLoc = cw.GetPos(targetIdx);
@@ -110,7 +110,7 @@ public:
 		playerBV.Center = targetLoc;
 		playerBV.Radius = 0.8f;
 
-		// RTT¸¦ °í·ÁÇØ¼­ 5 ÇÁ·¹ÀÓÀÌ»ó Â÷ÀÌ±îÁö´Â °ú°Å ÆĞÅ¶ÀÌ ¾Æ´Ñ °ÍÀ¸·Î °£ÁÖÇÑ´Ù.
+		// RTTë¥¼ ê³ ë ¤í•´ì„œ 5 í”„ë ˆì„ì´ìƒ ì°¨ì´ê¹Œì§€ëŠ” ê³¼ê±° íŒ¨í‚·ì´ ì•„ë‹Œ ê²ƒìœ¼ë¡œ ê°„ì£¼í•œë‹¤.
 		if (frame + 5 <= _curFrame) std::cout << "Past Attacked Packet Detected. CurFrame :" << _curFrame << " Packet Frame : " << frame << "\n";
 		if (playerBV.Intersects(XMLoadFloat3(&bossLoc), XMLoadFloat3(&layDir), rayDist))
 		{
@@ -136,10 +136,10 @@ public:
 		return _curFrame;
 	}
 private:
-	uint32 _curFrame; //   ÇöÀç ÇÁ·¹ÀÓ
-	uint32 _frameIndex; // ¹è¿­³» À§Ä¡
-	WorldStatus _lastWorldStatus; // °¡Àå ÃÖ½Å ¿ùµå »óÅÂ
-	std::array<WorldStatus, MAX_REWIND> _worldHistory; // ¿ùµå »óÅÂ È÷½ºÅä¸®
+	uint32 _curFrame; //   í˜„ì¬ í”„ë ˆì„
+	uint32 _frameIndex; // ë°°ì—´ë‚´ ìœ„ì¹˜
+	WorldStatus _lastWorldStatus; // ê°€ì¥ ìµœì‹  ì›”ë“œ ìƒíƒœ
+	std::array<WorldStatus, MAX_REWIND> _worldHistory; // ì›”ë“œ ìƒíƒœ íˆìŠ¤í† ë¦¬
 };
 
 

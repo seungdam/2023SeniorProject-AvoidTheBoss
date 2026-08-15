@@ -1,8 +1,8 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "ThreadManager.h"
 #include "CoreTLS.h"
-// function --> void ÀÎÇ²ÀÇ void ¹İÈ¯ ÇÔ¼ö¸¦ ¹Ş¾ÆÁØ´Ù.
-// ¿Ü¿¡ ¿©·¯°¡Áö ÇÔ¼ö Æ÷ÀÎÅÍ¸¦ ¹ŞÀ» ¼ö ÀÖÀ½.
+// function --> void ì¸í’‹ì˜ void ë°˜í™˜ í•¨ìˆ˜ë¥¼ ë°›ì•„ì¤€ë‹¤.
+// ì™¸ì— ì—¬ëŸ¬ê°€ì§€ í•¨ìˆ˜ í¬ì¸í„°ë¥¼ ë°›ì„ ìˆ˜ ìˆìŒ.
 
 
 
@@ -29,7 +29,7 @@ void ThreadManager::Join()
 void ThreadManager::InitTLS()
 {
 	static Atomic<uint32> sThreadId = 0;
-	lThreadId = sThreadId.fetch_add(1); // ½º·¹µå id ºÎ¿©
+	lThreadId = sThreadId.fetch_add(1); // ìŠ¤ë ˆë“œ id ë¶€ì—¬
 }
 
 void ThreadManager::DestroyTLS()

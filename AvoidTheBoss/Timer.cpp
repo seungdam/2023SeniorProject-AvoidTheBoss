@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "Timer.h"
 
 CTimer::CTimer()
@@ -63,37 +63,37 @@ void CTimer::Tick(float fLockFPS)
 		return;
 	}
 
-	//¸¶Áö¸·À¸·Î ÀÌ ÇÔ¼ö¸¦ È£ÃâÇÑ ÀÌÈÄ °æ°úÇÑ ½Ã°£À» °è»êÇÑ´Ù. 
+	//ë§ˆì§€ë§‰ìœ¼ë¡œ ì´ í•¨ìˆ˜ë¥¼ í˜¸ì¶œí•œ ì´í›„ ê²½ê³¼í•œ ì‹œê°„ì„ ê³„ì‚°í•œë‹¤.
 	::QueryPerformanceCounter((LARGE_INTEGER*)&m_nCurrentPerformanceCounter);
 	float fTimeElapsed = float((m_nCurrentPerformanceCounter - m_nLastPerformanceCounter) * m_fTimeScale);
-	
-	//ÇöÀç ½Ã°£À» m_nLastTime¿¡ ÀúÀåÇÑ´Ù. 
+
+	//í˜„ì¬ ì‹œê°„ì„ m_nLastTimeì— ì €ì¥í•œë‹¤.
 	m_nLastPerformanceCounter = m_nCurrentPerformanceCounter;
 
-	/* ¸¶Áö¸· ÇÁ·¹ÀÓ Ã³¸® ½Ã°£°ú ÇöÀç ÇÁ·¹ÀÓ Ã³¸® ½Ã°£ÀÇ Â÷ÀÌ°¡ 1ÃÊº¸´Ù ÀÛÀ¸¸é ÇöÀç ÇÁ·¹ÀÓ Ã³¸® ½Ã°£
-À» m_fFrameTime[0]¿¡ ÀúÀåÇÑ´Ù. */
-	if (fabsf(fTimeElapsed - m_fTimeElapsed) < 1.0f) // ¿ÀÂ÷°¡ Àû´Ù¸é
+	/* ë§ˆì§€ë§‰ í”„ë ˆì„ ì²˜ë¦¬ ì‹œê°„ê³¼ í˜„ì¬ í”„ë ˆì„ ì²˜ë¦¬ ì‹œê°„ì˜ ì°¨ì´ê°€ 1ì´ˆë³´ë‹¤ ì‘ìœ¼ë©´ í˜„ì¬ í”„ë ˆì„ ì²˜ë¦¬ ì‹œê°„
+ì„ m_fFrameTime[0]ì— ì €ì¥í•œë‹¤. */
+	if (fabsf(fTimeElapsed - m_fTimeElapsed) < 1.0f) // ì˜¤ì°¨ê°€ ì ë‹¤ë©´
 	{
-		// ¹è¿­ °ªµéÀ» ÇÑÄ­ ¾¿ ¹Ì·é´Ù.
+		// ë°°ì—´ ê°’ë“¤ì„ í•œì¹¸ ì”© ë¯¸ë£¬ë‹¤.
 		::memmove(&m_fFrameTime[1], m_fFrameTime, (MAX_SAMPLE_COUNT - 1) * sizeof(float));
 		m_fFrameTime[0] = fTimeElapsed;
 		if (m_nSampleCount < MAX_SAMPLE_COUNT) m_nSampleCount++;
 	}
 
-	//ÃÊ´ç ÇÁ·¹ÀÓ ¼ö¸¦ 1 Áõ°¡½ÃÅ°°í ÇöÀç ÇÁ·¹ÀÓ Ã³¸® ½Ã°£À» ´©ÀûÇÏ¿©	ÀúÀåÇÑ´Ù. 
+	//ì´ˆë‹¹ í”„ë ˆì„ ìˆ˜ë¥¼ 1 ì¦ê°€ì‹œí‚¤ê³  í˜„ì¬ í”„ë ˆì„ ì²˜ë¦¬ ì‹œê°„ì„ ëˆ„ì í•˜ì—¬	ì €ì¥í•œë‹¤.
 	m_nFramesPerSecond++;
 	m_nWorldFrame++;
 	m_fFPSTimeElapsed += fTimeElapsed;
-	if (m_fFPSTimeElapsed > 1.0f) // 1ÃÊ°¡ ³Ñ¾î°¡¸é ÇÁ·¹ÀÓ Ä«¿îÆ® 0
+	if (m_fFPSTimeElapsed > 1.0f) // 1ì´ˆê°€ ë„˜ì–´ê°€ë©´ í”„ë ˆì„ ì¹´ìš´íŠ¸ 0
 	{
-		
-		m_nCurrentFrameRate = m_nFramesPerSecond; // 60fps ´ëºñ ¾ó¸¶³ª ³ª¿À´Â°¡?
-		m_nFramesPerSecond = 0; //¿ùµå ÇÁ·¹ÀÓÀº °è¼Ó À¯ÁöÇÏµµ·Ï ÇÑ´Ù.
+
+		m_nCurrentFrameRate = m_nFramesPerSecond; // 60fps ëŒ€ë¹„ ì–¼ë§ˆë‚˜ ë‚˜ì˜¤ëŠ”ê°€?
+		m_nFramesPerSecond = 0; //ì›”ë“œ í”„ë ˆì„ì€ ê³„ì† ìœ ì§€í•˜ë„ë¡ í•œë‹¤.
 		m_fFPSTimeElapsed = 0.0f;
 	}
-	
-	
-	//´©ÀûµÈ ÇÁ·¹ÀÓ Ã³¸® ½Ã°£ÀÇ Æò±ÕÀ» ±¸ÇÏ¿© ÇÁ·¹ÀÓ Ã³¸® ½Ã°£À» ±¸ÇÑ´Ù. 
+
+
+	//ëˆ„ì ëœ í”„ë ˆì„ ì²˜ë¦¬ ì‹œê°„ì˜ í‰ê· ì„ êµ¬í•˜ì—¬ í”„ë ˆì„ ì²˜ë¦¬ ì‹œê°„ì„ êµ¬í•œë‹¤.
 	m_fTimeElapsed = 0.0f;
 	for (ULONG i = 0; i < m_nSampleCount; i++) m_fTimeElapsed += m_fFrameTime[i];
 	if (m_nSampleCount > 0) m_fTimeElapsed /= m_nSampleCount;
@@ -101,7 +101,7 @@ void CTimer::Tick(float fLockFPS)
 
 unsigned long  CTimer::GetFrameRate(LPTSTR lpszString, int nCharacters)
 {
-	//ÇöÀç ÇÁ·¹ÀÓ ·¹ÀÌÆ®¸¦ ¹®ÀÚ¿­·Î º¯È¯ÇÏ¿© lpszString ¹öÆÛ¿¡ ¾²°í ¡° FPS¡±¿Í °áÇÕÇÑ´Ù. 
+	//í˜„ì¬ í”„ë ˆì„ ë ˆì´íŠ¸ë¥¼ ë¬¸ìì—´ë¡œ ë³€í™˜í•˜ì—¬ lpszString ë²„í¼ì— ì“°ê³  â€œ FPSâ€ì™€ ê²°í•©í•œë‹¤.
 	if (lpszString)
 	{
 		_itow_s(m_nCurrentFrameRate, lpszString, nCharacters, 10);

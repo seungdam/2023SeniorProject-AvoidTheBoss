@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "GameObject.h"
 
 //struct CB_DUMMYPLAYER_INFO
@@ -19,11 +19,11 @@
 //	float m_fYaw;
 //	float m_fRoll;
 //
-//	XMFLOAT3 m_xmf3Velocity; // ÇÃ·¹ÀÌ¾î ¼Óµµ
-//	XMFLOAT3 m_xmf3Gravity;  // Áß·Â
-//	float m_fFriction;       // ¸¶Âû·Â
+//	XMFLOAT3 m_xmf3Velocity; // í”Œë ˆì´ì–´ ì†ë„
+//	XMFLOAT3 m_xmf3Gravity;  // ì¤‘ë ¥
+//	float m_fFriction;       // ë§ˆì°°ë ¥
 //
-//	// ¾÷µ¥ÀÌÆ® ÈÄÃ³¸® ÇÔ¼ö
+//	// ì—…ë°ì´íŠ¸ í›„ì²˜ë¦¬ í•¨ìˆ˜
 //	LPVOID m_pPlayerUpdatedContext;
 //	LPVOID m_pCameraUpdatedContext;
 //
@@ -70,10 +70,10 @@
 //	virtual void ReleaseShaderVariables();
 //	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
 //
-//	//ÇÃ·¹ÀÌ¾îÀÇ À§Ä¡¿Í È¸ÀüÃàÀ¸·ÎºÎÅÍ ¿ùµå º¯È¯ Çà·ÄÀ» »ı¼ºÇÏ´Â ÇÔ¼öÀÌ´Ù. 
+//	//í”Œë ˆì´ì–´ì˜ ìœ„ì¹˜ì™€ íšŒì „ì¶•ìœ¼ë¡œë¶€í„° ì›”ë“œ ë³€í™˜ í–‰ë ¬ì„ ìƒì„±í•˜ëŠ” í•¨ìˆ˜ì´ë‹¤.
 //	virtual void OnPrepareRender();
 //
-//	//ÇÃ·¹ÀÌ¾îÀÇ Ä«¸Ş¶ó°¡ 3ÀÎÄª Ä«¸Ş¶óÀÏ ¶§ ÇÃ·¹ÀÌ¾î(¸Ş½¬)¸¦ ·»´õ¸µÇÑ´Ù. 
+//	//í”Œë ˆì´ì–´ì˜ ì¹´ë©”ë¼ê°€ 3ì¸ì¹­ ì¹´ë©”ë¼ì¼ ë•Œ í”Œë ˆì´ì–´(ë©”ì‰¬)ë¥¼ ë Œë”ë§í•œë‹¤.
 //	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList,
 //		CCamera* pCamera = NULL);
 //};

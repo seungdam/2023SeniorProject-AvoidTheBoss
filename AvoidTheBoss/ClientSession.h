@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "Asession.h"
 
 class IocpEvent;
@@ -11,17 +11,26 @@ public:
 	CSession();
 	virtual ~CSession();
 public:
-	// ¼¼¼Ç ÀÎÅÍÆäÀÌ½º
+	// ì„¸ì…˜ ì¸í„°í˜ì´ìŠ¤
 	virtual HANDLE GetHandle() override;
 	virtual void Processing(class IocpEvent* iocpEvent, int32 numOfBytes = 0) override;
 public:
-	// ¼¼¼Ç Á¤º¸¸¦ ¾ò¾î ³»°Å³ª ¼¼ÆÃÇÒ ¼ö ÀÖ´Â ÇÔ¼öµé
+	// ì„¸ì…˜ ì •ë³´ë¥¼ ì–»ì–´ ë‚´ê±°ë‚˜ ì„¸íŒ…í•  ìˆ˜ ìˆëŠ” í•¨ìˆ˜ë“¤
 	SOCKET GetSock() { return _sock; }
 	bool DoSend(void* packet);
 	bool DoRecv();
 	void ProcessPacket(char*);
+	void BeginIo() { ++_pendingIo; }
+	int32 CompleteIo() { return --_pendingIo; }
+	int32 PendingIo() const { return _pendingIo.load(); }
+	void RequestStop() { _stopping.store(true); }
+	bool IsStopping() const { return _stopping.load(); }
+	void Stop();
 public:
 	int16 _myRm = -1;
 	int32 _prev_remain = 0;
 	int16  _loginOk = -3;
+private:
+	std::atomic<int32> _pendingIo = 0;
+	std::atomic_bool _stopping = false;
 };

@@ -1,9 +1,9 @@
-#pragma once
+ï»¿#pragma once
 #include "IocpObject.h"
 #include "NetAddress.h"
 
 class AcceptEvent;
-// Accept¸¦ ÁøÇàÇÒ ½Ì±ÛÅæ °´Ã¼ (Listener)
+// Acceptë¥¼ ì§„í–‰í•  ì‹±ê¸€í†¤ ê°ì²´ (Listener)
 
 class AcceptManager : public IocpObject
 {
@@ -11,22 +11,22 @@ public:
 	AcceptManager() = default;
 	~AcceptManager();
 public:
-	// Accept¸¦ ¹ŞÀ» ÁØºñ¸¦ ÁøÇàÇØ¶ó
+	// Acceptë¥¼ ë°›ì„ ì¤€ë¹„ë¥¼ ì§„í–‰í•´ë¼
 	bool InitAccept();
 	void CloseSocket();
 private:
-	// ¼ö½Å°ü·Ã ÁøÇà
+	// ìˆ˜ì‹ ê´€ë ¨ ì§„í–‰
 	void RegisterAccept(AcceptEvent* acceptEvent);
 	void ProcessAccept(AcceptEvent* acceptEvent);
 	int32 GetNewSessionIdx();
-public: // ÀÎÅÍÆäÀÌ½º ±¸ÇöÇÒ ¿¹Á¤
-	// »ó¼ÓÇÏ°í ÀÖ´Â iocObjectÀÇ Ãß»ó ÇÔ¼öµéÀ» ¿À¹ö¶óÀÌµù
+public: // ì¸í„°í˜ì´ìŠ¤ êµ¬í˜„í•  ì˜ˆì •
+	// ìƒì†í•˜ê³  ìˆëŠ” iocObjectì˜ ì¶”ìƒ í•¨ìˆ˜ë“¤ì„ ì˜¤ë²„ë¼ì´ë”©
 	virtual HANDLE GetHandle() override;
 	virtual void Processing(class IocpEvent* iocpEvent, int32 numOfBytes = 0) override;
 public:
 	SOCKET _listenSock = INVALID_SOCKET;
 	std::vector<AcceptEvent*> _acceptEvents;
-	
+
 	int32 maxAcceptCnt = 1000;
 	Atomic<int32> curAcceptCnt = 0;
 };

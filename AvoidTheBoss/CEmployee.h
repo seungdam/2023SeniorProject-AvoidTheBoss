@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "Player.h"
 
 
@@ -8,15 +8,15 @@ class CEmployee : public CPlayer
 {
 	friend class UIManager;
 public:
-	bool m_bIsPlayerOnGenInter = false; // FÅ°¸¦ ´­·¶´Ù ¶®´ÂÁö È®ÀÎÇÏ´Â ¿ëµµ
+	bool m_bIsPlayerOnGenInter = false; // Fí‚¤ë¥¼ ëˆŒë €ë‹¤ ë• ëŠ”ì§€ í™•ì¸í•˜ëŠ” ìš©ë„
 	bool m_bIsPlayerOnRescueInter = false;
 public:
 	bool m_bIsInvincibility = false;
 	float m_UICoolTime = 1.0f;
-	
+
 private:
 	bool m_bIsInGenArea = false;
-	bool m_bIsInDownPlayerArea = false; // DownµÈ ÇÃ·¹ÀÌ¾î¿Í ÀÎÁ¢ÇØ ÀÖ´Â°¡?
+	bool m_bIsInDownPlayerArea = false; // Downëœ í”Œë ˆì´ì–´ì™€ ì¸ì ‘í•´ ìˆëŠ”ê°€?
 	//bool m_bIsDown
 protected:
 	float m_maxRGuage = 100;
@@ -29,20 +29,20 @@ private:
 public:
 	int32 m_deadCnt = 0;
 	int32 m_activeCnt = 0;
-	
+
 	int32 m_attackedAnimationCount = 0;
 	int32 m_downAnimationCount = 0;
 	int32 m_standAnimationCount = 0;
 public:
-	CEmployee(ID3D12Device5* pd3dDevice, 
+	CEmployee(ID3D12Device5* pd3dDevice,
 		ID3D12GraphicsCommandList4
 		* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CHARACTER_TYPE nType);
 	virtual ~CEmployee();
 
 	virtual CCamera* ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed);
-	
 
-	// ========== ÇÃ·¹ÀÌ¾î Á¶ÀÛ °ü·Ã ===================
+
+	// ========== í”Œë ˆì´ì–´ ì¡°ì‘ ê´€ë ¨ ===================
 	virtual uint8 ProcessInput();
 	virtual void Move(const int16& dwDirection, float fDistance);
 	virtual void Update(float fTimeElapsed, CLIENT_TYPE ptype);
@@ -52,24 +52,24 @@ public:
 	bool GetIsPlayerOnGenInter() { return m_bIsPlayerOnGenInter; }
 	void SetRescueInteraction(bool value) { m_bIsPlayerOnRescueInter = value; }
 	bool GetIsPlayerOnRescueInter() { return m_bIsPlayerOnRescueInter; }
-	
-	// ============= ¾Ö´Ï¸ŞÀÌ¼Ç Æ®·¢ ¼ÂÆÃ °ü·Ã ============
 
-	bool IsMovable() 
-	{ 
-		return (m_behavior == (int32)PLAYER_BEHAVIOR::RESCUE || m_behavior == (int32)PLAYER_BEHAVIOR::SWITCH_INTER || m_behavior == (int32)PLAYER_BEHAVIOR::CRAWL 
+	// ============= ì• ë‹ˆë©”ì´ì…˜ íŠ¸ë™ ì…‹íŒ… ê´€ë ¨ ============
+
+	bool IsMovable()
+	{
+		return (m_behavior == (int32)PLAYER_BEHAVIOR::RESCUE || m_behavior == (int32)PLAYER_BEHAVIOR::SWITCH_INTER || m_behavior == (int32)PLAYER_BEHAVIOR::CRAWL
 			|| m_behavior == (int32)PLAYER_BEHAVIOR::EXIT);
 	}
-	bool IsSeMiBehavior() // ½ºÅÄµå, Å©¶ó¿ï, ´Ù¿î »óÅÂ
+	bool IsSeMiBehavior() // ìŠ¤íƒ ë“œ, í¬ë¼ìš¸, ë‹¤ìš´ ìƒíƒœ
 	{
 		return (m_behavior == (int32)PLAYER_BEHAVIOR::DOWN  || m_behavior == (int32)PLAYER_BEHAVIOR::STAND);
 	}
-	
-	// ±ú¿ì±â
-	void RescueOn(bool value) 
-	{ 
+
+	// ê¹¨ìš°ê¸°
+	void RescueOn(bool value)
+	{
 		if(m_bIsRescuing != value ) m_bIsRescuing = value;
-		
+
 	}
 	void ResetRescueGuage() { m_curGuage = 0; }
 	bool GetRescueOn() { return m_bIsRescuing; }
@@ -81,17 +81,17 @@ public:
 		m_downAnimationCount = 0;
 		m_standAnimationCount = 0;
 
-		m_bIsPlayerOnGenInter = false; // FÅ°¸¦ ´­·¶´Ù ¶®´ÂÁö È®ÀÎÇÏ´Â ¿ëµµ
+		m_bIsPlayerOnGenInter = false; // Fí‚¤ë¥¼ ëˆŒë €ë‹¤ ë• ëŠ”ì§€ í™•ì¸í•˜ëŠ” ìš©ë„
 		m_bIsPlayerOnRescueInter = false;
-	
+
 		m_bIsInvincibility = false;
 		m_UICoolTime = 1.0f;
 
-	
-		m_bIsInGenArea = false;
-		m_bIsInDownPlayerArea = false; // DownµÈ ÇÃ·¹ÀÌ¾î¿Í ÀÎÁ¢ÇØ ÀÖ´Â°¡?
 
-	
+		m_bIsInGenArea = false;
+		m_bIsInDownPlayerArea = false; // Downëœ í”Œë ˆì´ì–´ì™€ ì¸ì ‘í•´ ìˆëŠ”ê°€?
+
+
 	    m_curGuage = 0;
 		m_hp = 3;
 		m_bIsRescuing = false;
@@ -100,37 +100,37 @@ public:
 
 	}
 
-	// ÃÑ¾Ë ¸Â°í ¾²·¯Áü x,2
-	// ÇÇ°İ 2,4
-	// ´À¸®°Ô °È±â 2,4
+	// ì´ì•Œ ë§ê³  ì“°ëŸ¬ì§ x,2
+	// í”¼ê²© 2,4
+	// ëŠë¦¬ê²Œ ê±·ê¸° 2,4
 
-	//down (ÃÑ¾Ë ¸Â°í ¾²·¯Áü) x 
-	//down_idle (¾²·¯Áø »óÅÂ) ¤·
-	//slow_walk,crawl (Àı¶Ò°Å¸®±â) x
+	//down (ì´ì•Œ ë§ê³  ì“°ëŸ¬ì§) x
+	//down_idle (ì“°ëŸ¬ì§„ ìƒíƒœ) ã…‡
+	//slow_walk,crawl (ì ˆëšê±°ë¦¬ê¸°) x
 
-	void SetIdleAnimTrack();	// °È±â 0
-	void SetRunAnimTrack(); 	// ´Ş¸®±â 1
-	void SetDownAnimTrack();	// ÃÑ¾Ë ¸Â°í ¾²·¯Áü x,2
-	void SetAttackedAnimTrack();// Àı¶Ò°Å¸®±â 2,4
-	void SetCrawlAnimTrack();	// ¾²·¯Áø »óÅÂ x,3
-	void SetStandAnimTrack(); 	// ÀÏ¾î³ª±â x,5
-	void SetInteractionAnimTrack(); 	// ¹ßÀü±â »óÈ£ÀÛ¿ë 3,6
+	void SetIdleAnimTrack();	// ê±·ê¸° 0
+	void SetRunAnimTrack(); 	// ë‹¬ë¦¬ê¸° 1
+	void SetDownAnimTrack();	// ì´ì•Œ ë§ê³  ì“°ëŸ¬ì§ x,2
+	void SetAttackedAnimTrack();// ì ˆëšê±°ë¦¬ê¸° 2,4
+	void SetCrawlAnimTrack();	// ì“°ëŸ¬ì§„ ìƒíƒœ x,3
+	void SetStandAnimTrack(); 	// ì¼ì–´ë‚˜ê¸° x,5
+	void SetInteractionAnimTrack(); 	// ë°œì „ê¸° ìƒí˜¸ì‘ìš© 3,6
 	void SetExitMotionAnimTrack();
 
 	virtual void AnimTrackUpdate();
 
 
-	// ================ Ä³¸¯ÅÍ »óÅÂ ¹İÈ¯ ============ 05-23 Ãß°¡ÇÔ¼ö
-public: // 05-23 Ãß°¡ ÇÔ¼ö
+	// ================ ìºë¦­í„° ìƒíƒœ ë°˜í™˜ ============ 05-23 ì¶”ê°€í•¨ìˆ˜
+public: // 05-23 ì¶”ê°€ í•¨ìˆ˜
 	void PlayerAttacked();
 	void PlayerDown();
 	bool GenTasking();
 	bool RescueTasking();
-	
-	
+
+
 	bool GetIsInGenArea() { return m_bIsInGenArea; }
 	CGenerator* GetAvailGen();
 	CEmployee* GetAvailEMP();
-public: // 05-24 Ãß°¡ÇÔ¼ö
+public: // 05-24 ì¶”ê°€í•¨ìˆ˜
 	GEN_INFO m_pSwitches[3];
 };

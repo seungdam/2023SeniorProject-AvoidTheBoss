@@ -1,7 +1,7 @@
-#pragma once
+ï»¿#pragma once
 
 // ==== Socket Util
-// ¼ÒÄÏ ÇÁ·Î±×·¥ Ã³À½ ½ÃÀÛ ½Ã, winsock ÃÊ±âÈ­
+// ì†Œì¼“ í”„ë¡œê·¸ë¨ ì²˜ìŒ ì‹œì‘ ì‹œ, winsock ì´ˆê¸°í™”
 class SocketUtil
 {
 public:
@@ -12,7 +12,7 @@ public:
 	static void Init();
 	static void Clear();
 	static SOCKET CreateSocket();
-	
+
 	static bool Connect(SOCKET s);
 	static bool Bind(SOCKET s);
 	static bool Connect(SOCKET s, std::string Address);

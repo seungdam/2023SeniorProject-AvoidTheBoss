@@ -1,5 +1,5 @@
-#pragma once
-#define MAX_ROOM_USER 4 // ÇÑ ¹æ´ç ÃÖ´ë ÀÎ¿ø¼ö
+ï»¿#pragma once
+#define MAX_ROOM_USER 4 // í•œ ë°©ë‹¹ ìµœëŒ€ ì¸ì›ìˆ˜
 #include "WorldRewinder.h"
 #include "SGenerator.h"
 #include "SPlayer.h"
@@ -13,7 +13,7 @@ class Scheduler;
 class QueueEvent;
 class SPlayer;
 
-// ¹æÀº È£½ºÆ®°¡ ¿äÃ»ÇÏ´Â ¼ø°£ »ı¼ºÇÑ´Ù.
+// ë°©ì€ í˜¸ìŠ¤íŠ¸ê°€ ìš”ì²­í•˜ëŠ” ìˆœê°„ ìƒì„±í•œë‹¤.
 class Room
 {
 	struct Member
@@ -24,7 +24,7 @@ class Room
 public:
 	Room();
 	~Room();
-	bool IsDestroyRoom() { return (_memCnt.load() == 0); } // false ¹İÈ¯ ½Ã ¹æ ÆÄ±« --> È£½ºÆ®°¡ ¹æÀ» ³ª°¬À» °æ¿ì ÆÄ±«ÇÏµµ·ÏÇÔ.
+	bool IsDestroyRoom() { return (_memCnt.load() == 0); } // false ë°˜í™˜ ì‹œ ë°© íŒŒê´´ --> í˜¸ìŠ¤íŠ¸ê°€ ë°©ì„ ë‚˜ê°”ì„ ê²½ìš° íŒŒê´´í•˜ë„ë¡í•¨.
 	void UserOut(int32 sid);
 	void UserIn(int32 sid);
 	void BroadCasting(void* packet);
@@ -32,17 +32,17 @@ public:
 	bool ProcessAttackEvent(const int32& frame, const int16& target) { return (_gameLogic._history.IsAttackAvailable(frame, target)); }
 	//CGameManager& GetGameManager() { return _gameLogic; }
 	void Update();
-	void AddEvent(QueueEvent* packet, float after); // ÀÌº¥Æ® ÆĞÅ¶ÀÌ µé¾î¿À¸é Å¥¿¡´Ù°¡ Ãß°¡¸¦ ÇÒ °ÍÀÌ´Ù.
+	void AddEvent(QueueEvent* packet, float after); // ì´ë²¤íŠ¸ íŒ¨í‚·ì´ ë“¤ì–´ì˜¤ë©´ íì—ë‹¤ê°€ ì¶”ê°€ë¥¼ í•  ê²ƒì´ë‹¤.
 	void AddEvent(QueueEvent* qe);
-	void StartGame() 
+	void StartGame()
 	{
 		_timer.Reset();
 	}
-	
+
 	void SendRoomListPacket();
 	void SendRoomInfoPacket();
 
-	int32 GetSidIndexBySid(int32 sid) 
+	int32 GetSidIndexBySid(int32 sid)
 	{
 		std::shared_lock<std::shared_mutex> rll(_listLock);
 		for (int32 i = 0; i < PLAYERNUM; ++i)
@@ -61,11 +61,11 @@ public:
 	CGameManager _gameLogic;
 public:
 	std::shared_mutex _listLock;
-	std::vector<int32> _cList; // ¹æ¿¡ ¼ÓÇØÀÖ´Â Å¬¶óÀÌ¾ğÆ® ¸®½ºÆ®
+	std::vector<int32> _cList; // ë°©ì— ì†í•´ìˆëŠ” í´ë¼ì´ì–¸íŠ¸ ë¦¬ìŠ¤íŠ¸
 	Member _cArr[4];
 	Atomic<bool> _readys[4];
-	uint8 _status = (int8)ROOM_STATUS::EMPTY; // ¹æ »óÅÂ
-	int32 _rmNum = 0; // ¹æ¹øÈ£
+	uint8 _status = (int8)ROOM_STATUS::EMPTY; // ë°© ìƒíƒœ
+	int32 _rmNum = 0; // ë°©ë²ˆí˜¸
 	Atomic<int32> _memCnt = 0;
 	Timer _timer;
 };
@@ -82,7 +82,7 @@ public:
 	void Init();
 public:
 	Room _rooms[100];
-	Atomic<int32> _rmCnt = 0; // ÇöÀç ¹æ °³¼ö;
+	Atomic<int32> _rmCnt = 0; // í˜„ì¬ ë°© ê°œìˆ˜;
 	int32 _cap = 100;
 };
 

@@ -25,8 +25,8 @@ void CGenerator::SetNormalVector()
 void CGenerator::LogicUpdate()
 {
 	if (m_bOnInteraction || m_bAlreadyOn)
-	{  
-		m_nPipeStartAnimation[0] = true;	
+	{
+		m_nPipeStartAnimation[0] = true;
 		m_nGenerBodyAnimationCount++;
 
 		if (m_nGenerPipeAnimationCount[0] == 4)
@@ -39,7 +39,7 @@ void CGenerator::LogicUpdate()
 		for (int i = 0; i < m_nPipe; i++)
 		{
 			m_nPipeStartAnimation[i] = false;
-		}	
+		}
 	}
 
 	for (int i = 0; i < m_nPipe; i++)
@@ -77,7 +77,7 @@ void CGenerator::Update(float fTimeElapsed)
 			{
 				if (m_idx == i)
 					SoundManager::GetInstance().PlayObjectSound(17, 8+i);
-			}	
+			}
 			SetbIsStartGenInter(true);
 		}
 	}
@@ -114,7 +114,7 @@ void CGenerator::OnPrepareAnimate()
 		m_ppPipe[2] = FindFrame("Generator_Pipe3");
 	}
 	m_pButton = FindFrame("Button001"); //Button -> 통짜 이름
-	m_pBody = FindFrame("Generator"); 
+	m_pBody = FindFrame("Generator");
 }
 
 void CGenerator::BodyAnimate(float fTimeElapsed)

@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "Shader.h"
 #include "DummyPlayer.h"
 
@@ -34,25 +34,25 @@
 //	XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
 //	if (dwDirection)
 //	{
-//		// xmf3Shift == ¹æÇâ º¤ÅÍ
-//		
-//		//È­»ìÇ¥ Å° ¡®¡è¡¯¸¦ ´©¸£¸é ·ÎÄÃ z-Ãà ¹æÇâÀ¸·Î ÀÌµ¿(ÀüÁø)ÇÑ´Ù. ¡®¡é¡¯¸¦ ´©¸£¸é ¹Ý´ë ¹æÇâÀ¸·Î ÀÌµ¿ÇÑ´Ù. 
+//		// xmf3Shift == ë°©í–¥ ë²¡í„°
+//
+//		//í™”ì‚´í‘œ í‚¤ â€˜â†‘â€™ë¥¼ ëˆ„ë¥´ë©´ ë¡œì»¬ z-ì¶• ë°©í–¥ìœ¼ë¡œ ì´ë™(ì „ì§„)í•œë‹¤. â€˜â†“â€™ë¥¼ ëˆ„ë¥´ë©´ ë°˜ëŒ€ ë°©í–¥ìœ¼ë¡œ ì´ë™í•œë‹¤.
 //		if (dwDirection & DIR_FORWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look,
 //			fDistance);
 //		if (dwDirection & DIR_BACKWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look,
 //			-fDistance);
 //
-//		//È­»ìÇ¥ Å° ¡®¡æ¡¯¸¦ ´©¸£¸é ·ÎÄÃ x-Ãà ¹æÇâÀ¸·Î ÀÌµ¿ÇÑ´Ù. ¡®¡ç¡¯¸¦ ´©¸£¸é ¹Ý´ë ¹æÇâÀ¸·Î ÀÌµ¿ÇÑ´Ù. 
+//		//í™”ì‚´í‘œ í‚¤ â€˜â†’â€™ë¥¼ ëˆ„ë¥´ë©´ ë¡œì»¬ x-ì¶• ë°©í–¥ìœ¼ë¡œ ì´ë™í•œë‹¤. â€˜â†â€™ë¥¼ ëˆ„ë¥´ë©´ ë°˜ëŒ€ ë°©í–¥ìœ¼ë¡œ ì´ë™í•œë‹¤.
 //		if (dwDirection & DIR_RIGHT)
 //			xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right,
 //				fDistance);
 //		if (dwDirection & DIR_LEFT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right,
 //			-fDistance);
-//		//ÇÃ·¹ÀÌ¾î¸¦ ÇöÀç À§Ä¡ º¤ÅÍ¿¡¼­ xmf3Shift º¤ÅÍ¸¸Å­ ÀÌµ¿ÇÑ´Ù. 
+//		//í”Œë ˆì´ì–´ë¥¼ í˜„ìž¬ ìœ„ì¹˜ ë²¡í„°ì—ì„œ xmf3Shift ë²¡í„°ë§Œí¼ ì´ë™í•œë‹¤.
 //		m_xmf3Velocity = XMFLOAT3(0, 0, 0);
-//		SetSpeed(xmf3Shift);	
+//		SetSpeed(xmf3Shift);
 //	}
-//	else 
+//	else
 //	{
 // 		SetVelocity(xmf3Shift);
 //	}
@@ -61,7 +61,7 @@
 //void DummyPlayer::SetSpeed(const XMFLOAT3& xmf3Shift)
 //{
 //	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, xmf3Shift);
-//	
+//
 //
 //}
 //
@@ -70,11 +70,11 @@
 //	m_xmf3Position = Vector3::Add(m_xmf3Position, xmf3Shift);
 //}
 //
-////ÇÃ·¹ÀÌ¾î¸¦ ·ÎÄÃ x-Ãà, y-Ãà, z-ÃàÀ» Áß½ÉÀ¸·Î È¸ÀüÇÑ´Ù.
+////í”Œë ˆì´ì–´ë¥¼ ë¡œì»¬ x-ì¶•, y-ì¶•, z-ì¶•ì„ ì¤‘ì‹¬ìœ¼ë¡œ íšŒì „í•œë‹¤.
 //void DummyPlayer::Rotate(float x, float y, float z)
 //{
 //
-//	
+//
 //	if (x != 0.0f)
 //	{
 //		m_fPitch += x;
@@ -83,14 +83,14 @@
 //	}
 //	if (y != 0.0f)
 //	{
-//		
+//
 //		m_fYaw += y;
 //		if (m_fYaw > 360.0f) m_fYaw -= 360.0f;
 //		if (m_fYaw < 0.0f) m_fYaw += 360.0f;
 //	}
 //	if (z != 0.0f)
 //	{
-//		
+//
 //		m_fRoll += z;
 //		if (m_fRoll > +20.0f) { z -= (m_fRoll - 20.0f); m_fRoll = +20.0f; }
 //		if (m_fRoll < -20.0f) { z -= (m_fRoll + 20.0f); m_fRoll = -20.0f; }
@@ -104,7 +104,7 @@
 //		m_xmf3Look = Vector3::TransformNormal(m_xmf3Look, xmmtxRotate);
 //		m_xmf3Right = Vector3::TransformNormal(m_xmf3Right, xmmtxRotate);
 //	}
-//	
+//
 //	m_xmf3Look = Vector3::Normalize(m_xmf3Look);
 //	m_xmf3Right = Vector3::CrossProduct(m_xmf3Up, m_xmf3Look, true);
 //	m_xmf3Up = Vector3::CrossProduct(m_xmf3Look, m_xmf3Right, true);
@@ -112,7 +112,7 @@
 //
 //void DummyPlayer::Update(float fTimeElapsed)
 //{
-//	
+//
 //	XMFLOAT3 xmf3Velocity = Vector3::ScalarProduct(m_xmf3Velocity, fTimeElapsed, false);
 //	UpdateMove(xmf3Velocity);
 //	if (m_pPlayerUpdatedContext) OnPlayerUpdateCallback(fTimeElapsed);
@@ -120,7 +120,7 @@
 //
 //void DummyPlayer::CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 //{
-//	UINT ncbElementBytes = ((sizeof(CB_DUMMYPLAYER_INFO) + 255) & ~255); //256ÀÇ ¹è¼ö
+//	UINT ncbElementBytes = ((sizeof(CB_DUMMYPLAYER_INFO) + 255) & ~255); //256ì˜ ë°°ìˆ˜
 //	m_pd3dcbPlayer = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 //	m_pd3dcbPlayer->Map(0, NULL, (void**)&m_pcbMappedPlayer);
 //}
@@ -144,9 +144,9 @@
 //
 //
 //
-///*ÇÃ·¹ÀÌ¾îÀÇ À§Ä¡¿Í È¸ÀüÃàÀ¸·ÎºÎÅÍ ¿ùµå º¯È¯ Çà·ÄÀ» »ý¼ºÇÏ´Â ÇÔ¼öÀÌ´Ù. ÇÃ·¹ÀÌ¾îÀÇ Right º¤ÅÍ°¡ ¿ùµå º¯È¯ Çà·Ä
-//ÀÇ Ã¹ ¹øÂ° Çà º¤ÅÍ, Up º¤ÅÍ°¡ µÎ ¹øÂ° Çà º¤ÅÍ, Look º¤ÅÍ°¡ ¼¼ ¹øÂ° Çà º¤ÅÍ, ÇÃ·¹ÀÌ¾îÀÇ À§Ä¡ º¤ÅÍ°¡ ³× ¹øÂ° Çà
-//º¤ÅÍ°¡ µÈ´Ù.*/
+///*í”Œë ˆì´ì–´ì˜ ìœ„ì¹˜ì™€ íšŒì „ì¶•ìœ¼ë¡œë¶€í„° ì›”ë“œ ë³€í™˜ í–‰ë ¬ì„ ìƒì„±í•˜ëŠ” í•¨ìˆ˜ì´ë‹¤. í”Œë ˆì´ì–´ì˜ Right ë²¡í„°ê°€ ì›”ë“œ ë³€í™˜ í–‰ë ¬
+//ì˜ ì²« ë²ˆì§¸ í–‰ ë²¡í„°, Up ë²¡í„°ê°€ ë‘ ë²ˆì§¸ í–‰ ë²¡í„°, Look ë²¡í„°ê°€ ì„¸ ë²ˆì§¸ í–‰ ë²¡í„°, í”Œë ˆì´ì–´ì˜ ìœ„ì¹˜ ë²¡í„°ê°€ ë„¤ ë²ˆì§¸ í–‰
+//ë²¡í„°ê°€ ëœë‹¤.*/
 //void DummyPlayer::OnPrepareRender()
 //{
 //	m_xmf4x4World._11 = m_xmf3Right.x;
@@ -167,7 +167,7 @@
 //{
 //	DWORD nCameraMode = (pCamera) ? pCamera->GetMode() : 0x00;
 //
-//	//Ä«¸Þ¶ó ¸ðµå°¡ 3ÀÎÄªÀÌ¸é ÇÃ·¹ÀÌ¾î °´Ã¼¸¦ ·»´õ¸µÇÑ´Ù. 
+//	//ì¹´ë©”ë¼ ëª¨ë“œê°€ 3ì¸ì¹­ì´ë©´ í”Œë ˆì´ì–´ ê°ì²´ë¥¼ ë Œë”ë§í•œë‹¤.
 //	if (nCameraMode == THIRD_PERSON_CAMERA)
 //	{
 //		CGameObject::Render(pd3dCommandList, pCamera);
@@ -182,14 +182,14 @@
 //	SetMesh(0, pPlayerCubeMesh);
 //	SetPosition(XMFLOAT3(0.0f, (1.5f / 2.0f) * UNIT, 0.0f));
 //
-//	UINT ncbElementBytes = ((sizeof(CB_DUMMYPLAYER_INFO) + 255) & ~255); //256ÀÇ ¹è¼ö
+//	UINT ncbElementBytes = ((sizeof(CB_DUMMYPLAYER_INFO) + 255) & ~255); //256ì˜ ë°°ìˆ˜
 //
 //	CPlayerShader* pShader = new CPlayerShader();
 //	pShader->CreateShader(pd3dDevice, pd3dGraphicsRootSignature);
-//	pShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);// ++Ãß°¡ÄÚµå
-//	pShader->CreateCbvSrvDescriptorHeaps(pd3dDevice, 1, 0);// ++Ãß°¡ÄÚµå
-//	pShader->CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbPlayer, ncbElementBytes);// ++Ãß°¡ÄÚµå
-//	SetCbvGPUDescriptorHandle(pShader->GetCbvGPUDescStartHandle());// ++Ãß°¡ÄÚeµå
+//	pShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);// ++ì¶”ê°€ì½”ë“œ
+//	pShader->CreateCbvSrvDescriptorHeaps(pd3dDevice, 1, 0);// ++ì¶”ê°€ì½”ë“œ
+//	pShader->CreateConstantBufferViews(pd3dDevice, 1, m_pd3dcbPlayer, ncbElementBytes);// ++ì¶”ê°€ì½”ë“œ
+//	SetCbvGPUDescriptorHandle(pShader->GetCbvGPUDescStartHandle());// ++ì¶”ê°€ì½”eë“œ
 //
 //	SetShader(pShader);
 //}

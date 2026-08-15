@@ -1,9 +1,14 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "SceneManager.h"
 #include "CScene.h"
 #include "GameScene.h"
 #include "OtherScenes.h"
 #include "CSound.h"
+
+SceneManager::~SceneManager()
+{
+	ReleaseScene();
+}
 
 void SceneManager::Render(ID3D12GraphicsCommandList4* pd3dCommandList, int32 idx, bool Raster)
 {
@@ -16,14 +21,14 @@ void SceneManager::Update(HWND& hWnd,int32 idx)
 }
 
 void SceneManager::ProcessInput(HWND& hWnd, int32 idx)
-{	
+{
 	m_pScenes[idx]->ProcessInput(hWnd);
 }
 
 
 CScene* SceneManager::ChangeScene(int32 idx)
 {
-	return m_pScenes[idx];  // ÇØ´ç ÀÎµ¦½º¿¡ ¸Â´Â ¾ÀÀ¸·Î º¯°æÇÏ°í ÀûÀıÇÑ Á¶Ä¡¸¦ ÃëÇÑ´Ù.
+	return m_pScenes[idx];  // í•´ë‹¹ ì¸ë±ìŠ¤ì— ë§ëŠ” ì”¬ìœ¼ë¡œ ë³€ê²½í•˜ê³  ì ì ˆí•œ ì¡°ì¹˜ë¥¼ ì·¨í•œë‹¤.
 }
 
 void SceneManager::ResetScene()
@@ -32,12 +37,18 @@ void SceneManager::ResetScene()
 
 void SceneManager::ReleaseUpBuffers()
 {
-	for (int i = 0; i < 4; ++i)  m_pScenes[i]->ReleaseUploadBuffers();
+	for (auto* scene : m_pScenes)
+		if (scene) scene->ReleaseUploadBuffers();
 }
 void SceneManager::ReleaseScene()
 {
-	for (int i = 0; i < 4; ++i)  m_pScenes[i]->ReleaseObjects();
-     //m_pScenes[3]->ReleaseObjects();
+	for (auto& scene : m_pScenes)
+	{
+		if (!scene) continue;
+		scene->ReleaseObjects();
+		delete scene;
+		scene = nullptr;
+	}
 }
 void SceneManager::Animate(int32 idx)
 {

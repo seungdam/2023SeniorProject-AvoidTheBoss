@@ -1,24 +1,24 @@
-#pragma once
+ï»¿#pragma once
 
-#include "FMOD\inc\fmod.hpp" 
+#include "FMOD\inc\fmod.hpp"
 
 using namespace FMOD;
 
 class CSound {
-	FMOD_SYSTEM* pSystem;
-	FMOD_SOUND* pSound[22];
-	FMOD_CHANNEL* pChannel[22];
-	// 0 : ¹è°æÀ½¾Ç
-	// 1 : ¹è°æÀ½¾Ç temp
-	// 2 : UI ¹öÆ°
+	FMOD_SYSTEM* pSystem = nullptr;
+	FMOD_SOUND* pSound[22] = {};
+	FMOD_CHANNEL* pChannel[22] = {};
+	// 0 : ë°°ê²½ìŒì•…
+	// 1 : ë°°ê²½ìŒì•… temp
+	// 2 : UI ë²„íŠ¼
 
-	// 5 : ÇÃ·¹ÀÌ¾î ÀÌµ¿ º¸½º
-	// 6 : ÃÑ¾Ë
-	// 7 : »çÀÌ·»
-	// 8,9,10 : ¹ßÀü±â
-	// 11,12,13 : Å»Ãâ ¿ÀºêÁ§Æ® (¹®)
-	// 14 : Á÷¿ø
-	// 15 : ÇÇ°İ
+	// 5 : í”Œë ˆì´ì–´ ì´ë™ ë³´ìŠ¤
+	// 6 : ì´ì•Œ
+	// 7 : ì‚¬ì´ë Œ
+	// 8,9,10 : ë°œì „ê¸°
+	// 11,12,13 : íƒˆì¶œ ì˜¤ë¸Œì íŠ¸ (ë¬¸)
+	// 14 : ì§ì›
+	// 15 : í”¼ê²©
 public:
 	CSound();
 	~CSound();

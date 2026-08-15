@@ -1,19 +1,19 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "GameFramework.h"
 #include "clientIocpCore.h"
 
-// ¸Å´ÏÀú °ü·Ã Çì´õÆÄÀÏ
+// ë§¤ë‹ˆì € ê´€ë ¨ í—¤ë”íŒŒì¼
 #include "UIManager.h"
 #include "SceneManager.h"
 #include "SoundManager.h"
-// ¾À°ü·Ã Çì´õÆÄÀÏ
+// ì”¬ê´€ë ¨ í—¤ë”íŒŒì¼
 #include "CScene.h"
 #include "GameScene.h"
 #include "OtherScenes.h"
 #include "CEmployee.h"
 
 CGameFramework mainGame;
-//#define _WITH_PLAYER_TOP // ÇÃ·¹ÀÌ¾î ±íÀÌ ¹öÆÛ°ª 1.0f
+//#define _WITH_PLAYER_TOP // í”Œë ˆì´ì–´ ê¹Šì´ ë²„í¼ê°’ 1.0f
 
 CGameFramework::CGameFramework()
 {
@@ -21,7 +21,7 @@ CGameFramework::CGameFramework()
 	m_pdxgiSwapChain = NULL;
 	m_pd3dDevice = NULL;
 	m_curScene = (int32)SCENESTATE::TITLE;
-	for (int i = 0; i < m_nSwapChainBuffers; i++) 
+	for (int i = 0; i < m_nSwapChainBuffers; i++)
 		m_ppd3dSwapChainBackBuffers[i] = NULL;
 	m_nSwapChainBufferIndex = 0;
 
@@ -42,25 +42,25 @@ CGameFramework::CGameFramework()
 	m_nWndClientWidth = FRAME_BUFFER_WIDTH;
 	m_nWndClientHeight = FRAME_BUFFER_HEIGHT;
 
-	
 
-	
+
+
 	_tcscpy_s(m_pszFrameRate, _T("FPS : "));
 
-	SoundManager::GetInstance(); // »ç¿îµå ¸Å´ÏÀú »ı¼º
+	SoundManager::GetInstance(); // ì‚¬ìš´ë“œ ë§¤ë‹ˆì € ìƒì„±
 }
 
 CGameFramework::~CGameFramework()
 {
 }
 
-//´ÙÀ½ ÇÔ¼ö´Â ÀÀ¿ë ÇÁ·Î±×·¥ÀÌ ½ÇÇàµÇ¾î ÁÖ À©µµ¿ì°¡ »ı¼ºµÇ¸é È£ÃâµÈ´Ù´Â °Í¿¡ À¯ÀÇÇÏ¶ó.
+//ë‹¤ìŒ í•¨ìˆ˜ëŠ” ì‘ìš© í”„ë¡œê·¸ë¨ì´ ì‹¤í–‰ë˜ì–´ ì£¼ ìœˆë„ìš°ê°€ ìƒì„±ë˜ë©´ í˜¸ì¶œëœë‹¤ëŠ” ê²ƒì— ìœ ì˜í•˜ë¼.
 bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 {
 	m_hInstance = hInstance;
 	m_hWnd = hMainWnd;
 
-	//Direct3D µğ¹ÙÀÌ½º, ¸í·É Å¥¿Í ¸í·É ¸®½ºÆ®, ½º¿Ò Ã¼ÀÎ µîÀ» »ı¼ºÇÏ´Â ÇÔ¼ö¸¦ È£ÃâÇÑ´Ù. 
+	//Direct3D ë””ë°”ì´ìŠ¤, ëª…ë ¹ íì™€ ëª…ë ¹ ë¦¬ìŠ¤íŠ¸, ìŠ¤ì™‘ ì²´ì¸ ë“±ì„ ìƒì„±í•˜ëŠ” í•¨ìˆ˜ë¥¼ í˜¸ì¶œí•œë‹¤.
 	CreateDirect3DDevice();
 	CreateCommandQueueAndList();
 	CreateRtvAndDsvDescriptorHeaps();
@@ -69,8 +69,8 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 	CreateRenderTargetViews();
 #endif
 	CreateDepthStencilView();
-	
-	//·»´õ¸µÇÒ °ÔÀÓ °´Ã¼¸¦ »ı¼ºÇÑ´Ù.
+
+	//ë Œë”ë§í•  ê²Œì„ ê°ì²´ë¥¼ ìƒì„±í•œë‹¤.
 	BuildScenes();
 
 	return(true);
@@ -82,7 +82,7 @@ void CGameFramework::OnDestroy()
 	SoundManager::GetInstance().SoundRelease();
 
 	ReleaseScenes();
-	//°ÔÀÓ °´Ã¼(°ÔÀÓ ¿ùµå °´Ã¼)¸¦ ¼Ò¸êÇÑ´Ù.
+	//ê²Œì„ ê°ì²´(ê²Œì„ ì›”ë“œ ê°ì²´)ë¥¼ ì†Œë©¸í•œë‹¤.
 
 	::CloseHandle(m_hFenceEvent);
 
@@ -93,7 +93,7 @@ void CGameFramework::OnDestroy()
 	if (m_pd3dDepthStencilBuffer) m_pd3dDepthStencilBuffer->Release();
 	if (m_pd3dDsvDescriptorHeap) m_pd3dDsvDescriptorHeap->Release();
 
-	for (int i = 0; i < m_nSwapChainBuffers; i++) 
+	for (int i = 0; i < m_nSwapChainBuffers; i++)
 		if (m_ppd3dSwapChainBackBuffers[i])
 			m_ppd3dSwapChainBackBuffers[i]->Release();
 	if (m_pd3dRtvDescriptorHeap) m_pd3dRtvDescriptorHeap->Release();
@@ -104,8 +104,11 @@ void CGameFramework::OnDestroy()
 
 	if (m_pd3dFence) m_pd3dFence->Release();
 
-	m_pdxgiSwapChain->SetFullscreenState(FALSE, NULL);
-	if (m_pdxgiSwapChain) m_pdxgiSwapChain->Release();
+	if (m_pdxgiSwapChain)
+	{
+		m_pdxgiSwapChain->SetFullscreenState(FALSE, NULL);
+		m_pdxgiSwapChain->Release();
+	}
 	if (m_pd3dDevice) m_pd3dDevice->Release();
 	if (m_pdxgiFactory) m_pdxgiFactory->Release();
 
@@ -124,7 +127,7 @@ void CGameFramework::CreateSwapChain()
 	::GetClientRect(m_hWnd, &rcClient);
 	m_nWndClientWidth = rcClient.right - rcClient.left;
 	m_nWndClientHeight = rcClient.bottom - rcClient.top;
-	
+
 #ifdef _WITH_CREATE_SWAPCHAIN_FOR_HWND
 	DXGI_SWAP_CHAIN_DESC1 dxgiSwapChainDesc;
 	::ZeroMemory(&dxgiSwapChainDesc, sizeof(DXGI_SWAP_CHAIN_DESC1));
@@ -183,7 +186,7 @@ void CGameFramework::CreateSwapChain()
 
 	hResult = m_pdxgiFactory->MakeWindowAssociation(m_hWnd, DXGI_MWA_NO_ALT_ENTER);
 
-#ifndef _WITH_SWAPCHAIN_FULLSCREEN_STATE // 23.7.29 Ãß°¡ÄÚµå
+#ifndef _WITH_SWAPCHAIN_FULLSCREEN_STATE // 23.7.29 ì¶”ê°€ì½”ë“œ
 	CreateRenderTargetViews();
 #endif
 }
@@ -198,17 +201,17 @@ void CGameFramework::CreateRtvAndDsvDescriptorHeaps()
 	d3dDescriptorHeapDesc.NodeMask = 0;
 	HRESULT hResult = m_pd3dDevice->CreateDescriptorHeap(&d3dDescriptorHeapDesc,
 		__uuidof(ID3D12DescriptorHeap), (void**)&m_pd3dRtvDescriptorHeap);
-	//·»´õ Å¸°Ù ¼­¼úÀÚ Èü(¼­¼úÀÚÀÇ °³¼ö´Â ½º¿ÒÃ¼ÀÎ ¹öÆÛÀÇ °³¼ö)À» »ı¼ºÇÑ´Ù. 
+	//ë Œë” íƒ€ê²Ÿ ì„œìˆ ì í™(ì„œìˆ ìì˜ ê°œìˆ˜ëŠ” ìŠ¤ì™‘ì²´ì¸ ë²„í¼ì˜ ê°œìˆ˜)ì„ ìƒì„±í•œë‹¤.
 	m_nRtvDescriptorIncrementSize = m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	//·»´õ Å¸°Ù ¼­¼úÀÚ ÈüÀÇ ¿ø¼ÒÀÇ Å©±â¸¦ ÀúÀåÇÑ´Ù.
+	//ë Œë” íƒ€ê²Ÿ ì„œìˆ ì í™ì˜ ì›ì†Œì˜ í¬ê¸°ë¥¼ ì €ì¥í•œë‹¤.
 
 	d3dDescriptorHeapDesc.NumDescriptors = 1;
 	d3dDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	hResult = m_pd3dDevice->CreateDescriptorHeap(&d3dDescriptorHeapDesc,
 		__uuidof(ID3D12DescriptorHeap), (void**)&m_pd3dDsvDescriptorHeap);
-	//±íÀÌ-½ºÅÙ½Ç ¼­¼úÀÚ Èü(¼­¼úÀÚÀÇ °³¼ö´Â 1)À» »ı¼ºÇÑ´Ù.
+	//ê¹Šì´-ìŠ¤í…ì‹¤ ì„œìˆ ì í™(ì„œìˆ ìì˜ ê°œìˆ˜ëŠ” 1)ì„ ìƒì„±í•œë‹¤.
 	m_nDsvDescriptorIncrementSize = m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-	//±íÀÌ-½ºÅÙ½Ç ¼­¼úÀÚ ÈüÀÇ ¿ø¼ÒÀÇ Å©±â¸¦ ÀúÀåÇÑ´Ù.
+	//ê¹Šì´-ìŠ¤í…ì‹¤ ì„œìˆ ì í™ì˜ ì›ì†Œì˜ í¬ê¸°ë¥¼ ì €ì¥í•œë‹¤.
 }
 
 void CGameFramework::CreateDirect3DDevice()
@@ -235,13 +238,20 @@ void CGameFramework::CreateDirect3DDevice()
 	{
 		DXGI_ADAPTER_DESC1 dxgiAdapterDesc;
 		pd3dAdapter->GetDesc1(&dxgiAdapterDesc);
-		if (dxgiAdapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) continue;
+		if (dxgiAdapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+		{
+			pd3dAdapter->Release();
+			pd3dAdapter = nullptr;
+			continue;
+		}
 		if (SUCCEEDED(D3D12CreateDevice(pd3dAdapter, D3D_FEATURE_LEVEL_12_0, _uuidof(ID3D12Device5), (void**)&m_pd3dDevice))) break;
+		pd3dAdapter->Release();
+		pd3dAdapter = nullptr;
 	}
 
-	if (!pd3dAdapter)
+	if (!m_pd3dDevice)
 	{
-		m_pdxgiFactory->EnumWarpAdapter(_uuidof(IDXGIFactory4), (void**)&pd3dAdapter);
+		m_pdxgiFactory->EnumWarpAdapter(_uuidof(IDXGIAdapter1), (void**)&pd3dAdapter);
 		hResult = D3D12CreateDevice(pd3dAdapter, D3D_FEATURE_LEVEL_12_0, _uuidof(ID3D12Device5), (void**)&m_pd3dDevice);
 	}
 
@@ -275,19 +285,19 @@ void CGameFramework::CreateCommandQueueAndList()
 	d3dCommandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	HRESULT hResult = m_pd3dDevice->CreateCommandQueue(&d3dCommandQueueDesc,
 		_uuidof(ID3D12CommandQueue), (void**)&m_pd3dCommandQueue);
-	//Á÷Á¢(Direct) ¸í·É Å¥¸¦ »ı¼ºÇÑ´Ù.
+	//ì§ì ‘(Direct) ëª…ë ¹ íë¥¼ ìƒì„±í•œë‹¤.
 
 	hResult = m_pd3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
 		__uuidof(ID3D12CommandAllocator), (void**)&m_pd3dCommandAllocator);
-	//Á÷Á¢(Direct) ¸í·É ÇÒ´çÀÚ¸¦ »ı¼ºÇÑ´Ù.
+	//ì§ì ‘(Direct) ëª…ë ¹ í• ë‹¹ìë¥¼ ìƒì„±í•œë‹¤.
 
 	hResult = m_pd3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,
 		m_pd3dCommandAllocator, NULL, __uuidof(ID3D12GraphicsCommandList4), (void
 			**)&m_pd3dCommandList);
-	//Á÷Á¢(Direct) ¸í·É ¸®½ºÆ®¸¦ »ı¼ºÇÑ´Ù.
+	//ì§ì ‘(Direct) ëª…ë ¹ ë¦¬ìŠ¤íŠ¸ë¥¼ ìƒì„±í•œë‹¤.
 
 	hResult = m_pd3dCommandList->Close();
-	//¸í·É ¸®½ºÆ®´Â »ı¼ºµÇ¸é ¿­¸°(Open) »óÅÂÀÌ¹Ç·Î ´İÈù(Closed) »óÅÂ·Î ¸¸µç´Ù.
+	//ëª…ë ¹ ë¦¬ìŠ¤íŠ¸ëŠ” ìƒì„±ë˜ë©´ ì—´ë¦°(Open) ìƒíƒœì´ë¯€ë¡œ ë‹«íŒ(Closed) ìƒíƒœë¡œ ë§Œë“ ë‹¤.
 }
 
 void CGameFramework::CreateRenderTargetViews()
@@ -335,11 +345,11 @@ void CGameFramework::CreateDepthStencilView()
 
 	//D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle =
 	//m_pd3dDsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	//±íÀÌ-½ºÅÙ½Ç ¹öÆÛ ºä¸¦ »ı¼ºÇÑ´Ù.
+	//ê¹Šì´-ìŠ¤í…ì‹¤ ë²„í¼ ë·°ë¥¼ ìƒì„±í•œë‹¤.
 	m_pd3dDevice->CreateCommittedResource(&d3dHeapProperties, D3D12_HEAP_FLAG_NONE,
 		&d3dResourceDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &d3dClearValue,
 		__uuidof(ID3D12Resource), (void**)&m_pd3dDepthStencilBuffer);
-	//±íÀÌ-½ºÅÙ½Ç ¹öÆÛ¸¦ »ı¼ºÇÑ´Ù.
+	//ê¹Šì´-ìŠ¤í…ì‹¤ ë²„í¼ë¥¼ ìƒì„±í•œë‹¤.
 
 	D3D12_DEPTH_STENCIL_VIEW_DESC d3dDepthStencilViewDesc;
 	::ZeroMemory(&d3dDepthStencilViewDesc, sizeof(D3D12_DEPTH_STENCIL_VIEW_DESC));
@@ -355,39 +365,41 @@ void CGameFramework::BuildScenes()
 {
 	m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
 
-	//¾À °´Ã¼¸¦ »ı¼ºÇÏ°í ¾À¿¡ Æ÷ÇÔµÉ °ÔÀÓ °´Ã¼µéÀ» »ı¼ºÇÑ´Ù. 
+	//ì”¬ ê°ì²´ë¥¼ ìƒì„±í•˜ê³  ì”¬ì— í¬í•¨ë  ê²Œì„ ê°ì²´ë“¤ì„ ìƒì„±í•œë‹¤.
 
 	m_UIRenderer = new UIManager(m_nSwapChainBuffers, m_pd3dDevice, m_pd3dCommandQueue, m_ppd3dSwapChainBackBuffers, m_nWndClientWidth, m_nWndClientHeight);
 	m_SceneManager = new SceneManager();
-	
+
 	m_SceneManager->BuildScene(m_pd3dDevice, m_pd3dCommandList);
 
 
-	//¾À °´Ã¼¸¦ »ı¼ºÇÏ±â À§ÇÏ¿© ÇÊ¿äÇÑ ±×·¡ÇÈ ¸í·É ¸®½ºÆ®µéÀ» ¸í·É Å¥¿¡ Ãß°¡ÇÑ´Ù. 
+	//ì”¬ ê°ì²´ë¥¼ ìƒì„±í•˜ê¸° ìœ„í•˜ì—¬ í•„ìš”í•œ ê·¸ë˜í”½ ëª…ë ¹ ë¦¬ìŠ¤íŠ¸ë“¤ì„ ëª…ë ¹ íì— ì¶”ê°€í•œë‹¤.
 
 	m_pd3dCommandList->Close();
 	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
 	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
 
-	//±×·¡ÇÈ ¸í·É ¸®½ºÆ®µéÀÌ ¸ğµÎ ½ÇÇàµÉ ¶§±îÁö ±â´Ù¸°´Ù. 
+	//ê·¸ë˜í”½ ëª…ë ¹ ë¦¬ìŠ¤íŠ¸ë“¤ì´ ëª¨ë‘ ì‹¤í–‰ë  ë•Œê¹Œì§€ ê¸°ë‹¤ë¦°ë‹¤.
 	WaitForGpuComplete();
 
-	//±×·¡ÇÈ ¸®¼Ò½ºµéÀ» »ı¼ºÇÏ´Â °úÁ¤¿¡ »ı¼ºµÈ ¾÷·Îµå ¹öÆÛµéÀ» ¼Ò¸ê½ÃÅ²´Ù. 
+	//ê·¸ë˜í”½ ë¦¬ì†ŒìŠ¤ë“¤ì„ ìƒì„±í•˜ëŠ” ê³¼ì •ì— ìƒì„±ëœ ì—…ë¡œë“œ ë²„í¼ë“¤ì„ ì†Œë©¸ì‹œí‚¨ë‹¤.
 	m_SceneManager->ReleaseUpBuffers();
 }
 
 void CGameFramework::ReleaseScenes()
 {
-	if (m_UIRenderer) m_UIRenderer->ReleaseResources();
-	if (m_UIRenderer) delete m_UIRenderer;
-	m_SceneManager->ReleaseScene();
+	delete m_UIRenderer;
+	m_UIRenderer = nullptr;
+
+	delete m_SceneManager;
+	m_SceneManager = nullptr;
 }
 
 void CGameFramework::ProcessInput()
 {
-	
+
 	m_SceneManager->ProcessInput(m_hWnd, m_curScene);
-	
+
 }
 
 void CGameFramework::UpdateObject()
@@ -397,28 +409,28 @@ void CGameFramework::UpdateObject()
 
 void CGameFramework::AnimateObjects()
 {
-	
+
 	m_SceneManager->Animate(m_curScene);
 }
 
-void CGameFramework::FrameAdvance() // ¿©±â¼­ ¾÷µ¥ÀÌÆ®¶û ·»´õ¸µ µ¿½Ã¿¡ ÁøÇàÇÏ´Â °÷
+void CGameFramework::FrameAdvance() // ì—¬ê¸°ì„œ ì—…ë°ì´íŠ¸ë‘ ë Œë”ë§ ë™ì‹œì— ì§„í–‰í•˜ëŠ” ê³³
 {
-	//Å¸ÀÌ¸ÓÀÇ ½Ã°£ÀÌ °»½ÅµÇµµ·Ï ÇÏ°í ÇÁ·¹ÀÓ ·¹ÀÌÆ®¸¦ °è»êÇÑ´Ù. 
+	//íƒ€ì´ë¨¸ì˜ ì‹œê°„ì´ ê°±ì‹ ë˜ë„ë¡ í•˜ê³  í”„ë ˆì„ ë ˆì´íŠ¸ë¥¼ ê³„ì‚°í•œë‹¤.
 
 	scLock.lock();
-	//1 ÀÎÇ² Ã³¸®
+	//1 ì¸í’‹ ì²˜ë¦¬
 	ProcessInput();
-	//2 ¾÷µ¥ÀÌÆ® Ã³¸®
+	//2 ì—…ë°ì´íŠ¸ ì²˜ë¦¬
 	UpdateObject();
-	//3 ¾Ö´Ï¸ŞÀÌÆ® Ã³¸®
-	
+	//3 ì• ë‹ˆë©”ì´íŠ¸ ì²˜ë¦¬
+
 	AnimateObjects();
-	//4 ·»´õ¸µ Ã³¸®
+	//4 ë Œë”ë§ ì²˜ë¦¬
 	Render();
 
 	WaitForGpuComplete();
-	//GPU°¡ ¸ğµç ¸í·É ¸®½ºÆ®¸¦ ½ÇÇàÇÒ ¶§ ±îÁö ±â´Ù¸°´Ù.
-	
+	//GPUê°€ ëª¨ë“  ëª…ë ¹ ë¦¬ìŠ¤íŠ¸ë¥¼ ì‹¤í–‰í•  ë•Œ ê¹Œì§€ ê¸°ë‹¤ë¦°ë‹¤.
+
 	m_UIRenderer->Render2D(m_nSwapChainBufferIndex, m_curScene.load());
 	scLock.unlock();
 
@@ -429,8 +441,8 @@ void CGameFramework::FrameAdvance() // ¿©±â¼­ ¾÷µ¥ÀÌÆ®¶û ·»´õ¸µ µ¿½Ã¿¡ ÁøÇàÇÏ´Â 
 	dxgiPresentParameters.pScrollRect = NULL;
 	dxgiPresentParameters.pScrollOffset = NULL;
 	m_pdxgiSwapChain->Present1(1, 0, &dxgiPresentParameters);
-	/*½º¿ÒÃ¼ÀÎÀ» ÇÁ¸®Á¨Æ®ÇÑ´Ù. ÇÁ¸®Á¨Æ®¸¦ ÇÏ¸é ÇöÀç ·»´õ Å¸°Ù(ÈÄ¸é¹öÆÛ)ÀÇ ³»¿ëÀÌ Àü¸é¹öÆÛ·Î ¿Å°ÜÁö°í ·»´õ Å¸°Ù ÀÎ
-	µ¦½º°¡ ¹Ù²ğ °ÍÀÌ´Ù.*/
+	/*ìŠ¤ì™‘ì²´ì¸ì„ í”„ë¦¬ì  íŠ¸í•œë‹¤. í”„ë¦¬ì  íŠ¸ë¥¼ í•˜ë©´ í˜„ì¬ ë Œë” íƒ€ê²Ÿ(í›„ë©´ë²„í¼)ì˜ ë‚´ìš©ì´ ì „ë©´ë²„í¼ë¡œ ì˜®ê²¨ì§€ê³  ë Œë” íƒ€ê²Ÿ ì¸
+	ë±ìŠ¤ê°€ ë°”ë€” ê²ƒì´ë‹¤.*/
 #else
 #ifdef _WITH_SYNCH_SWAPCHAIN
 	m_pdxgiSwapChain->Present(1, 0);
@@ -438,24 +450,24 @@ void CGameFramework::FrameAdvance() // ¿©±â¼­ ¾÷µ¥ÀÌÆ®¶û ·»´õ¸µ µ¿½Ã¿¡ ÁøÇàÇÏ´Â 
 	m_pdxgiSwapChain->Present(0, 0);
 	#endif
 	#endif
-	//	/*ÇöÀçÀÇ ÇÁ·¹ÀÓ ·¹ÀÌÆ®¸¦ ¹®ÀÚ¿­·Î °¡Á®¿Í¼­ ÁÖ À©µµ¿ìÀÇ Å¸ÀÌÆ²·Î Ãâ·ÂÇÑ´Ù. m_pszBuffer ¹®ÀÚ¿­ÀÌ
-	//	"LapProject ("À¸·Î ÃÊ±âÈ­µÇ¾úÀ¸¹Ç·Î (m_pszFrameRate+12)¿¡¼­ºÎÅÍ ÇÁ·¹ÀÓ ·¹ÀÌÆ®¸¦ ¹®ÀÚ¿­·Î Ãâ·Â
-	//	ÇÏ¿© ¡° FPS)¡± ¹®ÀÚ¿­°ú ÇÕÄ£´Ù.
+	//	/*í˜„ì¬ì˜ í”„ë ˆì„ ë ˆì´íŠ¸ë¥¼ ë¬¸ìì—´ë¡œ ê°€ì ¸ì™€ì„œ ì£¼ ìœˆë„ìš°ì˜ íƒ€ì´í‹€ë¡œ ì¶œë ¥í•œë‹¤. m_pszBuffer ë¬¸ìì—´ì´
+	//	"LapProject ("ìœ¼ë¡œ ì´ˆê¸°í™”ë˜ì—ˆìœ¼ë¯€ë¡œ (m_pszFrameRate+12)ì—ì„œë¶€í„° í”„ë ˆì„ ë ˆì´íŠ¸ë¥¼ ë¬¸ìì—´ë¡œ ì¶œë ¥
+	//	í•˜ì—¬ â€œ FPS)â€ ë¬¸ìì—´ê³¼ í•©ì¹œë‹¤.
 
 	MoveToNextFrame();
-	
+
 }
 
 void CGameFramework::WaitForGpuComplete()
 {
-	//CPU Ææ½ºÀÇ °ªÀ» Áõ°¡ÇÑ´Ù. 
+	//CPU íœìŠ¤ì˜ ê°’ì„ ì¦ê°€í•œë‹¤.
 	const UINT64 nFenceValue = ++m_nFenceValues[m_nSwapChainBufferIndex];
 	HRESULT hResult = m_pd3dCommandQueue->Signal(m_pd3dFence, nFenceValue);
 
-	//GPU°¡ Ææ½ºÀÇ °ªÀ» ¼³Á¤ÇÏ´Â ¸í·ÉÀ» ¸í·É Å¥¿¡ Ãß°¡ÇÑ´Ù. 
+	//GPUê°€ íœìŠ¤ì˜ ê°’ì„ ì„¤ì •í•˜ëŠ” ëª…ë ¹ì„ ëª…ë ¹ íì— ì¶”ê°€í•œë‹¤.
 	if (m_pd3dFence->GetCompletedValue() < nFenceValue)
 	{
-		//Ææ½ºÀÇ ÇöÀç °ªÀÌ ¼³Á¤ÇÑ °ªº¸´Ù ÀÛÀ¸¸é Ææ½ºÀÇ ÇöÀç °ªÀÌ ¼³Á¤ÇÑ °ªÀÌ µÉ ¶§±îÁö ±â´Ù¸°´Ù.
+		//íœìŠ¤ì˜ í˜„ì¬ ê°’ì´ ì„¤ì •í•œ ê°’ë³´ë‹¤ ì‘ìœ¼ë©´ íœìŠ¤ì˜ í˜„ì¬ ê°’ì´ ì„¤ì •í•œ ê°’ì´ ë  ë•Œê¹Œì§€ ê¸°ë‹¤ë¦°ë‹¤.
 		hResult = m_pd3dFence->SetEventOnCompletion(nFenceValue, m_hFenceEvent);
 		::WaitForSingleObject(m_hFenceEvent, INFINITE);
 	}
@@ -465,7 +477,7 @@ void CGameFramework::Render()
 {
 	HRESULT hResult = m_pd3dCommandAllocator->Reset();
 	hResult = m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
-	//¸í·É ÇÒ´çÀÚ¿Í ¸í·É ¸®½ºÆ®¸¦ ¸®¼ÂÇÑ´Ù.
+	//ëª…ë ¹ í• ë‹¹ìì™€ ëª…ë ¹ ë¦¬ìŠ¤íŠ¸ë¥¼ ë¦¬ì…‹í•œë‹¤.
 
 	D3D12_RESOURCE_BARRIER d3dResourceBarrier;
 	::ZeroMemory(&d3dResourceBarrier, sizeof(D3D12_RESOURCE_BARRIER));
@@ -476,20 +488,20 @@ void CGameFramework::Render()
 	d3dResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	d3dResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	m_pd3dCommandList->ResourceBarrier(1, &d3dResourceBarrier);
-	/*ÇöÀç ·»´õ Å¸°Ù¿¡ ´ëÇÑ ÇÁ¸®Á¨Æ®°¡ ³¡³ª±â¸¦ ±â´Ù¸°´Ù. ÇÁ¸®Á¨Æ®°¡ ³¡³ª¸é ·»´õ Å¸°Ù ¹öÆÛÀÇ »óÅÂ´Â ÇÁ¸®Á¨Æ® »óÅÂ
-	(D3D12_RESOURCE_STATE_PRESENT)¿¡¼­ ·»´õ Å¸°Ù »óÅÂ(D3D12_RESOURCE_STATE_RENDER_TARGET)·Î ¹Ù
-	²ğ °ÍÀÌ´Ù.*/
+	/*í˜„ì¬ ë Œë” íƒ€ê²Ÿì— ëŒ€í•œ í”„ë¦¬ì  íŠ¸ê°€ ëë‚˜ê¸°ë¥¼ ê¸°ë‹¤ë¦°ë‹¤. í”„ë¦¬ì  íŠ¸ê°€ ëë‚˜ë©´ ë Œë” íƒ€ê²Ÿ ë²„í¼ì˜ ìƒíƒœëŠ” í”„ë¦¬ì  íŠ¸ ìƒíƒœ
+	(D3D12_RESOURCE_STATE_PRESENT)ì—ì„œ ë Œë” íƒ€ê²Ÿ ìƒíƒœ(D3D12_RESOURCE_STATE_RENDER_TARGET)ë¡œ ë°”
+	ë€” ê²ƒì´ë‹¤.*/
 
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_pd3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	d3dRtvCPUDescriptorHandle.ptr += (m_nSwapChainBufferIndex * m_nRtvDescriptorIncrementSize);
-	//ÇöÀçÀÇ ·»´õ Å¸°Ù¿¡ ÇØ´çÇÏ´Â ¼­¼úÀÚÀÇ CPU ÁÖ¼Ò(ÇÚµé)¸¦ °è»êÇÑ´Ù.
+	//í˜„ì¬ì˜ ë Œë” íƒ€ê²Ÿì— í•´ë‹¹í•˜ëŠ” ì„œìˆ ìì˜ CPU ì£¼ì†Œ(í•¸ë“¤)ë¥¼ ê³„ì‚°í•œë‹¤.
 
 	if (m_raster)
 	{
 		float pfClearColor[4] = { 0.0f, 0.125f, 0.3f, 1.0f };
 		m_pd3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle,
 			pfClearColor/*Colors::Azure*/, 0, NULL);
-		//¿øÇÏ´Â »ö»óÀ¸·Î ·»´õ Å¸°Ù(ºä)À» Áö¿î´Ù.
+		//ì›í•˜ëŠ” ìƒ‰ìƒìœ¼ë¡œ ë Œë” íƒ€ê²Ÿ(ë·°)ì„ ì§€ìš´ë‹¤.
 	}
 	else
 	{
@@ -499,39 +511,39 @@ void CGameFramework::Render()
 	}
 
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle = m_pd3dDsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	//±íÀÌ-½ºÅÙ½Ç ¼­¼úÀÚÀÇ CPU ÁÖ¼Ò¸¦ °è»êÇÑ´Ù. 
+	//ê¹Šì´-ìŠ¤í…ì‹¤ ì„œìˆ ìì˜ CPU ì£¼ì†Œë¥¼ ê³„ì‚°í•œë‹¤.
 	m_pd3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle,
 		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
-	//¿øÇÏ´Â °ªÀ¸·Î ±íÀÌ-½ºÅÙ½Ç(ºä)À» Áö¿î´Ù.
+	//ì›í•˜ëŠ” ê°’ìœ¼ë¡œ ê¹Šì´-ìŠ¤í…ì‹¤(ë·°)ì„ ì§€ìš´ë‹¤.
 
 	m_pd3dCommandList->OMSetRenderTargets(1, &d3dRtvCPUDescriptorHandle, TRUE,
 		&d3dDsvCPUDescriptorHandle);
-	//·»´õ Å¸°Ù ºä(¼­¼úÀÚ)¿Í ±íÀÌ-½ºÅÙ½Ç ºä(¼­¼úÀÚ)¸¦ Ãâ·Â-º´ÇÕ ´Ü°è(OM)¿¡ ¿¬°áÇÑ´Ù.
+	//ë Œë” íƒ€ê²Ÿ ë·°(ì„œìˆ ì)ì™€ ê¹Šì´-ìŠ¤í…ì‹¤ ë·°(ì„œìˆ ì)ë¥¼ ì¶œë ¥-ë³‘í•© ë‹¨ê³„(OM)ì— ì—°ê²°í•œë‹¤.
 
-	//=======·»´õ¸µ ÄÚµå´Â ¿©±â¿¡ Ãß°¡µÉ °ÍÀÌ´Ù
+	//=======ë Œë”ë§ ì½”ë“œëŠ” ì—¬ê¸°ì— ì¶”ê°€ë  ê²ƒì´ë‹¤
 	m_SceneManager->Render(m_pd3dCommandList, m_curScene, true);
-	//3ÀÎÄª Ä«¸Ş¶óÀÏ ¶§ ÇÃ·¹ÀÌ¾î°¡ Ç×»ó º¸ÀÌµµ·Ï ·»´õ¸µÇÑ´Ù. 
+	//3ì¸ì¹­ ì¹´ë©”ë¼ì¼ ë•Œ í”Œë ˆì´ì–´ê°€ í•­ìƒ ë³´ì´ë„ë¡ ë Œë”ë§í•œë‹¤.
 
 #ifdef _WITH_PLAYER_TOP
-	//·»´õ Å¸°ÙÀº ±×´ë·Î µÎ°í ±íÀÌ ¹öÆÛ¸¦ 1.0À¸·Î Áö¿ì°í ÇÃ·¹ÀÌ¾î¸¦ ·»´õ¸µÇÏ¸é ÇÃ·¹ÀÌ¾î´Â ¹«Á¶°Ç ±×·ÁÁú °ÍÀÌ´Ù. 
+	//ë Œë” íƒ€ê²Ÿì€ ê·¸ëŒ€ë¡œ ë‘ê³  ê¹Šì´ ë²„í¼ë¥¼ 1.0ìœ¼ë¡œ ì§€ìš°ê³  í”Œë ˆì´ì–´ë¥¼ ë Œë”ë§í•˜ë©´ í”Œë ˆì´ì–´ëŠ” ë¬´ì¡°ê±´ ê·¸ë ¤ì§ˆ ê²ƒì´ë‹¤.
 	m_pd3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle,
 		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 #endif
-	
+
 
 	d3dResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	d3dResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 	d3dResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	m_pd3dCommandList->ResourceBarrier(1, &d3dResourceBarrier);
-	/*ÇöÀç ·»´õ Å¸°Ù¿¡ ´ëÇÑ ·»´õ¸µÀÌ ³¡³ª±â¸¦ ±â´Ù¸°´Ù. GPU°¡ ·»´õ Å¸°Ù(¹öÆÛ)À» ´õ ÀÌ»ó »ç¿ëÇÏÁö ¾ÊÀ¸¸é ·»´õ Å¸°Ù
-	ÀÇ »óÅÂ´Â ÇÁ¸®Á¨Æ® »óÅÂ(D3D12_RESOURCE_STATE_PRESENT)·Î ¹Ù²ğ °ÍÀÌ´Ù.*/
+	/*í˜„ì¬ ë Œë” íƒ€ê²Ÿì— ëŒ€í•œ ë Œë”ë§ì´ ëë‚˜ê¸°ë¥¼ ê¸°ë‹¤ë¦°ë‹¤. GPUê°€ ë Œë” íƒ€ê²Ÿ(ë²„í¼)ì„ ë” ì´ìƒ ì‚¬ìš©í•˜ì§€ ì•Šìœ¼ë©´ ë Œë” íƒ€ê²Ÿ
+	ì˜ ìƒíƒœëŠ” í”„ë¦¬ì  íŠ¸ ìƒíƒœ(D3D12_RESOURCE_STATE_PRESENT)ë¡œ ë°”ë€” ê²ƒì´ë‹¤.*/
 
 	hResult = m_pd3dCommandList->Close();
-	//¸í·É ¸®½ºÆ®¸¦ ´İÈù »óÅÂ·Î ¸¸µç´Ù.
+	//ëª…ë ¹ ë¦¬ìŠ¤íŠ¸ë¥¼ ë‹«íŒ ìƒíƒœë¡œ ë§Œë“ ë‹¤.
 
 	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
 	m_pd3dCommandQueue->ExecuteCommandLists(1/*_countof(ppd3dCommandLists)*/,
-		ppd3dCommandLists);	//¸í·É ¸®½ºÆ®¸¦ ¸í·É Å¥¿¡ Ãß°¡ÇÏ¿© ½ÇÇàÇÑ´Ù.
+		ppd3dCommandLists);	//ëª…ë ¹ ë¦¬ìŠ¤íŠ¸ë¥¼ ëª…ë ¹ íì— ì¶”ê°€í•˜ì—¬ ì‹¤í–‰í•œë‹¤.
 }
 
 void CGameFramework::MoveToNextFrame()
@@ -553,7 +565,7 @@ void CGameFramework::ChangeScene(SCENESTATE ss)
 	m_curScene.store((int32)ss);
 	if (m_curScene <= 4)
 	{
-		SoundManager::GetInstance().PlayBackGroundSound(m_curScene); // ¾À ÀüÈ¯ ½Ã, »ç¿îµå Àç»ı º¯°æ
+		SoundManager::GetInstance().PlayBackGroundSound(m_curScene); // ì”¬ ì „í™˜ ì‹œ, ì‚¬ìš´ë“œ ì¬ìƒ ë³€ê²½
 	}
 }
 
@@ -561,7 +573,7 @@ void CGameFramework::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM
 {
 	//if (m_hWnd != ::GetActiveWindow()) return;
 	m_SceneManager->GetSceneByIdx(m_curScene)->OnProcessingMouseMessage(hWnd, nMessageID, wParam, lParam);
-	
+
 }
 
 void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
@@ -576,7 +588,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 			::PostQuitMessage(0);
 			break;
 		case VK_F9:
-			//¡°F9¡± Å°°¡ ´­·ÁÁö¸é À©µµ¿ì ¸ğµå¿Í ÀüÃ¼È­¸é ¸ğµåÀÇ ÀüÈ¯À» Ã³¸®ÇÑ´Ù. 
+			//â€œF9â€ í‚¤ê°€ ëˆŒë ¤ì§€ë©´ ìœˆë„ìš° ëª¨ë“œì™€ ì „ì²´í™”ë©´ ëª¨ë“œì˜ ì „í™˜ì„ ì²˜ë¦¬í•œë‹¤.
 			//ChangeSwapChainState();
 			break;
 		default:
@@ -642,33 +654,33 @@ void CGameFramework::OnKeyDown(UINT8 key)
 	}
 }
 //
-//AccelerationStructureBuffers CGameFramework::CreateBottomLevelAS(std::vector<std::pair<ComPtr<ID3D12Resource>, uint32_t>> vVertexBuffers)// pair :Áö¿À¸ŞÆ®¸®ÀÇ Á¤Á¡À» º¸À¯ÇÏ´Â ¸®¼Ò½º¿¡ ´ëÇÑ Æ÷ÀÎÅÍ, µÎ¹ø¤Š : Á¤Á¡ÀÇ ¼ö
+//AccelerationStructureBuffers CGameFramework::CreateBottomLevelAS(std::vector<std::pair<ComPtr<ID3D12Resource>, uint32_t>> vVertexBuffers)// pair :ì§€ì˜¤ë©”íŠ¸ë¦¬ì˜ ì •ì ì„ ë³´ìœ í•˜ëŠ” ë¦¬ì†ŒìŠ¤ì— ëŒ€í•œ í¬ì¸í„°, ë‘ë²ˆì¨° : ì •ì ì˜ ìˆ˜
 //{
 //	nv_helpers_dx12::BottomLevelASGenerator bottomLevelAS;
 //
-//	// Adding all vertex buffers and not transforming their position. 
+//	// Adding all vertex buffers and not transforming their position.
 //	for (const auto& buffer : vVertexBuffers) { bottomLevelAS.AddVertexBuffer(buffer.first.Get(), 0, buffer.second, sizeof(Vertex), 0, 0); }
 //
-//	// The AS build requires some scratch space to store temporary information. 
-//	// The amount of scratch memory is dependent on the scene complexity. 
+//	// The AS build requires some scratch space to store temporary information.
+//	// The amount of scratch memory is dependent on the scene complexity.
 //	UINT64 scratchSizeInBytes = 0;
 //
-//	// The final AS also needs to be stored in addition to the existing vertex 
-//	// buffers. It size is also dependent on the scene complexity. 
+//	// The final AS also needs to be stored in addition to the existing vertex
+//	// buffers. It size is also dependent on the scene complexity.
 //	UINT64 resultSizeInBytes = 0;
 //	bottomLevelAS.ComputeASBufferSizes(m_pd3dDevice.Get(), false, &scratchSizeInBytes, &resultSizeInBytes);
 //
-//	// Once the sizes are obtained, the application is responsible for allocating 
-//	// the necessary buffers. Since the entire generation will be done on the GPU 
-//	// we can directly allocate those on the default heap 
+//	// Once the sizes are obtained, the application is responsible for allocating
+//	// the necessary buffers. Since the entire generation will be done on the GPU
+//	// we can directly allocate those on the default heap
 //
 //	AccelerationStructureBuffers buffers;
 //	buffers.pScratch = nv_helpers_dx12::CreateBuffer(m_pd3dDevice.Get(), scratchSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COMMON, nv_helpers_dx12::kDefaultHeapProps);
 //	buffers.pResult = nv_helpers_dx12::CreateBuffer(m_device.Get(), resultSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, nv_helpers_dx12::kDefaultHeapProps);
 //
-//	// Build the acceleration structure. Note that this call integrates a barrier 
-//	// on the generated AS, so that it can be used to compute a top-level AS righ 
-//	// after this method. 
+//	// Build the acceleration structure. Note that this call integrates a barrier
+//	// on the generated AS, so that it can be used to compute a top-level AS righ
+//	// after this method.
 //	bottomLevelAS.Generate(m_commandList.Get(), buffers.pScratch.Get(),
 //		buffers.pResult.Get(), false, nullptr);
 //	return buffers;
@@ -681,41 +693,41 @@ void CGameFramework::OnKeyDown(UINT8 key)
 //// AS itself
 ////
 //// pair of bottom level AS and matrix of the instance
-//// ´Ù¾çÇÑ ¼¼°è °ø°£ À§Ä¡¿¡¼­ ·»´õ¸µÇÏ±â À§ÇØ ÀÎ½ºÅÏ½ºº° ¸ÅÆ®¸¯½º¸¦ »ç¿ëÇÏ¿© µ¿ÀÏÇÑ BLAS¸¦ ¿©·¯ ¹ø ÀÎ½ºÅÏ½ºÈ­
-//void CGameFramework::CreateTopLevelAS(const std::vector<std::pair<ComPtr<ID3D12Resource>, DirectX::XMMATRIX>>& instances)//pair : LAS¿¡ ´ëÇÑ ¸®¼Ò½º Æ÷ÀÎÅÍ, XMMATRIX :¹èÄ¡ÇÏ±â À§ÇÑ ¸ÅÆ®¸¯½º
+//// ë‹¤ì–‘í•œ ì„¸ê³„ ê³µê°„ ìœ„ì¹˜ì—ì„œ ë Œë”ë§í•˜ê¸° ìœ„í•´ ì¸ìŠ¤í„´ìŠ¤ë³„ ë§¤íŠ¸ë¦­ìŠ¤ë¥¼ ì‚¬ìš©í•˜ì—¬ ë™ì¼í•œ BLASë¥¼ ì—¬ëŸ¬ ë²ˆ ì¸ìŠ¤í„´ìŠ¤í™”
+//void CGameFramework::CreateTopLevelAS(const std::vector<std::pair<ComPtr<ID3D12Resource>, DirectX::XMMATRIX>>& instances)//pair : LASì— ëŒ€í•œ ë¦¬ì†ŒìŠ¤ í¬ì¸í„°, XMMATRIX :ë°°ì¹˜í•˜ê¸° ìœ„í•œ ë§¤íŠ¸ë¦­ìŠ¤
 //{
-//	// ÀÔ·Â µ¥ÀÌÅÍ ¼öÁı, AS ¹öÆÛ Å©±â °è»ê ¹× ½ÇÁ¦ TLAS »ı¼º
-//	// Gather all the instances into the builder helper 
+//	// ì…ë ¥ ë°ì´í„° ìˆ˜ì§‘, AS ë²„í¼ í¬ê¸° ê³„ì‚° ë° ì‹¤ì œ TLAS ìƒì„±
+//	// Gather all the instances into the builder helper
 //	for (size_t i = 0; i < instances.size(); i++)
 //	{
 //		m_topLevelASGenerator.AddInstance(instances[i].first.Get(), instances[i].second, static_cast<UINT>(i), static_cast<UINT>(0));
 //	}
 //
-//	// As for the bottom-level AS, the building the AS requires some scratch space 
-//	// to store temporary data in addition to the actual AS. In the case of the 
-//	// top-level AS, the instance descriptors also need to be stored in GPU 
-//	// memory. This call outputs the memory requirements for each (scratch, 
-//	// results, instance descriptors) so that the application can allocate the 
-//	// corresponding memory 
-//			// ½ºÅ©·¡Ä¡ ¹× °á°ú ¹öÆÛÀÇ Å©±â¸¦ Á¦°ø
+//	// As for the bottom-level AS, the building the AS requires some scratch space
+//	// to store temporary data in addition to the actual AS. In the case of the
+//	// top-level AS, the instance descriptors also need to be stored in GPU
+//	// memory. This call outputs the memory requirements for each (scratch,
+//	// results, instance descriptors) so that the application can allocate the
+//	// corresponding memory
+//			// ìŠ¤í¬ë˜ì¹˜ ë° ê²°ê³¼ ë²„í¼ì˜ í¬ê¸°ë¥¼ ì œê³µ
 //	UINT64 scratchSize, resultSize, instanceDescsSize; m_topLevelASGenerator.ComputeASBufferSizes(m_pd3dDevice.Get(), true, &scratchSize, &resultSize, &instanceDescsSize);
 //
-//	// Create the scratch and result buffers. Since the build is all done on GPU, 
-//	// those can be allocated on the default heap 
-//				// ½ºÅ©·¡Ä¡ ¹× °á°ú ¹öÆÛ´Â ±âº» ÈüÀÇ GPU ¸Ş¸ğ¸®¿¡ Á÷Á¢ ÇÒ´ç
+//	// Create the scratch and result buffers. Since the build is all done on GPU,
+//	// those can be allocated on the default heap
+//				// ìŠ¤í¬ë˜ì¹˜ ë° ê²°ê³¼ ë²„í¼ëŠ” ê¸°ë³¸ í™ì˜ GPU ë©”ëª¨ë¦¬ì— ì§ì ‘ í• ë‹¹
 //	m_topLevelASBuffers.pScratch = nv_helpers_dx12::CreateBuffer(m_pd3dDevice.Get(), scratchSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nv_helpers_dx12::kDefaultHeapProps); m_topLevelASBuffers.pResult = nv_helpers_dx12::CreateBuffer(m_pd3dDevice.Get(), resultSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, nv_helpers_dx12::kDefaultHeapProps);
 //
-//	// The buffer describing the instances: ID, shader binding information, 
-//	// matrices ... Those will be copied into the buffer by the helper through 
-//	// mapping, so the buffer has to be allocated on the upload heap. 
-//		// ÀÎ½ºÅÏ½º ¼³¸íÀÚ ¹öÆÛ´Â µµ¿ì¹Ì ³»¿¡¼­ ¸ÅÇÎµÇ¾î¾ß ÇÏ¸ç ¾÷·Îµå Èü¿¡ ÇÒ´ç
+//	// The buffer describing the instances: ID, shader binding information,
+//	// matrices ... Those will be copied into the buffer by the helper through
+//	// mapping, so the buffer has to be allocated on the upload heap.
+//		// ì¸ìŠ¤í„´ìŠ¤ ì„¤ëª…ì ë²„í¼ëŠ” ë„ìš°ë¯¸ ë‚´ì—ì„œ ë§¤í•‘ë˜ì–´ì•¼ í•˜ë©° ì—…ë¡œë“œ í™ì— í• ë‹¹
 //	m_topLevelASBuffers.pInstanceDesc = nv_helpers_dx12::CreateBuffer(m_pd3dDevice.Get(), instanceDescsSize, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, nv_helpers_dx12::kUploadHeapProps);
 //
-//	// After all the buffers are allocated, or if only an update is required, we 
-//	// can build the acceleration structure. Note that in the case of the update 
-//	// we also pass the existing AS as the 'previous' AS, so that it can be 
-//	// refitted in place. 
-//	//ÀÎ½ºÅÏ½º ¼³¸í ¹öÆÛ¿Í ¼öÇàÇÒ ºôµå ÀÛ¾÷ÀÇ ¼³¸íÀÚ Ã¤¿ì±â
+//	// After all the buffers are allocated, or if only an update is required, we
+//	// can build the acceleration structure. Note that in the case of the update
+//	// we also pass the existing AS as the 'previous' AS, so that it can be
+//	// refitted in place.
+//	//ì¸ìŠ¤í„´ìŠ¤ ì„¤ëª… ë²„í¼ì™€ ìˆ˜í–‰í•  ë¹Œë“œ ì‘ì—…ì˜ ì„¤ëª…ì ì±„ìš°ê¸°
 //	// D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL
 //	m_topLevelASGenerator.Generate(m_commandList.Get(), m_topLevelASBuffers.pScratch.Get(), m_topLevelASBuffers.pResult.Get(), m_topLevelASBuffers.pInstanceDesc.Get());
 //}
@@ -727,24 +739,24 @@ void CGameFramework::OnKeyDown(UINT8 key)
 ////
 //void CGameFramework::CreateAccelerationStructures()
 //{
-//	// Build the bottom AS from the Triangle vertex buffer 
+//	// Build the bottom AS from the Triangle vertex buffer
 //	AccelerationStructureBuffers bottomLevelBuffers = CreateBottomLevelAS({ {m_vertexBuffer.Get(), 3} });
 //
-//	// Just one instance for now 
+//	// Just one instance for now
 //	m_instances = { {bottomLevelBuffers.pResult, XMMatrixIdentity()} }; CreateTopLevelAS(m_instances);
-//	// Flush the command list and wait for it to finish 
+//	// Flush the command list and wait for it to finish
 //	m_commandList->Close(); ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() }; m_commandQueue->ExecuteCommandLists(1, ppCommandLists); m_fenceValue++; m_commandQueue->Signal(m_fence.Get(), m_fenceValue); m_fence->SetEventOnCompletion(m_fenceValue, m_fenceEvent); WaitForSingleObject(m_fenceEvent, INFINITE);
 //
-//	// Once the command list is finished executing, reset it to be reused for 
-//	// rendering 
+//	// Once the command list is finished executing, reset it to be reused for
+//	// rendering
 //	ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
 //
-//	// Store the AS buffers. The rest of the buffers will be released once we exit 
-//	// the function 
+//	// Store the AS buffers. The rest of the buffers will be released once we exit
+//	// the function
 //	m_bottomLevelAS = bottomLevelBuffers.pResult;
 //}
 
-//----ÀüÃ¼ È­¸é ¸ğµå
+//----ì „ì²´ í™”ë©´ ëª¨ë“œ
 void CGameFramework::ChangeSwapChainState()
 {
 	WaitForGpuComplete();

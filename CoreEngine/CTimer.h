@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <chrono>
 
 const int32 MAX_SAMPLE_COUNT = 50;
@@ -14,41 +14,41 @@ public:
 	float					_fTimeElapsed;
 	bool					_bStopped;
 
-	float					_SampleFrameTime[MAX_SAMPLE_COUNT]; 
-	ULONG					_nSampleCount; 
+	float					_SampleFrameTime[MAX_SAMPLE_COUNT];
+	ULONG					_nSampleCount;
 
 	unsigned long			_curFrameRate;
 	unsigned long			_nFramePerSec;
 
-	Clock::time_point		_lastTimePoint; // ¸¶Áö¸· ½ÃÁ¡ ½Ã°£
-	Clock::time_point		_StopTimePoint; // ¸ØÃá ½ÃÁ¡ 
+	Clock::time_point		_lastTimePoint; // ë§ˆì§€ë§‰ ì‹œì  ì‹œê°„
+	Clock::time_point		_StopTimePoint; // ë©ˆì¶˜ ì‹œì 
 	Clock::time_point		_initTimePoint;
 
-	float					_fTimeElapsedAvg = 0.f; // ÇÑ ÇÁ·¹ÀÓ Ã³¸®ÇÏ´Âµ¥ °É¸®´Â Æò±Õ ½Ã°£
-	float					_accumulateElapsedTime = 0.f; // ÇÑ ÇÁ·¹ÀÓ ¸¸Å­ Ã³¸® µÆ´ÂÁö È®ÀÎÇÏ´Â ¿ëµµ
+	float					_fTimeElapsedAvg = 0.f; // í•œ í”„ë ˆìž„ ì²˜ë¦¬í•˜ëŠ”ë° ê±¸ë¦¬ëŠ” í‰ê·  ì‹œê°„
+	float					_accumulateElapsedTime = 0.f; // í•œ í”„ë ˆìž„ ë§Œí¼ ì²˜ë¦¬ ëëŠ”ì§€ í™•ì¸í•˜ëŠ” ìš©ë„
 public:
-	float					_accumulateFPSLockTime = 0.f; // ¿ùµå ÇÁ·¹ÀÓ Áõ°¨À» À§ÇÑ ´©Àû ½Ã°£.
+	float					_accumulateFPSLockTime = 0.f; // ì›”ë“œ í”„ë ˆìž„ ì¦ê°ì„ ìœ„í•œ ëˆ„ì  ì‹œê°„.
 	float					_accumulateTimeForHistory = 0.f;
 public:
 	Timer();
 	virtual ~Timer();
 
-	void Tick(float fLockFPS); // Å¸ÀÌ¸Ó ½Ã°£ °»½Å
+	void Tick(float fLockFPS); // íƒ€ì´ë¨¸ ì‹œê°„ ê°±ì‹ 
 	void Start();
 	void Stop();
 	void Reset();
-	unsigned long GetFrameRate(LPTSTR lpszString = NULL, int nCharacters = 0); // ÇÁ·¹ÀÓ ·¹ÀÌÆ® ¹ÝÈ¯
-	float GetTimeElapsed(); // ÇÁ·¹ÀÓ Æò±Õ °æ°ú ½Ã°£ ¹ÝÈ¯
+	unsigned long GetFrameRate(LPTSTR lpszString = NULL, int nCharacters = 0); // í”„ë ˆìž„ ë ˆì´íŠ¸ ë°˜í™˜
+	float GetTimeElapsed(); // í”„ë ˆìž„ í‰ê·  ê²½ê³¼ ì‹œê°„ ë°˜í™˜
 	float GetDeltaTime(float fpsLock);
-	bool IsAfterTick(float fpsLock) 
-	{ 
+	bool IsAfterTick(float fpsLock)
+	{
 		if (_accumulateFPSLockTime > (int)(1 / fpsLock) * 1000.f)
 		{
 			//std::cout << _accumulateElapsedTime << "\n";
 			_accumulateFPSLockTime = 0.f;
 			return true;
 		}
-		else return false; 
+		else return false;
 	}
 	bool IsTimeToAddHistory()
 	{

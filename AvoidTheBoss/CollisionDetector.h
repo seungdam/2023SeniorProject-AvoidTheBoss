@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 struct Ray
 {
@@ -44,7 +44,7 @@ class OcTree
 		void print()
 		{
 			//std::cout << "center : " << _center.x << " " << _center.y << " " << _center.z << std::endl;
-		
+
 		}
 	};
 
@@ -56,7 +56,7 @@ public:
 	OcTree* _parentTree;
 	std::array<OcTree*, 8> _childTree;
 	LeafNode* _node;
-	
+
 	DirectX::BoundingBox _area;
 	DirectX::XMFLOAT3 _center;
 	Atomic<int32> _cnt = 0 ;

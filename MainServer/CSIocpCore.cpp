@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "CSIocpCore.h"
 #include "Session.h"
 #include "CollisionDetector.h"
@@ -24,7 +24,7 @@ void CSIocpCore::Disconnect(int32 sid)
 {
 	std::cout << "[" << _clients[sid]->_sid << "] Disconnected" << std::endl;
 	if(sid >= 0 && _clients[sid]->_myRm != -1) _rmgr->ExitRoom(sid, _clients[sid]->_myRm);
-	
+
 	{
 		WRITE_SERVER_LOCK;
 		_cList.erase(_clients[sid]->_sid);

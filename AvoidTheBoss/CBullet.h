@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "GameObject.h"
 #define BUIIET_DISTANCE 3.7f
 #define BULLET_NUMBER 1

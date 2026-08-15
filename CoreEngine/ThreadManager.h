@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <thread>
 #include <functional>
 
@@ -9,7 +9,7 @@ public:
 	ThreadManager() { InitTLS(); }
 	~ThreadManager() { Join(); }
 
-	
+
 	void Launch(function<void(void)> callback);
 	void Join();
 	//TLS init

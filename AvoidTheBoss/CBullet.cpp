@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "GameObject.h"
 #include "CBullet.h"
 
@@ -14,7 +14,7 @@ void CBullet::Update(float fTimeElapsed)
 {
 	if (m_OnShoot)
 	{
-		//5.6 ÃÑ¾Ë ¹ß»ç ÄÚµå
+		//5.6 ì´ì•Œ ë°œì‚¬ ì½”ë“œ
 		XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
 		xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look,
 			BUIIET_DISTANCE);
@@ -25,10 +25,10 @@ void CBullet::Update(float fTimeElapsed)
 		SetPosition(Vector3::Add(GetPosition(), xmf3Velocity));
 
 		m_fDistance += BULLET_SPEED;
-		if (m_fDistance > BUIIET_DISTANCE) 
+		if (m_fDistance > BUIIET_DISTANCE)
 		{
 			m_OnShoot = false;
-			m_OnHit = true; //ÀÌ °ªÀ» ÃÑ¾Ë Ãæµ¹ ÆÇÁ¤ Ã³¸®·Î ¿Å±ä´Ù.
+			m_OnHit = true; //ì´ ê°’ì„ ì´ì•Œ ì¶©ëŒ íŒì • ì²˜ë¦¬ë¡œ ì˜®ê¸´ë‹¤.
 
 			m_fDistance = 0.0f;
 			m_xmf3Velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
@@ -36,7 +36,7 @@ void CBullet::Update(float fTimeElapsed)
 	}
 	if (m_OnHit)
 	{
-		m_pHitEffect->SetPosition(GetPosition().x, 1.1f, GetPosition().z); // Ãæµ¹ ÁöÁ¡ À§Ä¡ ³Ñ°ÜÁÖ±â
+		m_pHitEffect->SetPosition(GetPosition().x, 1.1f, GetPosition().z); // ì¶©ëŒ ì§€ì  ìœ„ì¹˜ ë„˜ê²¨ì£¼ê¸°
 		m_pHitEffect->SetOnHit(true);
 		m_OnHit = false;
 	}

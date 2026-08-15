@@ -1,4 +1,4 @@
-struct MATERIAL
+ï»¿struct MATERIAL
 {
 	float4					m_cAmbient;
 	float4					m_cDiffuse;
@@ -98,9 +98,9 @@ float4 PSStandard(VS_STANDARD_OUTPUT input) : SV_TARGET
 
 	float3 cameraPos = gvCameraPosition.xyz;
 	float3 vPositionToCamera = cameraPos - input.positionW;
-	
+
 	float Distance = length(vPositionToCamera);
-	
+
 	float FogStart = gvFogOption.y;
 	float FogEnd = gvFogOption.z;
 	float FogRange = FogEnd - FogStart;
@@ -111,28 +111,28 @@ float4 PSStandard(VS_STANDARD_OUTPUT input) : SV_TARGET
 	if (gnTexturesMask & MATERIAL_NORMAL_MAP)
 	{
 		float3x3 TBN = float3x3(normalize(input.tangentW), normalize(input.bitangentW), normalize(input.normalW));
-		float3 vNormal = normalize(cNormalColor.rgb * 2.0f - 1.0f); //[0, 1] ¡æ [-1, 1]
+		float3 vNormal = normalize(cNormalColor.rgb * 2.0f - 1.0f); //[0, 1] â†’ [-1, 1]
 		normalW = normalize(mul(vNormal, TBN));
 	}
 	else
 	{
 		normalW = normalize(input.normalW);
 	}
-	
+
 	float4 wIllumination = Lighting(input.positionW, normalW);
 
 	if (gvFogOption.x > 0)
 	{
-		
+
 		FogFactor = saturate((FogEnd - Distance) / FogEnd);
-		
+
 		cColor = cColor * FogFactor + (1.0f - FogFactor) * fogColor;
 
 		if (FogStart <= Distance && Distance <= FogEnd) return(lerp(cColor, wIllumination, (1.0f - ((Distance + 0.01f) / FogEnd))));
 		else if (Distance < FogStart) return(lerp(cColor, wIllumination, 0.5));
 		else return cColor;
 	}
-	
+
 	return(lerp(cColor, wIllumination, 0.5f));
 }
 

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 class SGenerator
 {
@@ -13,14 +13,14 @@ public:
 	float _ActiveRadius = 1.25f;
 	int32 _idx;
 public:
-	SGenerator() 
+	SGenerator()
 	{
 		_pos = XMFLOAT3(0.0f, 0.0f, 0.0f);
 		_idx = 0;
 	}
 	~SGenerator() {}
 
-	void GenInteractionOn(bool value) 
+	void GenInteractionOn(bool value)
 	{
 		_IsOnInteraction = value;
 	}
@@ -29,14 +29,14 @@ public:
 	{
 		_IsActive = value;
 	}
-	
+
 	void ResetState()
 	{
 		_IsActive = false;
 		_IsOnInteraction = false;
 		_curGuage = 0.f;
 	}
-	
+
 	bool CanInteraction(int32 rm, int32 sid);
-	
+
 };

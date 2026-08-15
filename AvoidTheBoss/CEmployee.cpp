@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "CEmployee.h"
 #include "clientIocpCore.h"
 #include "GameFramework.h"
@@ -20,36 +20,36 @@ CEmployee::CEmployee(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3d
 	m_nCharacterType = nType;
 	m_pCamera = ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
 
-	// 1 ÀÎÄª ¾Ö´Ï¸ŞÀÌ¼Ç ·Îµå	
-		//´Ş¸®±â, ¹öÆ°, ´À¸®°Ô °È±â, ´ë±â
+	// 1 ì¸ì¹­ ì• ë‹ˆë©”ì´ì…˜ ë¡œë“œ
+		//ë‹¬ë¦¬ê¸°, ë²„íŠ¼, ëŠë¦¬ê²Œ ê±·ê¸°, ëŒ€ê¸°
 		CLoadedModelInfo* pEmployeeModel1v = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, g_pstrFirstCharactorRefernece[(int)m_nCharacterType], NULL, Layout::PLAYER);
 		SetChild(pEmployeeModel1v->m_pModelRootObject, true);
 
 		m_pSkinnedAnimationController2 = new CAnimationController(pd3dDevice, pd3dCommandList, 4, pEmployeeModel1v);
 		m_pSkinnedAnimationController2->SetTrackAnimationSet(0, 3);//idle
 		m_pSkinnedAnimationController2->SetTrackAnimationSet(1, 0);//run
-		m_pSkinnedAnimationController2->SetTrackAnimationSet(2, 2);//slow_walk (Àı¶Ò°Å¸®±â)
+		m_pSkinnedAnimationController2->SetTrackAnimationSet(2, 2);//slow_walk (ì ˆëšê±°ë¦¬ê¸°)
 		m_pSkinnedAnimationController2->SetTrackAnimationSet(3, 1);//button
 
-	// 3ÀÎÄª ¾Ö´Ï¸ŞÀÌ¼Ç ·Îµå
+	// 3ì¸ì¹­ ì• ë‹ˆë©”ì´ì…˜ ë¡œë“œ
 		CLoadedModelInfo* pEmployeeModel3v = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, g_pstrThirdCharactorRefernece[(int)m_nCharacterType], NULL, Layout::PLAYER);
 		SetChild(pEmployeeModel3v->m_pModelRootObject, true);
 
-		m_pSkinnedAnimationController1 = new CAnimationController(pd3dDevice, pd3dCommandList, 7, pEmployeeModel3v);
+		m_pSkinnedAnimationController1 = new CAnimationController(pd3dDevice, pd3dCommandList, 8, pEmployeeModel3v);
 
-		//ÇÊ¿ä¾ø´Â ¾Ö´Ï¸ŞÀÌ¼Ç
+		//í•„ìš”ì—†ëŠ” ì• ë‹ˆë©”ì´ì…˜
 		m_pSkinnedAnimationController1->SetTrackAnimationSet(0, 2);//idle x
 		m_pSkinnedAnimationController1->SetTrackAnimationSet(1, 3);//run x
-		m_pSkinnedAnimationController1->SetTrackAnimationSet(2, 0);//down (ÃÑ¾Ë ¸Â°í ¾²·¯Áü) x 
-		m_pSkinnedAnimationController1->SetTrackAnimationSet(3, 1);//down_idle,crawl (¾²·¯Áø »óÅÂ) ¤·
-		m_pSkinnedAnimationController1->SetTrackAnimationSet(4, 4);//slow_walk (Àı¶Ò°Å¸®±â) x
-		m_pSkinnedAnimationController1->SetTrackAnimationSet(5, 5);//stand (¾²·¯Áø »óÅÂ¿¡¼­ ÀÏ¾î³ª±â) ¤·
-		m_pSkinnedAnimationController1->SetTrackAnimationSet(6, 6);//button ¤·
-		m_pSkinnedAnimationController1->SetTrackAnimationSet(7, 7);//¸¸¼¼ X
-	
+		m_pSkinnedAnimationController1->SetTrackAnimationSet(2, 0);//down (ì´ì•Œ ë§ê³  ì“°ëŸ¬ì§) x
+		m_pSkinnedAnimationController1->SetTrackAnimationSet(3, 1);//down_idle,crawl (ì“°ëŸ¬ì§„ ìƒíƒœ) ã…‡
+		m_pSkinnedAnimationController1->SetTrackAnimationSet(4, 4);//slow_walk (ì ˆëšê±°ë¦¬ê¸°) x
+		m_pSkinnedAnimationController1->SetTrackAnimationSet(5, 5);//stand (ì“°ëŸ¬ì§„ ìƒíƒœì—ì„œ ì¼ì–´ë‚˜ê¸°) ã…‡
+		m_pSkinnedAnimationController1->SetTrackAnimationSet(6, 6);//button ã…‡
+		m_pSkinnedAnimationController1->SetTrackAnimationSet(7, 7);//ë§Œì„¸ X
+
 
 	if (m_pCamera->m_nMode == (DWORD)FIRST_PERSON_CAMERA)
-		//´Ş¸®±â, ¹öÆ°, ´À¸®°Ô °È±â, ´ë±â
+		//ë‹¬ë¦¬ê¸°, ë²„íŠ¼, ëŠë¦¬ê²Œ ê±·ê¸°, ëŒ€ê¸°
 	{
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
@@ -89,7 +89,6 @@ CEmployee::CEmployee(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3d
 
 CEmployee::~CEmployee()
 {
-	delete[] m_pSwitches;
 }
 
 CCamera* CEmployee::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
@@ -128,11 +127,11 @@ CCamera* CEmployee::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 	return(m_pCamera);
 }
 
-// 04-29 Á÷¿ø Å°ÀÔ·Â Ã³¸® Ãß°¡
-// ÀÔ·Â Ã³¸® ¹× ÇÃ·¹ÀÌ¾îÀÇ Çàµ¿À» ¹Ì¸® ¼ÂÆÃÇÑ´Ù.
+// 04-29 ì§ì› í‚¤ì…ë ¥ ì²˜ë¦¬ ì¶”ê°€
+// ì…ë ¥ ì²˜ë¦¬ ë° í”Œë ˆì´ì–´ì˜ í–‰ë™ì„ ë¯¸ë¦¬ ì…‹íŒ…í•œë‹¤.
 uint8 CEmployee::ProcessInput()
 {
-	// ¹ßÀü±â »óÈ£ÀÛ¿ë °ü·Ã ÀÎÇ² Ã³¸®
+	// ë°œì „ê¸° ìƒí˜¸ì‘ìš© ê´€ë ¨ ì¸í’‹ ì²˜ë¦¬
 
 	uint8 dir = 0;
 	if (!IsSeMiBehavior() && !IsMovable())
@@ -147,9 +146,9 @@ uint8 CEmployee::ProcessInput()
 			if (dir) SetBehavior(PLAYER_BEHAVIOR::RUN);
 			else	 SetBehavior(PLAYER_BEHAVIOR::IDLE);
 		}
-		// ±¸Á¶ ÀÛ¾÷ÀÌ³ª ¹ßÀü±â »óÈ£ÀÛ¿ëÀ» ¼öÇàÇÏ°í ÀÖ´Ù¸é 
-		
-		
+		// êµ¬ì¡° ì‘ì—…ì´ë‚˜ ë°œì „ê¸° ìƒí˜¸ì‘ìš©ì„ ìˆ˜í–‰í•˜ê³  ìˆë‹¤ë©´
+
+
 	}
 
 	if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::G) == (uint8)KEY_STATUS::KEY_PRESS)
@@ -163,7 +162,7 @@ uint8 CEmployee::ProcessInput()
 
 	Move(dir, EMPLOYEE_VELOCITY);
 	return dir;
-	
+
 }
 
 void CEmployee::Move(const int16& dwDirection, float fDistance)
@@ -193,51 +192,51 @@ void CEmployee::Move(const int16& dwDirection, float fDistance)
 		CPlayer::Move(dwDirection, EMPLOYEE_VELOCITY);
 		break;
 	}
-	
+
 }
 
 void CEmployee::Update(float fTimeElapsed, CLIENT_TYPE ptype)
 {
-	// ÀÏ´Ü ÁÖÀÎÀÌ¸é ±âº»ÀûÀ¸·Î 3ÀÎÄª ·»´õ¸µÀ» ¼öÇàÇÑ´Ù.
+	// ì¼ë‹¨ ì£¼ì¸ì´ë©´ ê¸°ë³¸ì ìœ¼ë¡œ 3ì¸ì¹­ ë Œë”ë§ì„ ìˆ˜í–‰í•œë‹¤.
 	if (CLIENT_TYPE::OWNER == m_clientType)
 	{
 		m_IsFirst = true;
 	}
-	// ±Ùµ¥ ¸¸¾à ´Ù¸¥ ÇÃ·¹ÀÌ¾î°Å³ª, ÁÖÀÎÀÌ 3ÀÎÄª Ä«¸Ş¶ó·Î ½ÃÁ¡À» º¯°æÇÏ°Ô µÈ´Ù¸é »èÁ¦ÇÑ´Ù.
+	// ê·¼ë° ë§Œì•½ ë‹¤ë¥¸ í”Œë ˆì´ì–´ê±°ë‚˜, ì£¼ì¸ì´ 3ì¸ì¹­ ì¹´ë©”ë¼ë¡œ ì‹œì ì„ ë³€ê²½í•˜ê²Œ ëœë‹¤ë©´ ì‚­ì œí•œë‹¤.
 	if (CLIENT_TYPE::OTHER_PLAYER == m_clientType || THIRD_PERSON_CAMERA == m_pCamera->GetMode())
 		m_IsFirst = false;
-	
+
 	CPlayer::Update(fTimeElapsed, ptype);
 	LateUpdate(fTimeElapsed,ptype);
 }
 
 void CEmployee::LateUpdate(float fTimeElapsed, CLIENT_TYPE ptype)
 {
-	// ===== ¾Ö´Ï¸ŞÀÌ¼Ç Æ®·¢ ¾÷µ¥ÀÌÆ® ========
+	// ===== ì• ë‹ˆë©”ì´ì…˜ íŠ¸ë™ ì—…ë°ì´íŠ¸ ========
 	AnimTrackUpdate();
-	
-	// ¹«Àû½Ã°£ µ¿¾È ÇÇ°İ ÀÌÆåÆ® Àç»ı
+
+	// ë¬´ì ì‹œê°„ ë™ì•ˆ í”¼ê²© ì´í™íŠ¸ ì¬ìƒ
 	if (m_bIsInvincibility)
 	{
 		m_UICoolTime -= fTimeElapsed;
 		if (m_UICoolTime <= 0) m_UICoolTime = 0.f;
 	}
-	else 
+	else
 	{
 		m_UICoolTime = 1.0f;
 	}
-	
-	// ³»°¡ ±¸ÇØÁüÀ» ¹Ş°í ÀÖ´Ù¸é~
+
+	// ë‚´ê°€ êµ¬í•´ì§ì„ ë°›ê³  ìˆë‹¤ë©´~
 	if (m_bIsRescuing)
 	{
 		m_curGuage += m_rVel * fTimeElapsed;
 		if (m_curGuage >= m_maxRGuage)
 		{
-			
+
 			m_curGuage = 0;
 			m_hp = 3;
 			m_bIsRescuing = false;
-			
+
 			SetBehavior(PLAYER_BEHAVIOR::STAND);
 			m_standAnimationCount = EMPLOYEE_STAND_TIME;
 
@@ -249,17 +248,17 @@ void CEmployee::LateUpdate(float fTimeElapsed, CLIENT_TYPE ptype)
 		}
 	}
 
-	// Å»Ãâ ÈÄ ¸Ê¿¡¼­ ÀÏÁ¤ ¹üÀ§ ÀÌ»ó ³Ñ¾î°¡°Ô µÇ¸é EXIT »óÅÂ·Î ¸¸¼¼ ¾Ö´Ï¸ŞÀÌ¼Ç Àç»ı
+	// íƒˆì¶œ í›„ ë§µì—ì„œ ì¼ì • ë²”ìœ„ ì´ìƒ ë„˜ì–´ê°€ê²Œ ë˜ë©´ EXIT ìƒíƒœë¡œ ë§Œì„¸ ì• ë‹ˆë©”ì´ì…˜ ì¬ìƒ
 	if (!m_bEmpExit && static_cast<CGameScene*>(mainGame.m_SceneManager->GetSceneByIdx(3))->m_bEmpExit && m_clientType == CLIENT_TYPE::OWNER)
 	{
-		// °á°ú ¾À¿¡ ³Ñ°ÜÁÖ±â
+		// ê²°ê³¼ ì”¬ì— ë„˜ê²¨ì£¼ê¸°
 		static_cast<CResultScene*>(mainGame.m_SceneManager->GetSceneByIdx(4))->m_activeCnt = m_activeCnt;
 		static_cast<CResultScene*>(mainGame.m_SceneManager->GetSceneByIdx(4))->m_deadCnt = m_deadCnt;
 \
 		ChangeCamera(FIRST_PERSON_CAMERA, 0);
 		mainGame.m_SceneManager->GetSceneByIdx(3)->m_pCamera = m_pCamera;
 		mainGame.m_SceneManager->GetSceneByIdx(3)->m_pCamera->CreateShaderVariables(mainGame.m_pd3dDevice, mainGame.m_pd3dCommandList);
-		
+
 		if (GetPosition().x < -28 || GetPosition().x > 28 || GetPosition().z > 28 || GetPosition().z < -28)
 		{
 			m_bEmpExit = true;
@@ -271,8 +270,8 @@ void CEmployee::LateUpdate(float fTimeElapsed, CLIENT_TYPE ptype)
 			packet.size = sizeof(SC_EVENTPACKET);
 			packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
 			packet.eventId = m_idx + (uint8)EVENT_TYPE::EXIT_PLAYER_ONE;
-			
-			clientCore.DoSend(&packet); // Å»Ãâ ½Ã Àü¼Û
+
+			clientCore.DoSend(&packet); // íƒˆì¶œ ì‹œ ì „ì†¡
 		}
 	}
 
@@ -284,9 +283,9 @@ void CEmployee::LateUpdate(float fTimeElapsed, CLIENT_TYPE ptype)
 	}
 }
 
-// ===============¾Ö´Ï¸ŞÀÌ¼Ç Æ®·¢ ==================
-// ¾Ö´Ï¸ŞÀÌ¼Ç 1ÀÎÄªÀÎµ¦½º 3ÀÎÄªÀÎµ¦½º 
-// °È±â 0
+// ===============ì• ë‹ˆë©”ì´ì…˜ íŠ¸ë™ ==================
+// ì• ë‹ˆë©”ì´ì…˜ 1ì¸ì¹­ì¸ë±ìŠ¤ 3ì¸ì¹­ì¸ë±ìŠ¤
+// ê±·ê¸° 0
 void CEmployee::SetIdleAnimTrack()
 {
 	if (CLIENT_TYPE::OWNER == m_clientType)
@@ -341,7 +340,7 @@ void CEmployee::SetIdleAnimTrack()
 	m_pSkinnedAnimationController1->SetTrackPosition(7, 0);
 }
 
-// ´Ş¸®±â 1
+// ë‹¬ë¦¬ê¸° 1
 void CEmployee::SetRunAnimTrack()
 {
 	if (CLIENT_TYPE::OWNER == m_clientType)
@@ -395,7 +394,7 @@ void CEmployee::SetRunAnimTrack()
 	m_pSkinnedAnimationController1->SetTrackPosition(7, 0);
 }
 
-// Àı¶Ò°Å¸®±â 2,4
+// ì ˆëšê±°ë¦¬ê¸° 2,4
 void CEmployee::SetAttackedAnimTrack()
 {
 	if (CLIENT_TYPE::OWNER == m_clientType)
@@ -450,10 +449,10 @@ void CEmployee::SetAttackedAnimTrack()
 	m_pSkinnedAnimationController1->SetTrackPosition(7, 0);
 }
 
-// ¹ßÀü±â »óÈ£ÀÛ¿ë 3,6
+// ë°œì „ê¸° ìƒí˜¸ì‘ìš© 3,6
 void CEmployee::SetInteractionAnimTrack()
 {
-	// ¹ßÀü±â »óÈ£ÀÛ¿ë
+	// ë°œì „ê¸° ìƒí˜¸ì‘ìš©
 	if (CLIENT_TYPE::OWNER == m_clientType)
 	{
 		if (m_pSkinnedAnimationController2 == nullptr) return;
@@ -496,12 +495,12 @@ void CEmployee::SetInteractionAnimTrack()
 	m_pSkinnedAnimationController2->SetTrackPosition(3, 0);
 }
 
-// ¾²·¯Áø »óÅÂ x,3
+// ì“°ëŸ¬ì§„ ìƒíƒœ x,3
 void CEmployee::SetCrawlAnimTrack()
 {
 	if (CLIENT_TYPE::OWNER == m_clientType && FIRST_PERSON_CAMERA == m_pCamera->GetMode())
 	{
-		// ÀÏ´Ü ¾ÆÀÌµé »óÅÂ ¾Ö´Ï¸ŞÀÌ¼Ç Àç»ıÇÏµµ·Ï ÇÑ´Ù.
+		// ì¼ë‹¨ ì•„ì´ë“¤ ìƒíƒœ ì• ë‹ˆë©”ì´ì…˜ ì¬ìƒí•˜ë„ë¡ í•œë‹¤.
 		if (m_pSkinnedAnimationController2 == nullptr) return;
 		m_pSkinnedAnimationController2->SetTrackEnable(0, true);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
@@ -519,7 +518,7 @@ void CEmployee::SetCrawlAnimTrack()
 	}
 	else if (CLIENT_TYPE::OWNER == m_clientType && THIRD_PERSON_CAMERA == m_pCamera->GetMode())
 	{
-		// ÀÏ´Ü ¾ÆÀÌµé »óÅÂ ¾Ö´Ï¸ŞÀÌ¼Ç Àç»ıÇÏµµ·Ï ÇÑ´Ù.
+		// ì¼ë‹¨ ì•„ì´ë“¤ ìƒíƒœ ì• ë‹ˆë©”ì´ì…˜ ì¬ìƒí•˜ë„ë¡ í•œë‹¤.
 		if (m_pSkinnedAnimationController2 == nullptr) return;
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
@@ -537,7 +536,7 @@ void CEmployee::SetCrawlAnimTrack()
 		m_pSkinnedAnimationController1->SetTrackEnable(7, false);
 	}
 
-	// ¸¸¾à ±×³É ´Ù¸¥ ÇÃ·¹ÀÌ¾î¶ó¸é ~
+	// ë§Œì•½ ê·¸ëƒ¥ ë‹¤ë¥¸ í”Œë ˆì´ì–´ë¼ë©´ ~
 	if (CLIENT_TYPE::OTHER_PLAYER == m_clientType)
 	{
 		if (m_pSkinnedAnimationController2 == nullptr) return;
@@ -571,7 +570,7 @@ void CEmployee::SetCrawlAnimTrack()
 	m_pSkinnedAnimationController1->SetTrackPosition(6, 0);
 	m_pSkinnedAnimationController1->SetTrackPosition(7, 0);
 }
-// ÃÑ¾Ë ¸Â°í ¾²·¯Áü x,2
+// ì´ì•Œ ë§ê³  ì“°ëŸ¬ì§ x,2
 void CEmployee::SetDownAnimTrack()
 {
 	if (CLIENT_TYPE::OWNER == m_clientType && FIRST_PERSON_CAMERA == m_pCamera->GetMode())
@@ -594,7 +593,7 @@ void CEmployee::SetDownAnimTrack()
 	}
 	else if (CLIENT_TYPE::OWNER == m_clientType && THIRD_PERSON_CAMERA == m_pCamera->GetMode())
 	{
-		// ÀÏ´Ü ¾ÆÀÌµé »óÅÂ ¾Ö´Ï¸ŞÀÌ¼Ç Àç»ıÇÏµµ·Ï ÇÑ´Ù.
+		// ì¼ë‹¨ ì•„ì´ë“¤ ìƒíƒœ ì• ë‹ˆë©”ì´ì…˜ ì¬ìƒí•˜ë„ë¡ í•œë‹¤.
 		if (m_pSkinnedAnimationController2 == nullptr) return;
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
@@ -645,14 +644,14 @@ void CEmployee::SetDownAnimTrack()
 	m_pSkinnedAnimationController1->SetTrackPosition(6, 0);
 	m_pSkinnedAnimationController1->SetTrackPosition(7, 0);
 }
-// ÀÏ¾î³ª±â x,5
+// ì¼ì–´ë‚˜ê¸° x,5
 void CEmployee::SetStandAnimTrack()
 {
-	// ÀÏ¾î³ª±â
+	// ì¼ì–´ë‚˜ê¸°
 	if (CLIENT_TYPE::OWNER == m_clientType && FIRST_PERSON_CAMERA == m_pCamera->GetMode())
 	{
 		if (m_pSkinnedAnimationController2 == nullptr) return;
-		m_pSkinnedAnimationController2->SetTrackEnable(0, true); // Idle ¾Ö´Ï¸ŞÀÌ¼Ç Àç»ıÇÏµµ·Ï
+		m_pSkinnedAnimationController2->SetTrackEnable(0, true); // Idle ì• ë‹ˆë©”ì´ì…˜ ì¬ìƒí•˜ë„ë¡
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
@@ -667,10 +666,10 @@ void CEmployee::SetStandAnimTrack()
 		m_pSkinnedAnimationController1->SetTrackEnable(6, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(7, false);
 	}
-	else if (CLIENT_TYPE::OWNER == m_clientType && THIRD_PERSON_CAMERA == m_pCamera->GetMode()) // 3ÀÎÄª
+	else if (CLIENT_TYPE::OWNER == m_clientType && THIRD_PERSON_CAMERA == m_pCamera->GetMode()) // 3ì¸ì¹­
 	{
 		if (m_pSkinnedAnimationController2 == nullptr) return;
-		m_pSkinnedAnimationController2->SetTrackEnable(0, false); // Idle ¾Ö´Ï¸ŞÀÌ¼Ç Àç»ıÇÏµµ·Ï
+		m_pSkinnedAnimationController2->SetTrackEnable(0, false); // Idle ì• ë‹ˆë©”ì´ì…˜ ì¬ìƒí•˜ë„ë¡
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
@@ -686,7 +685,7 @@ void CEmployee::SetStandAnimTrack()
 		m_pSkinnedAnimationController1->SetTrackEnable(7, false);
 	}
 
-	
+
 	if (CLIENT_TYPE::OTHER_PLAYER == m_clientType)
 	{
 		if (m_pSkinnedAnimationController2 == nullptr) return;
@@ -724,7 +723,7 @@ void CEmployee::SetExitMotionAnimTrack()
 {
 	if (CLIENT_TYPE::OWNER == m_clientType && FIRST_PERSON_CAMERA == m_pCamera->GetMode())
 	{
-		// ÀÏ´Ü ¾ÆÀÌµé »óÅÂ ¾Ö´Ï¸ŞÀÌ¼Ç Àç»ıÇÏµµ·Ï ÇÑ´Ù.
+		// ì¼ë‹¨ ì•„ì´ë“¤ ìƒíƒœ ì• ë‹ˆë©”ì´ì…˜ ì¬ìƒí•˜ë„ë¡ í•œë‹¤.
 		if (m_pSkinnedAnimationController2 == nullptr) return;
 		m_pSkinnedAnimationController2->SetTrackEnable(0, true);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
@@ -742,7 +741,7 @@ void CEmployee::SetExitMotionAnimTrack()
 	}
 	else if (CLIENT_TYPE::OWNER == m_clientType && THIRD_PERSON_CAMERA == m_pCamera->GetMode())
 	{
-		// ÀÏ´Ü ¾ÆÀÌµé »óÅÂ ¾Ö´Ï¸ŞÀÌ¼Ç Àç»ıÇÏµµ·Ï ÇÑ´Ù.
+		// ì¼ë‹¨ ì•„ì´ë“¤ ìƒíƒœ ì• ë‹ˆë©”ì´ì…˜ ì¬ìƒí•˜ë„ë¡ í•œë‹¤.
 		if (m_pSkinnedAnimationController2 == nullptr) return;
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
@@ -760,7 +759,7 @@ void CEmployee::SetExitMotionAnimTrack()
 		m_pSkinnedAnimationController1->SetTrackEnable(7, true);
 	}
 
-	// ¸¸¾à ±×³É ´Ù¸¥ ÇÃ·¹ÀÌ¾î¶ó¸é ~
+	// ë§Œì•½ ê·¸ëƒ¥ ë‹¤ë¥¸ í”Œë ˆì´ì–´ë¼ë©´ ~
 	if (CLIENT_TYPE::OTHER_PLAYER == m_clientType)
 	{
 		if (m_pSkinnedAnimationController2 == nullptr) return;
@@ -830,7 +829,7 @@ void CEmployee::AnimTrackUpdate()
 			if (CLIENT_TYPE::OWNER == m_clientType )
 				SoundManager::GetInstance().PlayObjectSound(13, 15);
 		}
-		else 
+		else
 		{
 			m_attackedAnimationCount--;
 			SetBehavior(PLAYER_BEHAVIOR::ATTACKED);
@@ -889,7 +888,7 @@ void CEmployee::AnimTrackUpdate()
 				if (CLIENT_TYPE::OWNER == m_clientType)
 				{
 					ChangeCamera(FIRST_PERSON_CAMERA, 0);
-					
+
 					mainGame.m_SceneManager->GetSceneByIdx(3)->m_pCamera = m_pCamera;
 					m_pCamera->ReleaseShaderVariables();
 					mainGame.m_SceneManager->GetSceneByIdx(3)->m_pCamera->CreateShaderVariables(mainGame.m_pd3dDevice, mainGame.m_pd3dCommandList);
@@ -918,7 +917,7 @@ CGenerator* CEmployee::GetAvailGen()
 		if (distance <= sumRange)
 		{
 			CGenerator* targetGenerator = gs->GetSceneGenByIdx(i);
-				
+
 			if (targetGenerator)
 			{
 				if (targetGenerator->IsAvailable())
@@ -956,25 +955,25 @@ CEmployee* CEmployee::GetAvailEMP()
 			mainGame.m_UIRenderer->m_RescueIcon.m_hide = false;
 			return p;
 		}
-		
+
 	}
 
 	mainGame.m_UIRenderer->m_RescueIcon.m_hide = true;
 	return nullptr;
 }
 
-// ============== ÇÃ·¹ÀÌ¾î »óÅÂ º¯°æ Ã³¸® ============ 05-23
+// ============== í”Œë ˆì´ì–´ ìƒíƒœ ë³€ê²½ ì²˜ë¦¬ ============ 05-23
 void CEmployee::PlayerAttacked()
 {
 	if (m_hp > 0)
-	{	
+	{
 		m_hp -= 1;
 		m_bIsInvincibility = true;
 
 
 		if (m_hp == 0)
 		{
-			PlayerDown();	
+			PlayerDown();
 		}
 		else
 		{
@@ -1002,20 +1001,20 @@ void CEmployee::PlayerDown()
 bool CEmployee::GenTasking()
 {
 	CGenerator* targetGen = GetAvailGen();
-	
+
 
 	if(targetGen)std::cout << targetGen->m_idx << "Available\n";
-	
-	//  FÅ°¸¦ ´­·¶°í, ±¸ÇÏ±â »óÈ£ÀÛ¿ë ÁßÀÌ ¾Æ´Ò ¶§
+
+	//  Fí‚¤ë¥¼ ëˆŒë €ê³ , êµ¬í•˜ê¸° ìƒí˜¸ì‘ìš© ì¤‘ì´ ì•„ë‹ ë•Œ
 	if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::F) > 0 && !GetIsPlayerOnRescueInter())
 	{
-		
+
 		if (targetGen)
 		{
-			SetGenInteraction(true); // Ä³¸¯ÅÍ »óÈ£ÀÛ¿ë ¾Ö´Ï¸ŞÀÌ¼Ç Àç»ıÀ» È°¼ºÈ­ ÇÑ´Ù.
+			SetGenInteraction(true); // ìºë¦­í„° ìƒí˜¸ì‘ìš© ì• ë‹ˆë©”ì´ì…˜ ì¬ìƒì„ í™œì„±í™” í•œë‹¤.
 			SetBehavior(PLAYER_BEHAVIOR::SWITCH_INTER);
 
-			targetGen->SetInteractionOn(true); // ¹ßÀü±â ¾Ö´Ï¸ŞÀÌ¼Ç Àç»ıÀ» ½ÃÀÛÇÑ´Ù.
+			targetGen->SetInteractionOn(true); // ë°œì „ê¸° ì• ë‹ˆë©”ì´ì…˜ ì¬ìƒì„ ì‹œì‘í•œë‹¤.
 
 			if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::F) == (int8)KEY_STATUS::KEY_PRESS)
 			{
@@ -1032,13 +1031,13 @@ bool CEmployee::GenTasking()
 	{
 			if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::F) == (int8)KEY_STATUS::KEY_UP)
 			{
-				if (GetIsPlayerOnGenInter()) // ³»°¡ »óÈ£ÀÛ¿ë µµÁßÀÌ¿´´Ù¸é
+				if (GetIsPlayerOnGenInter()) // ë‚´ê°€ ìƒí˜¸ì‘ìš© ë„ì¤‘ì´ì˜€ë‹¤ë©´
 				{
 					std::cout << "Cancel\n";
 					SetGenInteraction(false);
 					SetBehavior(PLAYER_BEHAVIOR::IDLE);
-					if (targetGen) targetGen->SetInteractionOn(false);					
-					//========= ÆĞÅ¶ ¼Û½Å Ã³¸® ==============
+					if (targetGen) targetGen->SetInteractionOn(false);
+					//========= íŒ¨í‚· ì†¡ì‹  ì²˜ë¦¬ ==============
 					SC_EVENTPACKET packet;
 					packet.eventId = m_curInterGen + (int32)EVENT_TYPE::SWITCH_ONE_END_EVENT;
 					packet.size = sizeof(SC_EVENTPACKET);
@@ -1055,15 +1054,15 @@ bool CEmployee::GenTasking()
 bool CEmployee::RescueTasking()
 {
 
-	// ±¸Á¶ ÁßÀÎ ÇÃ·¹ÀÌ¾î°¡ ¾Æ´Ñ ¾²·¯Áø ÇÃ·¹ÀÌ¾îÀÇ ÀÎµ¦½º¸¦ °¡Á®¿Â´Ù.
-	
-	// 1. ÇöÀç ÄÑÁ® ÀÖÁö ¾Ê°í, ´Ù¸¥ ÇÃ·¹ÀÌ¾î¿¡ ÀÇÇØ »óÈ£ÀÛ¿ë ÁßÀÌÁö ¾ÊÀº ¹ßÀü±â¸¦ °¡Á®¿Â´Ù.
+	// êµ¬ì¡° ì¤‘ì¸ í”Œë ˆì´ì–´ê°€ ì•„ë‹Œ ì“°ëŸ¬ì§„ í”Œë ˆì´ì–´ì˜ ì¸ë±ìŠ¤ë¥¼ ê°€ì ¸ì˜¨ë‹¤.
+
+	// 1. í˜„ì¬ ì¼œì ¸ ìˆì§€ ì•Šê³ , ë‹¤ë¥¸ í”Œë ˆì´ì–´ì— ì˜í•´ ìƒí˜¸ì‘ìš© ì¤‘ì´ì§€ ì•Šì€ ë°œì „ê¸°ë¥¼ ê°€ì ¸ì˜¨ë‹¤.
 	CEmployee* targetPlayer = GetAvailEMP();
-	
-		// ±¸ÇÏ´Â ÀÌº¥Æ®¿¡ °üÇÑ ÆĞÅ¶À» Àü¼ÛÇÏµµ·Ï ÇÑ´Ù.
+
+		// êµ¬í•˜ëŠ” ì´ë²¤íŠ¸ì— ê´€í•œ íŒ¨í‚·ì„ ì „ì†¡í•˜ë„ë¡ í•œë‹¤.
 	if (InputManager::GetKeyBuffer(KEY_TYPE::E) == (int8)KEY_STATUS::KEY_PRESS && !GetIsPlayerOnRescueInter())
 	{
-		
+
 		if (targetPlayer)
 		{
 			SetBehavior(PLAYER_BEHAVIOR::RESCUE);
@@ -1086,9 +1085,9 @@ bool CEmployee::RescueTasking()
 			{
 
 				CEmployee* rescuedPlayer = static_cast<CEmployee*>(static_cast<CGameScene*>(mainGame.m_SceneManager->GetSceneByIdx(3))->GetScenePlayerByIdx(m_curRescuingEmpIdx));
-				
+
 				SetRescueInteraction(false);
-				
+
 				if (rescuedPlayer)
 				{
 					if (rescuedPlayer->m_bIsRescuing)
@@ -1108,7 +1107,7 @@ bool CEmployee::RescueTasking()
 			SetBehavior(PLAYER_BEHAVIOR::IDLE);
 		}
 	}
-	
+
 	return false;
 }
 

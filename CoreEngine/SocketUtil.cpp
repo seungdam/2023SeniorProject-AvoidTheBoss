@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "SocketUtil.h"
 
 LPFN_CONNECTEX		SocketUtil::ConnectEx = nullptr;
@@ -98,7 +98,7 @@ bool SocketUtil::SetTcpNoDelay(SOCKET socket, bool flag)
 	return SetSockOpt(socket, SOL_SOCKET, TCP_NODELAY, flag);
 }
 
-// ListenSocketÀÇ Æ¯¼ºÀ» ClientSocket¿¡ ±×´ë·Î Àû¿ë
+// ListenSocketì˜ íŠ¹ì„±ì„ ClientSocketì— ê·¸ëŒ€ë¡œ ì ìš©
 bool SocketUtil::SetUpdateAcceptSocket(SOCKET socket, SOCKET listenSocket)
 {
 	return SetSockOpt(socket, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, listenSocket);

@@ -6,6 +6,9 @@
 #include "SocketUtil.h"
 #include "ThreadManager.h"
 
+#if defined(_DEBUG)
+#include <crtdbg.h>
+#endif
 
 #define MAX_LOADSTRING 100
 
@@ -29,14 +32,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_ LPWSTR    lpCmdLine,
     _In_ int       nCmdShow)
 {
+#if defined(_DEBUG)
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
     ::SetConsoleTitle(L"Client");
-    ThreadManager* GCThreadManager = nullptr;
+    ThreadManager threadManager;
     MSG msg;
-    
+
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
    SocketUtil::Init();
-   GCThreadManager = new ThreadManager;
    CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
    // 전역 문자열을 초기화합니다.
     ::LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -46,17 +51,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // 애플리케이션 초기화를 수행합니다:
     if (!InitInstance(hInstance, nCmdShow))
     {
+        CoUninitialize();
+        SocketUtil::Clear();
         return FALSE;
     }
 
-    
+
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_AVOIDTHEBOSS));
 
     clientCore.InitConnect("127.0.0.1");
     clientCore.DoConnect(nullptr);
 
     // 기본 메시지 루프입니다:
-    GCThreadManager->Launch([=]()
+    threadManager.Launch([=]()
         {
             while (true)
             {
@@ -65,7 +72,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             std::cout << "end thread \n";
         }
     );
-   
+
    while (true)
    {
        if (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -86,12 +93,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
        else
            mainGame.FrameAdvance(); // 처리할 윈도우 메세지가 큐에 없을 때 게임프로그램이 CPU사용
    }
-    mainGame.OnDestroy();
     clientCore.Disconnect(0);
-
-    delete GCThreadManager;
+    threadManager.Join();
+    mainGame.OnDestroy();
     std::cout << "Quit Client\n";
     SocketUtil::Clear();
+    CoUninitialize();
 
     return (int)msg.wParam;
 }
@@ -111,7 +118,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hCursor = ::LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     //주 윈도우의 메뉴가 나타나지 않도록 한다.
-    wcex.lpszMenuName = NULL; 
+    wcex.lpszMenuName = NULL;
     wcex.lpszClassName = szWindowClass;
     wcex.hIconSm = ::LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -127,15 +134,15 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
         WS_BORDER;
     AdjustWindowRect(&rc, dwStyle, FALSE);   //윈도우가 원하는 클라이언트 영역 크기 가지도록 윈도우크기 계산
     HWND hMainWnd = CreateWindow(
-        szWindowClass, 
-        szTitle, 
-        dwStyle, 
+        szWindowClass,
+        szTitle,
+        dwStyle,
         CW_USEDEFAULT,
-        CW_USEDEFAULT, 
-        rc.right - rc.left, 
-        rc.bottom - rc.top, 
-        NULL, 
-        NULL, 
+        CW_USEDEFAULT,
+        rc.right - rc.left,
+        rc.bottom - rc.top,
+        NULL,
+        NULL,
         hInst,
         NULL);
     g_hWnd = hMainWnd;

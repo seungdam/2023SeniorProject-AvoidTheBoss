@@ -1,10 +1,10 @@
-#pragma once
+ï»¿#pragma once
 #include "IocpEvent.h"
 
 class IocpObject
 {
 public:
 	virtual HANDLE GetHandle() abstract;
-	virtual void Processing(class IocpEvent* iocpEvent, int32 numBytes) abstract; // ¾î¶² ÀÏ°¨À¸·Î  Iocp¿¡ µî·ÏÇß´Ï?
-	// iocpEvent¿¡ µû¶ó ÀûÀıÇÑ ÀÏÀ» Ã³¸®
+	virtual void Processing(class IocpEvent* iocpEvent, int32 numBytes) abstract; // ì–´ë–¤ ì¼ê°ìœ¼ë¡œ  Iocpì— ë“±ë¡í–ˆë‹ˆ?
+	// iocpEventì— ë”°ë¼ ì ì ˆí•œ ì¼ì„ ì²˜ë¦¬
 };

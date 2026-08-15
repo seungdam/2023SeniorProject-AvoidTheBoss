@@ -1,11 +1,10 @@
-#pragma once
+ï»¿#pragma once
 class CSound;
 
 class SoundManager
 {
 protected:
 	static CSound* m_pSound;
-	static SoundManager* instance;
 private:
 	SoundManager();
 	SoundManager(const SoundManager& ref) {}
@@ -14,11 +13,11 @@ private:
 public:
 	static SoundManager& GetInstance()
 	{
-	if (instance == nullptr) instance = new SoundManager();
-	return *instance;
+	static SoundManager instance;
+	return instance;
 	}
 	static void SoundSystem();
-	static void PlayBackGroundSound(int32 Scene); //  ¹è°æÀ½¾Ç Àç»ı¿ë È£Ãâ ÇÔ¼ö
+	static void PlayBackGroundSound(int32 Scene); //  ë°°ê²½ìŒì•… ì¬ìƒìš© í˜¸ì¶œ í•¨ìˆ˜
 	static void PlayObjectSound(int32 idx, int32 channel);
 	static void SoundStop(int32 nChannel);
 	static void SoundPause(int32 nChannel);

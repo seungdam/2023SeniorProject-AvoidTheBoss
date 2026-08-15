@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "Scene.h"
 #include "GameFramework.h"
 #include "CJobQueue.h"
@@ -35,13 +35,13 @@ void CGameScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	{
 	case WM_LBUTTONDOWN:
 	case WM_RBUTTONDOWN:
-		//¸¶¿ì½º Ä¸ÃÄ¸¦ ÇÏ°í ÇöÀç ¸¶¿ì½º À§Ä¡¸¦ °¡Á®¿Â´Ù. 
+		//ë§ˆìš°ìŠ¤ ìº¡ì³ë¥¼ í•˜ê³  í˜„ì¬ ë§ˆìš°ìŠ¤ ìœ„ì¹˜ë¥¼ ê°€ì ¸ì˜¨ë‹¤.
 		::SetCapture(hWnd);
 		::GetCursorPos(&m_ptOldCursorPos);
 		break;
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
-		//¸¶¿ì½º Ä¸ÃÄ¸¦ ÇØÁ¦ÇÑ´Ù. 
+		//ë§ˆìš°ìŠ¤ ìº¡ì³ë¥¼ í•´ì œí•œë‹¤.
 		::ReleaseCapture();
 		break;
 	case WM_MOUSEMOVE:
@@ -51,7 +51,7 @@ void CGameScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	}
 }
 
-// Æ¯¼öÅ° Ã³¸®¸¦ À§ÇÑ °Í
+// íŠ¹ìˆ˜í‚¤ ì²˜ë¦¬ë¥¼ ìœ„í•œ ê²ƒ
 void CGameScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	switch (nMessageID)
@@ -64,9 +64,9 @@ void CGameScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM 
 		//	break;
 		case VK_RETURN:
 			break;
-			/*¡®F1¡¯ Å°¸¦ ´©¸£¸é 1ÀÎÄª Ä«¸Ş¶ó, ¡®F3¡¯ Å°¸¦ ´©¸£¸é 3ÀÎÄª Ä«¸Ş¶ó·Î º¯°æÇÑ´Ù.*/
+			/*â€˜F1â€™ í‚¤ë¥¼ ëˆ„ë¥´ë©´ 1ì¸ì¹­ ì¹´ë©”ë¼, â€˜F3â€™ í‚¤ë¥¼ ëˆ„ë¥´ë©´ 3ì¸ì¹­ ì¹´ë©”ë¼ë¡œ ë³€ê²½í•œë‹¤.*/
 		case VK_F9:
-			//¡°F9¡± Å°°¡ ´­·ÁÁö¸é À©µµ¿ì ¸ğµå¿Í ÀüÃ¼È­¸é ¸ğµåÀÇ ÀüÈ¯À» Ã³¸®ÇÑ´Ù. 
+			//â€œF9â€ í‚¤ê°€ ëˆŒë ¤ì§€ë©´ ìœˆë„ìš° ëª¨ë“œì™€ ì „ì²´í™”ë©´ ëª¨ë“œì˜ ì „í™˜ì„ ì²˜ë¦¬í•œë‹¤.
 			//mainGame.ChangeSwapChainState();
 			break;
 		default:
@@ -150,17 +150,17 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 void CGameScene::ProcessInput(HWND& hWnd)
 {
 	if (::GetActiveWindow() != hWnd) return;
-	
+
 	uint8 keyInput = 0;
 	InputManager::GetInstance().InputStatusUpdate();
 	InputManager::GetInstance().MouseInputStatusUpdate();
-	
 
-	// ============= ¸¶¿ì½º ¹öÆ° °ü·Ã Ã³¸® ================
+
+	// ============= ë§ˆìš°ìŠ¤ ë²„íŠ¼ ê´€ë ¨ ì²˜ë¦¬ ================
 	float cxDelta = 0.0f, cyDelta = 0.0f;
 	if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::MLBUTTON) > 0 )
 	{
-		
+
 		POINT ptCursorPos;
 		if (::GetCapture() == hWnd)
 		{
@@ -174,16 +174,16 @@ void CGameScene::ProcessInput(HWND& hWnd)
 	}
 
 
-	//============  ÇÃ·¹ÀÌ¾î¿¡°Ô ÃÖÁ¾ Å°ÀÔ·Â Ã³¸® ============
-	keyInput = _players[_playerIdx]->ProcessInput(); // ÀÔ·ÂµÈ Å°¸¦ ±â¹İÀ¸·Î ÀÎÇ² Ã³¸® ÁøÇà
-	
+	//============  í”Œë ˆì´ì–´ì—ê²Œ ìµœì¢… í‚¤ì…ë ¥ ì²˜ë¦¬ ============
+	keyInput = _players[_playerIdx]->ProcessInput(); // ì…ë ¥ëœ í‚¤ë¥¼ ê¸°ë°˜ìœ¼ë¡œ ì¸í’‹ ì²˜ë¦¬ ì§„í–‰
 
-	// ============ ÆĞÅ¶ ¼Û½Å ÆÄÆ® ===================
-	// ÀÌµ¿ Å° ÀÔ·Â¿¡ º¯È­°¡ ÀÖ°Å³ª Å° ÀÔ·Â Áß È¸ÀüÀ» ¼öÇàÇÏ´Â °æ¿ì¿¡¸¸.. ÀÌµ¿ °ü·Ã ÆĞÅ¶À» Àü¼ÛÇÑ´Ù.
+
+	// ============ íŒ¨í‚· ì†¡ì‹  íŒŒíŠ¸ ===================
+	// ì´ë™ í‚¤ ì…ë ¥ì— ë³€í™”ê°€ ìˆê±°ë‚˜ í‚¤ ì…ë ¥ ì¤‘ íšŒì „ì„ ìˆ˜í–‰í•˜ëŠ” ê²½ìš°ì—ë§Œ.. ì´ë™ ê´€ë ¨ íŒ¨í‚·ì„ ì „ì†¡í•œë‹¤.
 	if (m_lastKeyInput != keyInput || (keyInput && cxDelta != 0))
 	{
 
-		C2S_KEY packet; // Å° ÀÔ·Â + ¹æÇâ Á¤º¸¸¦ º¸³½´Ù.
+		C2S_KEY packet; // í‚¤ ì…ë ¥ + ë°©í–¥ ì •ë³´ë¥¼ ë³´ë‚¸ë‹¤.
 		packet.size = sizeof(C2S_KEY);
 		packet.type = (uint8)C_PACKET_TYPE::CKEY;
 		packet.key = keyInput;
@@ -198,7 +198,7 @@ void CGameScene::Update(HWND hWnd)
 {
 
 	_timer.Tick(0);
-	
+
 	{
 		std::unique_lock<std::shared_mutex> wl(_jobQueueLock);
 		_jobQueue->DoTasks();
@@ -211,9 +211,9 @@ void CGameScene::Update(HWND hWnd)
 	}
 	//for (int k = 0; k < m_nGenerator; ++k) m_ppGenerator[k]->Update(_timer.GetTimeElapsed());
 
-	
 
-	// Æò±Õ ÇÁ·¹ÀÓ ·¹ÀÌÆ® Ãâ·Â
+
+	// í‰ê·  í”„ë ˆì„ ë ˆì´íŠ¸ ì¶œë ¥
 	std::wstring str = L"[";
 	str.append(std::to_wstring(m_sid));
 	str.append(L"] (");
@@ -224,7 +224,7 @@ void CGameScene::Update(HWND hWnd)
 	str.append(std::to_wstring(_curFrame));
 	//if(_timer.GetFrameRate()) str.append(std::to_wstring(1000.f / _timer.GetFrameRate()));
 	::SetWindowText(hWnd, str.c_str());
-	
+
 }
 
 
@@ -258,7 +258,7 @@ void CGameScene::ReleaseObjects()
 		delete[] m_ppHierarchicalGameObjects;
 	}
 
-	//¹ßÀü±â Æ÷ÀÎÅÍ »èÁ¦ Ãß°¡ÇÔ¼ö
+	//ë°œì „ê¸° í¬ì¸í„° ì‚­ì œ ì¶”ê°€í•¨ìˆ˜
 	if (m_ppGenerator)
 	{
 		for (int i = 0; i < m_nGenerator; i++) if (m_ppGenerator[i]) m_ppGenerator[i]->Release();
@@ -441,7 +441,7 @@ ID3D12RootSignature* CGameScene::CreateGraphicsRootSignature(ID3D12Device5* pd3d
 
 void CGameScene::CreateShaderVariables(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList)
 {
-	UINT ncbElementBytes = ((sizeof(LIGHTS) + 255) & ~255); //256ÀÇ ¹è¼ö
+	UINT ncbElementBytes = ((sizeof(LIGHTS) + 255) & ~255); //256ì˜ ë°°ìˆ˜
 	m_pd3dcbLights = ::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL);
 
 	m_pd3dcbLights->Map(0, NULL, (void**)&m_pcbMappedLights);
@@ -476,7 +476,7 @@ void CGameScene::ReleaseUploadBuffers()
 void CGameScene::CreateCbvSrvDescriptorHeaps(ID3D12Device5* pd3dDevice, int nConstantBufferViews, int nShaderResourceViews)
 {
 	D3D12_DESCRIPTOR_HEAP_DESC d3dDescriptorHeapDesc;
-	d3dDescriptorHeapDesc.NumDescriptors = nConstantBufferViews + nShaderResourceViews; //CBVs + SRVs 
+	d3dDescriptorHeapDesc.NumDescriptors = nConstantBufferViews + nShaderResourceViews; //CBVs + SRVs
 	d3dDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	d3dDescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	d3dDescriptorHeapDesc.NodeMask = 0;
@@ -568,7 +568,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE CGameScene::CreateShaderResourceViews(ID3D12Device5*
 }
 
 void CGameScene::AnimateObjects()
-{ 
+{
 	//for (int i = 0; i < m_nGameObjects; i++) if (m_ppGameObjects[i]) m_ppGameObjects[i]->Animate(_timer.GetTimeElapsed());
 	for (int i = 0; i < m_nShaders; i++) if (m_ppShaders[i]) m_ppShaders[i]->AnimateObjects(_timer.GetTimeElapsed());
 
@@ -625,7 +625,7 @@ void CGameScene::InitGame(void* packet, int32 sid)
 	{
 		if (gsp->sids[i] == sid) _playerIdx = i;
 		_players[i]->SetPlayerSid(gsp->sids[i]);
-		// °¢ ÇÃ·¹ÀÌ¾î º°·Î ¼¼¼Ç ¾ÆÀÌµğ ºÎ¿©
+		// ê° í”Œë ˆì´ì–´ ë³„ë¡œ ì„¸ì…˜ ì•„ì´ë”” ë¶€ì—¬
 	}
 
 	_players[0]->SetPosition(XMFLOAT3(0, 0.25, -18));
@@ -633,7 +633,7 @@ void CGameScene::InitGame(void* packet, int32 sid)
 	if(_players[2] != nullptr)_players[2]->SetPosition(XMFLOAT3(15, 0.25, -18));
 	if(_players[3] != nullptr)_players[3]->SetPosition(XMFLOAT3(20, 0.25, -18));
 
-	
+
 }
 
 void CGameScene::AddEvent(queueEvent* ev, float after)
@@ -644,13 +644,13 @@ void CGameScene::AddEvent(queueEvent* ev, float after)
 
 void CGameScene::Exit()
 {
-	if (m_bEmpExit) // Å»Ãâ ¼º°ø ½Ã , ÇØ¾ßÇÒ ÀÏ Ã³¸®
+	if (m_bEmpExit) // íƒˆì¶œ ì„±ê³µ ì‹œ , í•´ì•¼í•  ì¼ ì²˜ë¦¬
 	{
 		m_pSound->MyPlaySound(16, 5);
 		m_pSound->MyPlaySound(15, 5);
 		m_pSound->MyPlaySound(18, 5);
 		m_pSound->MyPlaySound(19, 5);
-		
+
 		std::cout << "Exit Ready\n";
 		for (int j = 0; j < m_nShaders; j++)
 		{
@@ -708,13 +708,13 @@ void CLobbyScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wP
 	{
 	case WM_LBUTTONDOWN:
 	case WM_RBUTTONDOWN:
-		//¸¶¿ì½º Ä¸ÃÄ¸¦ ÇÏ°í ÇöÀç ¸¶¿ì½º À§Ä¡¸¦ °¡Á®¿Â´Ù. 
+		//ë§ˆìš°ìŠ¤ ìº¡ì³ë¥¼ í•˜ê³  í˜„ì¬ ë§ˆìš°ìŠ¤ ìœ„ì¹˜ë¥¼ ê°€ì ¸ì˜¨ë‹¤.
 		::SetCapture(hWnd);
 		::GetCursorPos(&m_ptOldCursorPos);
 		break;
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
-		//¸¶¿ì½º Ä¸ÃÄ¸¦ ÇØÁ¦ÇÑ´Ù. 
+		//ë§ˆìš°ìŠ¤ ìº¡ì³ë¥¼ í•´ì œí•œë‹¤.
 		::ReleaseCapture();
 		break;
 	case WM_MOUSEMOVE:
@@ -736,7 +736,7 @@ void CLobbyScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM
 		//	break;
 		case VK_F1:
 			break;
-			/*¡®F1¡¯ Å°¸¦ ´©¸£¸é 1ÀÎÄª Ä«¸Ş¶ó, ¡®F3¡¯ Å°¸¦ ´©¸£¸é 3ÀÎÄª Ä«¸Ş¶ó·Î º¯°æÇÑ´Ù.*/
+			/*â€˜F1â€™ í‚¤ë¥¼ ëˆ„ë¥´ë©´ 1ì¸ì¹­ ì¹´ë©”ë¼, â€˜F3â€™ í‚¤ë¥¼ ëˆ„ë¥´ë©´ 3ì¸ì¹­ ì¹´ë©”ë¼ë¡œ ë³€ê²½í•œë‹¤.*/
 		case VK_RETURN:
 		{
 			mainGame.m_nSceneIndex = 1;
@@ -746,7 +746,7 @@ void CLobbyScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM
 		}
 			break;
 		case VK_F9:
-			//¡°F9¡± Å°°¡ ´­·ÁÁö¸é À©µµ¿ì ¸ğµå¿Í ÀüÃ¼È­¸é ¸ğµåÀÇ ÀüÈ¯À» Ã³¸®ÇÑ´Ù. 
+			//â€œF9â€ í‚¤ê°€ ëˆŒë ¤ì§€ë©´ ìœˆë„ìš° ëª¨ë“œì™€ ì „ì²´í™”ë©´ ëª¨ë“œì˜ ì „í™˜ì„ ì²˜ë¦¬í•œë‹¤.
 			mainGame.ChangeSwapChainState();
 			break;
 		default:
@@ -767,7 +767,7 @@ void CLobbyScene::ProcessInput(HWND hWnd)
 	InputManager::GetInstance().MouseInputStatusUpdate();
 
 
-	// ============= ¸¶¿ì½º ¹öÆ° °ü·Ã Ã³¸® ================
+	// ============= ë§ˆìš°ìŠ¤ ë²„íŠ¼ ê´€ë ¨ ì²˜ë¦¬ ================
 	float cxDelta = 0.0f, cyDelta = 0.0f;
 	if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::MLBUTTON) > 0)
 	{
@@ -784,16 +784,16 @@ void CLobbyScene::ProcessInput(HWND hWnd)
 		if (cxDelta != 0) _players[_playerIdx]->Rotate(0.f, cxDelta, 0.0f);
 	}
 
-	//============  ÇÃ·¹ÀÌ¾î¿¡°Ô ÃÖÁ¾ Å°ÀÔ·Â Ã³¸® ============
-	keyInput = _players[_playerIdx]->ProcessInput(); // ÀÔ·ÂµÈ Å°¸¦ ±â¹İÀ¸·Î ÀÎÇ² Ã³¸® ÁøÇà
+	//============  í”Œë ˆì´ì–´ì—ê²Œ ìµœì¢… í‚¤ì…ë ¥ ì²˜ë¦¬ ============
+	keyInput = _players[_playerIdx]->ProcessInput(); // ì…ë ¥ëœ í‚¤ë¥¼ ê¸°ë°˜ìœ¼ë¡œ ì¸í’‹ ì²˜ë¦¬ ì§„í–‰
 
 
-	// ============ ÆĞÅ¶ ¼Û½Å ÆÄÆ® ===================
-	// ÀÌµ¿ Å° ÀÔ·Â¿¡ º¯È­°¡ ÀÖ°Å³ª Å° ÀÔ·Â Áß È¸ÀüÀ» ¼öÇàÇÏ´Â °æ¿ì¿¡¸¸.. ÀÌµ¿ °ü·Ã ÆĞÅ¶À» Àü¼ÛÇÑ´Ù.
+	// ============ íŒ¨í‚· ì†¡ì‹  íŒŒíŠ¸ ===================
+	// ì´ë™ í‚¤ ì…ë ¥ì— ë³€í™”ê°€ ìˆê±°ë‚˜ í‚¤ ì…ë ¥ ì¤‘ íšŒì „ì„ ìˆ˜í–‰í•˜ëŠ” ê²½ìš°ì—ë§Œ.. ì´ë™ ê´€ë ¨ íŒ¨í‚·ì„ ì „ì†¡í•œë‹¤.
 	if (m_lastKeyInput != keyInput || (keyInput && cxDelta != 0))
 	{
 
-		C2S_KEY packet; // Å° ÀÔ·Â + ¹æÇâ Á¤º¸¸¦ º¸³½´Ù.
+		C2S_KEY packet; // í‚¤ ì…ë ¥ + ë°©í–¥ ì •ë³´ë¥¼ ë³´ë‚¸ë‹¤.
 		packet.size = sizeof(C2S_KEY);
 		packet.type = (uint8)C_PACKET_TYPE::CKEY;
 		packet.key = keyInput;
@@ -822,7 +822,7 @@ void CLobbyScene::Update(HWND hWnd)
 //{
 //	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
 //
-//	CreateCbvSrvDescriptorHeaps(pd3dDevice, 0, 52 + 1 + 1 + 12 + 3 + 12 + 3 + 89 + 5 + 5 * 4 + 6 * 17 + 2 * 50 + 3 * 2 + 14 + 1 + 12);//Albedomap 52 / player 1 / skybox 1 / box subTexture 3 * 4/ tile subTexture 3 * 1/ woodPallet 3 * 4 / pillar2 3 * 1 / BoundsMap 89 / ï¿½ï¿½ï¿½ï¿½Ä¡ 2 + 3 / ï¿½ï¿½ / ï¿½ï¿½ï¿½Ì·ï¿½ 6 / ï¿½Ñ¾ï¿½ 100 / ï¿½ï¿½ï¿½Ìµï¿½ ï¿½ï¿½ 3*2 / 14
+//	CreateCbvSrvDescriptorHeaps(pd3dDevice, 0, 52 + 1 + 1 + 12 + 3 + 12 + 3 + 89 + 5 + 5 * 4 + 6 * 17 + 2 * 50 + 3 * 2 + 14 + 1 + 12); // ëª¨ë¸ë³„ SRV ê°œìˆ˜ í•©ê³„
 //
 //	CMaterial::PrepareShaders(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
 //
@@ -916,7 +916,7 @@ void CLobbyScene::Update(HWND hWnd)
 //	InputManager::GetInstance().MouseInputStatusUpdate();
 //
 //
-//	// ============= ¸¶¿ì½º ¹öÆ° °ü·Ã Ã³¸® ================
+//	// ============= ë§ˆìš°ìŠ¤ ë²„íŠ¼ ê´€ë ¨ ì²˜ë¦¬ ================
 //	float cxDelta = 0.0f, cyDelta = 0.0f;
 //	if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::MLBUTTON) > 0)
 //	{
@@ -934,16 +934,16 @@ void CLobbyScene::Update(HWND hWnd)
 //	}
 //
 //
-//	//============  ÇÃ·¹ÀÌ¾î¿¡°Ô ÃÖÁ¾ Å°ÀÔ·Â Ã³¸® ============
-//	keyInput = _players[_playerIdx]->ProcessInput(); // ÀÔ·ÂµÈ Å°¸¦ ±â¹İÀ¸·Î ÀÎÇ² Ã³¸® ÁøÇà
+//	//============  í”Œë ˆì´ì–´ì—ê²Œ ìµœì¢… í‚¤ì…ë ¥ ì²˜ë¦¬ ============
+//	keyInput = _players[_playerIdx]->ProcessInput(); // ì…ë ¥ëœ í‚¤ë¥¼ ê¸°ë°˜ìœ¼ë¡œ ì¸í’‹ ì²˜ë¦¬ ì§„í–‰
 //
 //
-//	// ============ ÆĞÅ¶ ¼Û½Å ÆÄÆ® ===================
-//	// ÀÌµ¿ Å° ÀÔ·Â¿¡ º¯È­°¡ ÀÖ°Å³ª Å° ÀÔ·Â Áß È¸ÀüÀ» ¼öÇàÇÏ´Â °æ¿ì¿¡¸¸.. ÀÌµ¿ °ü·Ã ÆĞÅ¶À» Àü¼ÛÇÑ´Ù.
+//	// ============ íŒ¨í‚· ì†¡ì‹  íŒŒíŠ¸ ===================
+//	// ì´ë™ í‚¤ ì…ë ¥ì— ë³€í™”ê°€ ìˆê±°ë‚˜ í‚¤ ì…ë ¥ ì¤‘ íšŒì „ì„ ìˆ˜í–‰í•˜ëŠ” ê²½ìš°ì—ë§Œ.. ì´ë™ ê´€ë ¨ íŒ¨í‚·ì„ ì „ì†¡í•œë‹¤.
 //	if (m_lastKeyInput != keyInput || (keyInput && cxDelta != 0))
 //	{
 //
-//		C2S_KEY packet; // Å° ÀÔ·Â + ¹æÇâ Á¤º¸¸¦ º¸³½´Ù.
+//		C2S_KEY packet; // í‚¤ ì…ë ¥ + ë°©í–¥ ì •ë³´ë¥¼ ë³´ë‚¸ë‹¤.
 //		packet.size = sizeof(C2S_KEY);
 //		packet.type = (uint8)C_PACKET_TYPE::CKEY;
 //		packet.key = keyInput;
@@ -965,13 +965,13 @@ void CLobbyScene::Update(HWND hWnd)
 //	{
 //	case WM_LBUTTONDOWN:
 //	case WM_RBUTTONDOWN:
-//		//¸¶¿ì½º Ä¸ÃÄ¸¦ ÇÏ°í ÇöÀç ¸¶¿ì½º À§Ä¡¸¦ °¡Á®¿Â´Ù. 
+//		//ë§ˆìš°ìŠ¤ ìº¡ì³ë¥¼ í•˜ê³  í˜„ì¬ ë§ˆìš°ìŠ¤ ìœ„ì¹˜ë¥¼ ê°€ì ¸ì˜¨ë‹¤.
 //		::SetCapture(hWnd);
 //		::GetCursorPos(&m_ptOldCursorPos);
 //		break;
 //	case WM_LBUTTONUP:
 //	case WM_RBUTTONUP:
-//		//¸¶¿ì½º Ä¸ÃÄ¸¦ ÇØÁ¦ÇÑ´Ù. 
+//		//ë§ˆìš°ìŠ¤ ìº¡ì³ë¥¼ í•´ì œí•œë‹¤.
 //		::ReleaseCapture();
 //		break;
 //	case WM_MOUSEMOVE:
@@ -999,7 +999,7 @@ void CLobbyScene::Update(HWND hWnd)
 //		//	_players[_playerIdx]->m_pCamera = _players[_playerIdx]->ChangeCamera(THIRD_PERSON_CAMERA, 0.0f);
 //		//	m_pCamera = _players[_playerIdx]->m_pCamera;
 //		//	break;
-//		//	/*¡®F1¡¯ Å°¸¦ ´©¸£¸é 1ÀÎÄª Ä«¸Ş¶ó, ¡®F3¡¯ Å°¸¦ ´©¸£¸é 3ÀÎÄª Ä«¸Ş¶ó·Î º¯°æÇÑ´Ù.*/
+//		//	/*â€˜F1â€™ í‚¤ë¥¼ ëˆ„ë¥´ë©´ 1ì¸ì¹­ ì¹´ë©”ë¼, â€˜F3â€™ í‚¤ë¥¼ ëˆ„ë¥´ë©´ 3ì¸ì¹­ ì¹´ë©”ë¼ë¡œ ë³€ê²½í•œë‹¤.*/
 //		case VK_RETURN:
 //		{
 //			mainGame.m_nSceneIndex = 0;
@@ -1008,7 +1008,7 @@ void CLobbyScene::Update(HWND hWnd)
 //		}
 //		break;
 //		case VK_F9:
-//			//¡°F9¡± Å°°¡ ´­·ÁÁö¸é À©µµ¿ì ¸ğµå¿Í ÀüÃ¼È­¸é ¸ğµåÀÇ ÀüÈ¯À» Ã³¸®ÇÑ´Ù. 
+//			//â€œF9â€ í‚¤ê°€ ëˆŒë ¤ì§€ë©´ ìœˆë„ìš° ëª¨ë“œì™€ ì „ì²´í™”ë©´ ëª¨ë“œì˜ ì „í™˜ì„ ì²˜ë¦¬í•œë‹¤.
 //			mainGame.ChangeSwapChainState();
 //			break;
 //		default:

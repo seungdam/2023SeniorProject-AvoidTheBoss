@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "SceneInterface.h"
 class LobbyScene : public SceneInterface
 {
@@ -7,7 +7,7 @@ public:
 	LobbyScene(ID3D12Device* device) { m_d3dDevice = device; }
 	~LobbyScene()  {}
 
-	virtual void Render() override 
+	virtual void Render() override
 	{
 		if (m_d3dDevice == nullptr) return;
 

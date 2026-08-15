@@ -1,8 +1,8 @@
-#pragma once
+﻿#pragma once
 #include "GameObject.h"
 #include "Shader.h"
 
-#define MAX_LIGHTS			16 
+#define MAX_LIGHTS			16
 
 #define POINT_LIGHT			1
 #define SPOT_LIGHT			2
@@ -43,14 +43,14 @@ public:
 protected:
 	ID3D12RootSignature* m_pd3dGraphicsRootSignature = NULL;
 public:
-	CCamera*			m_pCamera;
+	CCamera*			m_pCamera = nullptr;
 public:
 	LIGHT*								m_pLights = NULL;
 	LIGHTS*								m_pcbMappedLights = NULL;
-	
+
 	int									m_nLights = 0;
 	XMFLOAT4							m_xmf4GlobalAmbient;
-	
+
 	ID3D12Resource*						m_pd3dcbLights = NULL;
 public:
 	int									m_nGameObjects = 0;
@@ -92,6 +92,8 @@ public:
 	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSrvDescriptorNextHandle() { return(m_d3dSrvCPUDescriptorNextHandle); }
 	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSrvDescriptorNextHandle() { return(m_d3dSrvGPUDescriptorNextHandle); }
 public:
+	virtual ~CScene() = default;
+
 	virtual void ProcessInput(HWND& hWnd) {}
 	virtual void Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pCamera,bool Raster) {};
 	virtual void Update(HWND& hWnd) {}
@@ -113,7 +115,7 @@ public:
 	virtual void OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM	lParam);
 	virtual void OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	virtual void MouseAction(const POINT& mp) {};
-}; 
+};
 
 
 

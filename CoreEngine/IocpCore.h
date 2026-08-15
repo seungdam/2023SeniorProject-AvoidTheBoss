@@ -1,7 +1,7 @@
-#pragma once
-// Worker Thread ±â´ÉÀ» Å¬·¡½º·Î ·¦ÇÎ
+ï»¿#pragma once
+// Worker Thread ê¸°ëŠ¥ì„ í´ë˜ìŠ¤ë¡œ ë©í•‘
 //#include "RoomManager.h"
-// IOCP¿¡ µî·ÏÇÒ ¼ö ÀÖ´Â ¸ğµç ¿ÀºêÁ§Æ®¿¡ °üÇØ¼­ Á¤ÀÇ
+// IOCPì— ë“±ë¡í•  ìˆ˜ ìˆëŠ” ëª¨ë“  ì˜¤ë¸Œì íŠ¸ì— ê´€í•´ì„œ ì •ì˜
 
 
 class IocpObject;
@@ -12,8 +12,8 @@ public:
 	IocpCore();
 	virtual ~IocpCore();
 	HANDLE GetHandle() { return _hIocp; };
-	bool Register(class IocpObject* iocpObj); // socket°ú sessionÀ» µî·ÏÇÏ´Â ÇÔ¼ö
-	bool Processing(uint32_t limit_time = INFINITE); // ½ÇÁúÀûÀ¸·Î ÀÏÇÏ´Â worker_threadµéÀÌ iocp¿¡¼­ ¿Ï·áµÈ ¾÷¹«¸¦ Å½»öÇÏ´Â °÷
+	bool Register(class IocpObject* iocpObj); // socketê³¼ sessionì„ ë“±ë¡í•˜ëŠ” í•¨ìˆ˜
+	bool Processing(uint32_t limit_time = INFINITE); // ì‹¤ì§ˆì ìœ¼ë¡œ ì¼í•˜ëŠ” worker_threadë“¤ì´ iocpì—ì„œ ì™„ë£Œëœ ì—…ë¬´ë¥¼ íƒìƒ‰í•˜ëŠ” ê³³
 	virtual void Disconnect(int32 sid);
 protected:
 	HANDLE _hIocp = INVALID_HANDLE_VALUE;

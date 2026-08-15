@@ -1,6 +1,6 @@
-// stdafx.cpp : Ç¥ÁØ Æ÷ÇÔ ÆÄÀÏ¸¸ µé¾î ÀÖ´Â ¼Ò½º ÆÄÀÏÀÔ´Ï´Ù.
-// LabProject03-1.pch´Â ¹Ì¸® ÄÄÆÄÀÏµÈ Çì´õ°¡ µË´Ï´Ù.
-// stdafx.obj¿¡´Â ¹Ì¸® ÄÄÆÄÀÏµÈ Çü½Ä Á¤º¸°¡ Æ÷ÇÔµË´Ï´Ù.
+ï»¿// stdafx.cpp : í‘œì¤€ í¬í•¨ íŒŒì¼ë§Œ ë“¤ì–´ ìˆëŠ” ì†ŒìŠ¤ íŒŒì¼ì…ë‹ˆë‹¤.
+// LabProject03-1.pchëŠ” ë¯¸ë¦¬ ì»´íŒŒì¼ëœ í—¤ë”ê°€ ë©ë‹ˆë‹¤.
+// stdafx.objì—ëŠ” ë¯¸ë¦¬ ì»´íŒŒì¼ëœ í˜•ì‹ ì •ë³´ê°€ í¬í•¨ë©ë‹ˆë‹¤.
 
 #include "pch.h"
 
@@ -10,7 +10,7 @@ UINT gnCbvSrvDescriptorIncrementSize = 0;
 UINT gnRtvDescriptorIncrementSize = 0;
 UINT gnDsvDescriptorIncrementSize = 0;
 
-ID3D12Resource* CreateBufferResource(ID3D12Device5* pd3dDevice, 
+ID3D12Resource* CreateBufferResource(ID3D12Device5* pd3dDevice,
 	ID3D12GraphicsCommandList4* pd3dCommandList, void* pData, UINT nBytes, D3D12_HEAP_TYPE d3dHeapType, D3D12_RESOURCE_STATES d3dResourceStates, ID3D12Resource** ppd3dUploadBuffer)
 {
 	ID3D12Resource* pd3dBuffer = NULL;
@@ -117,7 +117,7 @@ ID3D12Resource* CreateTextureResourceFromDDSFile(ID3D12Device5* pd3dDevice, ID3D
 
 	D3D12_RESOURCE_DESC d3dResourceDesc;
 	::ZeroMemory(&d3dResourceDesc, sizeof(D3D12_RESOURCE_DESC));
-	d3dResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER; //Upload Heap¿¡´Â ÅØ½ºÃÄ¸¦ »ı¼ºÇÒ ¼ö ¾øÀ½
+	d3dResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER; //Upload Heapì—ëŠ” í…ìŠ¤ì³ë¥¼ ìƒì„±í•  ìˆ˜ ì—†ìŒ
 	d3dResourceDesc.Alignment = 0;
 	d3dResourceDesc.Width = nBytes;
 	d3dResourceDesc.Height = 1;

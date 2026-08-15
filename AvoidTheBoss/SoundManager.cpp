@@ -1,8 +1,7 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "SoundManager.h"
 #include "CSound.h"
 
-SoundManager* SoundManager::instance = nullptr;
 CSound* SoundManager::m_pSound = nullptr;
 
 SoundManager::SoundManager()
@@ -14,6 +13,7 @@ SoundManager::SoundManager()
 SoundManager::~SoundManager()
 {
 	delete m_pSound;
+	m_pSound = nullptr;
 }
 
 void SoundManager::SoundSystem()

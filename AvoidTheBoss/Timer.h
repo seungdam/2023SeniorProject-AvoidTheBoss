@@ -1,13 +1,13 @@
-#pragma once
-const ULONG MAX_SAMPLE_COUNT = 50; // 50È¸ÀÇ ÇÁ·¹ÀÓ Ã³¸®½Ã°£À» ´©ÀûÇÏ¿© Æò±ÕÇÑ´Ù.
+ï»¿#pragma once
+const ULONG MAX_SAMPLE_COUNT = 50; // 50íšŒì˜ í”„ë ˆì„ ì²˜ë¦¬ì‹œê°„ì„ ëˆ„ì í•˜ì—¬ í‰ê· í•œë‹¤.
 
 class CTimer
 {
 public:
-	unsigned long	m_nWorldFrame;   //ÃÊ´ç ÇÁ·¹ÀÓ 
+	unsigned long	m_nWorldFrame;   //ì´ˆë‹¹ í”„ë ˆì„
 private:
-	double			m_fTimeScale; //Scale CounterÀÇ ¾ç 1ÃÊ ´ÜÀ§·Î ¹Ù²Ù±â À§ÇØ¼­ »ı¼º
-	float			m_fTimeElapsed; // Æò±Õ ÇÁ·¹ÀÓ Ã³¸® ½Ã°£ 1 / Frame ÃÊ
+	double			m_fTimeScale; //Scale Counterì˜ ì–‘ 1ì´ˆ ë‹¨ìœ„ë¡œ ë°”ê¾¸ê¸° ìœ„í•´ì„œ ìƒì„±
+	float			m_fTimeElapsed; // í‰ê·  í”„ë ˆì„ ì²˜ë¦¬ ì‹œê°„ 1 / Frame ì´ˆ
 
 	__int64			m_nBasePerformanceCounter;
 	__int64			m_nPausedPerformanceCounter;
@@ -15,28 +15,28 @@ private:
 	__int64			m_nCurrentPerformanceCounter;
 	__int64			m_nLastPerformanceCounter;
 
-	__int64			m_nPerformanceFrequencyPerSec; //ÄÄÇ»ÅÍÀÇ Performance Frequency
+	__int64			m_nPerformanceFrequencyPerSec; //ì»´í“¨í„°ì˜ Performance Frequency
 
-	float			m_fFrameTime[MAX_SAMPLE_COUNT]; //ÇÁ·¹ÀÓ ½Ã°£À» ´©ÀûÇÏ±â À§ÇÑ ¹è¿­
-	ULONG			m_nSampleCount; //»ùÇÃ¸µ ÇÒ ÇÁ·¹ÀÓ °³¼ö 
+	float			m_fFrameTime[MAX_SAMPLE_COUNT]; //í”„ë ˆì„ ì‹œê°„ì„ ëˆ„ì í•˜ê¸° ìœ„í•œ ë°°ì—´
+	ULONG			m_nSampleCount; //ìƒ˜í”Œë§ í•  í”„ë ˆì„ ê°œìˆ˜
 
-	unsigned long	m_nCurrentFrameRate;  //1ÃÊ µ¿¾È ³ª¿Â ÇÁ·¹ÀÓ ¼ö
-	unsigned long	m_nFramesPerSecond;   //ÃÊ´ç ÇÁ·¹ÀÓ
-	
-	float			m_fFPSTimeElapsed;    //ÇÁ·¹ÀÓ ·¹ÀÌÆ® °è»ê ¼Ò¿ä ½Ã°£
+	unsigned long	m_nCurrentFrameRate;  //1ì´ˆ ë™ì•ˆ ë‚˜ì˜¨ í”„ë ˆì„ ìˆ˜
+	unsigned long	m_nFramesPerSecond;   //ì´ˆë‹¹ í”„ë ˆì„
+
+	float			m_fFPSTimeElapsed;    //í”„ë ˆì„ ë ˆì´íŠ¸ ê³„ì‚° ì†Œìš” ì‹œê°„
 
 	bool			m_bStopped;
 public:
 	CTimer();
 	virtual ~CTimer();
 
-	void Tick(float fLockFPS = 0.0f); // Å¸ÀÌ¸Ó ½Ã°£ °»½Å
+	void Tick(float fLockFPS = 0.0f); // íƒ€ì´ë¨¸ ì‹œê°„ ê°±ì‹ 
 	void Start();
 	void Stop();
 	void Reset();
 
-	unsigned long GetFrameRate(LPTSTR lpszString = NULL, int nCharacters = 0); // ÇÁ·¹ÀÓ ·¹ÀÌÆ® ¹İÈ¯
-	float GetTimeElapsed(); // ÇÁ·¹ÀÓ Æò±Õ °æ°ú ½Ã°£ ¹İÈ¯
+	unsigned long GetFrameRate(LPTSTR lpszString = NULL, int nCharacters = 0); // í”„ë ˆì„ ë ˆì´íŠ¸ ë°˜í™˜
+	float GetTimeElapsed(); // í”„ë ˆì„ í‰ê·  ê²½ê³¼ ì‹œê°„ ë°˜í™˜
 	float GetTotalTime();
 };
 

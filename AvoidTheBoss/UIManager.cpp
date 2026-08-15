@@ -1,4 +1,4 @@
-#include "pch.h"
+Ôªø#include "pch.h"
 #include "GameFramework.h"
 #include "UIManager.h"
 
@@ -46,22 +46,27 @@ UIManager::UIManager(UINT nFrames, ID3D12Device5* pd3dDevice, ID3D12CommandQueue
 
     m_fWidth = static_cast<float>(nWidth);
     m_fHeight = static_cast<float>(nHeight);
-    m_nRenderTargets = nFrames; // ∑ª¥ı ≈∏∞Ÿ
-    m_ppd3d11WrappedRenderTargets = new ID3D11Resource * [nFrames];
-    m_ppd2dRenderTargets = new ID2D1Bitmap1 * [nFrames];
+    m_nRenderTargets = nFrames; // Î†åÎçî ÌÉÄÍ≤ü
+    m_ppd3d11WrappedRenderTargets = new ID3D11Resource * [nFrames] {};
+    m_ppd2dRenderTargets = new ID2D1Bitmap1 * [nFrames] {};
 
     InitializeDevice(pd3dDevice, pd3dCommandQueue, ppd3dRenderTargets);
 
+}
+
+UIManager::~UIManager()
+{
+    ReleaseResources();
 }
 
 
 
 void UIManager::CreateD3D11On12Device(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue)
 {
-    UINT d3d11DeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT; // ui √‚∑¬¿ª ¿ß«ÿ « ø‰«— «√∑π±◊
+    UINT d3d11DeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT; // ui Ï∂úÎ†•ÏùÑ ÏúÑÌï¥ ÌïÑÏöîÌïú ÌîåÎ†àÍ∑∏
     D2D1_FACTORY_OPTIONS d2dFactoryOptions = { };
 
-    // D3D11On12 µπŸ¿ÃΩ∫ ª˝º∫
+    // D3D11On12 ÎîîÎ∞îÏù¥Ïä§ ÏÉùÏÑ±
     ComPtr<ID3D11Device> pd3d11Device = NULL;
     ID3D12CommandQueue* ppd3dCommandQueues[] = { pd3dCommandQueue };
     ::D3D11On12CreateDevice
@@ -72,15 +77,14 @@ void UIManager::CreateD3D11On12Device(ID3D12Device5* pd3dDevice, ID3D12CommandQu
         _countof(ppd3dCommandQueues), 0,
         &pd3d11Device,
         &m_pd3d11DeviceContext, nullptr);
-    // 1. d3d12Device 2. µπŸ¿ÃΩ∫ «√∑π±◊, 3. d3d11Device*¿« ¡÷º“ 4. DeviceContext ¡÷º“
+    // 1. d3d12Device 2. ÎîîÎ∞îÏù¥Ïä§ ÌîåÎ†àÍ∑∏, 3. d3d11Device*Ïùò Ï£ºÏÜå 4. DeviceContext Ï£ºÏÜå
 
-    // ª˝º∫µ» d3d11on12µπŸ¿ÃΩ∫ø° ∞¸«— ¿Œ≈Õ∆‰¿ÃΩ∫∏¶ m_pd3d11on12Device∑Œ ¿Ãµø
-    //pd3d11Device->QueryInterface(__uuidof(ID3D11On12Device), (void**)m_pd3d11On12Device.GetAddressOf()); 
+    // ÏÉùÏÑ±Îêú d3d11on12ÎîîÎ∞îÏù¥Ïä§Ïóê Í¥ÄÌïú Ïù∏ÌÑ∞ÌéòÏù¥Ïä§Î•º m_pd3d11on12DeviceÎ°ú Ïù¥Îèô
+    //pd3d11Device->QueryInterface(__uuidof(ID3D11On12Device), (void**)m_pd3d11On12Device.GetAddressOf());
     pd3d11Device.As(&m_pd3d11On12Device);
-    pd3d11Device->Release(); // ªÁøÎ¿Ã ≥°≥≠ pd3d11Device¥¬ ∏±∏Æ¡Ó
 }
 
-void UIManager::CreateD2DDevice() // d3d11on12µπŸ¿ÃΩ∫∏¶ »∞øÎ«ÿ d2ddevice∂˚ d2dFactory ª˝º∫
+void UIManager::CreateD2DDevice() // d3d11on12ÎîîÎ∞îÏù¥Ïä§Î•º ÌôúÏö©Ìï¥ d2ddeviceÎûë d2dFactory ÏÉùÏÑ±
 {
     D2D1_FACTORY_OPTIONS d2dFactoryOptions{};
     D2D1_DEVICE_CONTEXT_OPTIONS deviceOptions = D2D1_DEVICE_CONTEXT_OPTIONS_NONE;
@@ -100,54 +104,23 @@ void UIManager::CreateD2DDevice() // d3d11on12µπŸ¿ÃΩ∫∏¶ »∞øÎ«ÿ d2ddevice∂˚ d2dF
 
 ID2D1Bitmap1* UIManager::LoadPngFromFile(const wchar_t* filePath)
 {
-    ID2D1Bitmap1* bit = NULL;
-    if (bit != NULL)
+    ComPtr<IWICImagingFactory> factory;
+    ComPtr<IWICBitmapDecoder> decoder;
+    ComPtr<IWICBitmapFrameDecode> frame;
+    ComPtr<IWICFormatConverter> converter;
+    ComPtr<ID2D1Bitmap1> bitmap;
+
+    if (FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&factory))) ||
+        FAILED(factory->CreateDecoderFromFilename(filePath, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &decoder)) ||
+        FAILED(decoder->GetFrame(0, &frame)) ||
+        FAILED(factory->CreateFormatConverter(&converter)) ||
+        FAILED(converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, nullptr, 0.0f, WICBitmapPaletteTypeCustom)) ||
+        FAILED(m_pd2dDeviceContext->CreateBitmapFromWicBitmap(converter.Get(), nullptr, &bitmap)))
     {
-       bit->Release();
-       bit = NULL;
+        return nullptr;
     }
 
-    // WIC Factory ∞¥√º ª˝º∫
-    IWICImagingFactory* pWicFactory;
-    CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER,
-        IID_PPV_ARGS(&pWicFactory));
-    // ¿ÃπÃ¡ˆ «ÿ√º∏¶ ¿ß«— ∞¥√º ª˝º∫
-    IWICBitmapDecoder* pDecoder;
-    IWICBitmapFrameDecode* pFrame; // ¿ÃπÃ¡ˆ∏¶ º±≈√«œ±‚ ¿ß«— ∞¥√º
-    IWICFormatConverter* pConverter; // ¿ÃπÃ¡ˆ ∫Ø»Ø ∞¥√º
-    
-    int32 result = 0;
-    if (S_OK == pWicFactory->CreateDecoderFromFilename(filePath, NULL, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &pDecoder)) 
-    {
-        // ∆ƒ¿œ¿ª ±∏º∫«œ¥¬ ¿ÃπÃ¡ˆ ¡ﬂø°º≠ √ππ¯¬∞ ¿ÃπÃ¡ˆ∏¶ º±≈√«—¥Ÿ.
-        if (S_OK == pDecoder->GetFrame(0, &pFrame))
-        {
-            // IWICBitmap«¸Ωƒ¿« ∫Ò∆Æ∏ ¿ª ID2D1Bitmap. «¸Ωƒ¿∏∑Œ ∫Ø»Ø«œ±‚ ¿ß«— ∞¥√º ª˝º∫
-            if (S_OK == pWicFactory->CreateFormatConverter(&pConverter))
-            {
-                // º±≈√µ» ±◊∏≤¿ª æÓ∂≤ «¸Ωƒ¿« ∫Ò∆Æ∏ ¿∏∑Œ ∫Ø»Ø«“ ∞Õ¿Œ¡ˆ º≥¡§
-                if (S_OK == pConverter->Initialize(pFrame, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0.0f, WICBitmapPaletteTypeCustom))
-                {
-                    
-                    // IWICBitmap «¸Ωƒ¿« ∫Ò∆Æ∏ ¿∏∑Œ ID2D1Bitmap ∞¥√º∏¶ ª˝º∫
-                    if (S_OK == m_pd2dDeviceContext->CreateBitmapFromWicBitmap(pConverter, NULL, &bit)) result = 1;  // º∫∞¯¿˚¿∏∑Œ ª˝º∫«— ∞ÊøÏ 
-                }
-                // ¿ÃπÃ¡ˆ ∫Ø»Ø ∞¥√º ¡¶∞≈
-                pConverter->Release();
-            }
-            // ±◊∏≤∆ƒ¿œø° ¿÷¥¬ ¿ÃπÃ¡ˆ∏¶ º±≈√«œ±‚ ¿ß«ÿ ªÁøÎ«— ∞¥√º ¡¶∞≈
-            pFrame->Release();
-        }
-        // æ–√‡¿ª «ÿ¡¶«œ±‚ ¿ß«ÿ ª˝º∫«— ∞¥√º ¡¶∞≈
-        pDecoder->Release();
-    }
-    // WIC∏¶ ªÁøÎ«œ±‚ ¿ß«ÿ ∏∏µÈæ˙¥¯ Factory ∞¥√º ¡¶∞≈
-    pWicFactory->Release();
-
-    if(result) return bit;  // PNG ∆ƒ¿œ¿ª ¿–¿∫ ∞·∞˙∏¶ π›»Ø«—¥Ÿ.
-
-    return nullptr;
-
+    return bitmap.Detach();
 }
 
 
@@ -171,29 +144,29 @@ void UIManager::UpdateRoomTextBlocks(UINT nIndex,const WCHAR* pstrUIText, const 
 {
     m_RoomListTextBlock[nIndex].m_pstrText.erase();
     m_RoomListTextBlock[nIndex].m_pstrText.append(pstrUIText);
-   
+
     m_RoomListTextBlock[nIndex].m_hide = hide;
 }
 
 void UIManager::UpdateRoomText()
 {
-    
+
     CLobbyScene* ls = static_cast<CLobbyScene*>(mainGame.m_SceneManager->GetSceneByIdx((int32)CGameFramework::SCENESTATE::LOBBY));
     int32 curPage = ls->GetCurPage();
     bool hide = false;
     WCHAR temp[3];
-    
-    
+
+
     D2D1_RECT_F newRect{ 0,0,0,0 };
-    // ¿¸√º ∆‰¿Ã¡ˆ∏¶ ∞ªΩ≈«—¥Ÿ.
-   
+    // Ï†ÑÏ≤¥ ÌéòÏù¥ÏßÄÎ•º Í∞±Ïã†ÌïúÎã§.
+
    for(int i = 0; i < m_nRoomListPerPage; ++i)
-   { 
+   {
        std::wstring newText = L"ROOM [";
        int32 mem = ls->GetRoom((curPage * 5 + i)).member;
        ROOM_STATUS rs = ls->GetRoom(curPage * 5 + i).status;
-           
-       _itow_s(curPage * 5 + i, temp, 10); // ∏‚πˆ ∫Ø»Ø
+
+       _itow_s(curPage * 5 + i, temp, 10); // Î©§Î≤Ñ Î≥ÄÌôò
        temp[2] = '\0';
 
        newText.append(temp);
@@ -207,38 +180,66 @@ void UIManager::UpdateRoomText()
 
        if (rs == ROOM_STATUS::FULL || rs == ROOM_STATUS::EMPTY || rs == ROOM_STATUS::INGAME)
        {
-          UpdateRoomTextBlocks(i, L"", newRect, true);      
+          UpdateRoomTextBlocks(i, L"", newRect, true);
           continue;
        }
        else UpdateRoomTextBlocks(i, newText.c_str(), newRect, false);
    }
-    
+
 }
 
 
 void UIManager::ReleaseResources()
 {
+    auto release = [](auto*& resource)
+    {
+        if (resource) resource->Release();
+        resource = nullptr;
+    };
+
+    for (auto& item : m_backGround) release(item.resource);
+    for (auto& item : m_LoginResult) release(item.resource);
+    for (auto& item : m_TitleButtons) release(item.resource);
+    for (auto& item : m_LobbyButtons) release(item.resource);
+    for (auto& item : m_RoomButtons) release(item.resource);
+    for (auto& item : m_ReadyBitmaps) release(item.resource);
+    for (auto& item : m_ReadyCard) release(item.resource);
+    for (auto& item : m_CharProfile) release(item.resource);
+    for (auto& item : m_CharStatusBitmaps) release(item);
+    release(m_HpBitmap);
+    release(m_CharCrossHead.resource);
+    for (auto& item : m_AttackedEffect) release(item.resource);
+    for (auto& item : m_GenerateUIButtons) release(item.resource);
+    release(m_RescueIcon.resource);
+
+    for (auto& item : m_IDPWTextBlocks) release(item.m_pd2dTextBrush);
+    release(m_TitleTextFormat);
+    release(m_LobbyTextFormat);
+    release(redBrush);
+    release(grayBrush);
+    release(blackBrush);
+    release(whiteBrush);
+    release(greenBrush);
+
+    if (m_pd2dDeviceContext) m_pd2dDeviceContext->SetTarget(nullptr);
+    if (m_pd3d11DeviceContext) m_pd3d11DeviceContext->Flush();
+
     for (UINT i = 0; i < m_nRenderTargets; i++)
     {
-        ID3D11Resource* ppResources[] = { m_ppd3d11WrappedRenderTargets[i] };
-        m_pd3d11On12Device->ReleaseWrappedResources(ppResources, _countof(ppResources));
+        if (m_ppd2dRenderTargets) release(m_ppd2dRenderTargets[i]);
+        if (m_ppd3d11WrappedRenderTargets) release(m_ppd3d11WrappedRenderTargets[i]);
     }
+    delete[] m_ppd2dRenderTargets;
+    m_ppd2dRenderTargets = nullptr;
+    delete[] m_ppd3d11WrappedRenderTargets;
+    m_ppd3d11WrappedRenderTargets = nullptr;
 
-    m_pd2dDeviceContext->SetTarget(nullptr);
-    m_pd3d11DeviceContext->Flush();
-
-    for (UINT i = 0; i < m_nRenderTargets; i++)
-    {
-        m_ppd2dRenderTargets[i]->Release();
-        m_ppd3d11WrappedRenderTargets[i]->Release();
-    }
-
-    m_pd2dDeviceContext->Release();
-    m_pd2dWriteFactory->Release();
-    m_pd2dDevice->Release();
-    m_pd2dFactory->Release();
-    m_pd3d11DeviceContext->Release();
-    m_pd3d11On12Device->Release();
+    release(m_pd2dDeviceContext);
+    m_pd2dWriteFactory.Reset();
+    release(m_pd2dDevice);
+    release(m_pd2dFactory);
+    m_pd3d11DeviceContext.Reset();
+    m_pd3d11On12Device.Reset();
 }
 
 void UIManager::DrawOtherSceneBackGround(int32 Scene)
@@ -258,14 +259,14 @@ void UIManager::DrawOtherSceneBackGround(int32 Scene)
             m_pd2dDeviceContext->DrawBitmap(m_backGround[3].resource, D2D1_RECT_F{ 0,0,m_fWidth,m_fHeight });
         }
         else m_pd2dDeviceContext->DrawBitmap(m_backGround[4].resource, D2D1_RECT_F{ 0,0,m_fWidth,m_fHeight });
-        
+
         break;
     }
 }
 
 void UIManager::DrawOtherSceneUI(int32 Scene,int32 idx)
 {
-    if (Scene == 0) // ≈∏¿Ã∆≤ æ¿
+    if (Scene == 0) // ÌÉÄÏù¥ÌãÄ Ïî¨
     {
         m_pd2dDeviceContext->DrawBitmap(m_TitleButtons[0].resource, m_TitleButtons[0].d2dLayoutRect);
         m_pd2dDeviceContext->DrawBitmap(m_TitleButtons[1].resource, m_TitleButtons[1].d2dLayoutRect);
@@ -274,28 +275,28 @@ void UIManager::DrawOtherSceneUI(int32 Scene,int32 idx)
 
         for (int i = 0; i < 3; ++i) if(!m_LoginResult[i].m_hide) m_pd2dDeviceContext->DrawBitmap(m_LoginResult[i].resource, m_LoginResult[i].d2dLayoutRect, m_LoginResult[i].animTime);
     }
-    else if (Scene == 1) // ∑Œ∫Ò æ¿
+    else if (Scene == 1) // Î°úÎπÑ Ïî¨
     {
         m_pd2dDeviceContext->DrawBitmap(m_LobbyButtons[0].resource, m_LobbyButtons[0].d2dLayoutRect);
         m_pd2dDeviceContext->DrawBitmap(m_LobbyButtons[1].resource, m_LobbyButtons[1].d2dLayoutRect);
         m_pd2dDeviceContext->DrawBitmap(m_LobbyButtons[2].resource, m_LobbyButtons[2].d2dLayoutRect);
     }
-    else if (Scene == 2) // ∞‘¿” ∑Î æ¿
+    else if (Scene == 2) // Í≤åÏûÑ Î£∏ Ïî¨
     {
         CRoomScene* rs = static_cast<CRoomScene*>(mainGame.m_SceneManager->GetSceneByIdx((int32)CGameFramework::SCENESTATE::ROOM));
-       
+
         m_pd2dDeviceContext->DrawBitmap(m_RoomButtons[0].resource, m_RoomButtons[0].d2dLayoutRect);
         m_pd2dDeviceContext->DrawBitmap(m_RoomButtons[1].resource, m_RoomButtons[1].d2dLayoutRect);
-      
+
         for (int i = 0; i < 4; ++i)
         {
 
             if (rs->m_members[i].m_sid != -1) m_pd2dDeviceContext->DrawBitmap(m_ReadyCard[i].resource, m_ReadyCard[i].d2dLayoutRect);
-            
+
             m_pd2dDeviceContext->DrawRectangle(m_ReadyBitmaps[i].d2dLayoutRect,blackBrush, 6.0f);
             if(rs->m_members[i].isReady) m_pd2dDeviceContext->DrawBitmap(m_ReadyBitmaps[i].resource, m_ReadyBitmaps[i].d2dLayoutRect);
 
-           
+
         }
     }
 }
@@ -307,12 +308,12 @@ void UIManager::DrawOtherSceneUITextBlock(int32 Scene)
     {
         m_pd2dDeviceContext->FillRectangle(m_IDPWTextBlocks[0].m_d2dLayoutRect, grayBrush);
         m_pd2dDeviceContext->FillRectangle(m_IDPWTextBlocks[1].m_d2dLayoutRect, grayBrush);
-        
+
         m_pd2dDeviceContext->DrawRectangle(m_IDPWTextBlocks[0].m_d2dLayoutRect, blackBrush,4.0);
         m_pd2dDeviceContext->DrawRectangle(m_IDPWTextBlocks[1].m_d2dLayoutRect, blackBrush,4.0);
 
         if(!m_IDPWTextBlocks[0].m_hide) m_pd2dDeviceContext->DrawText(m_IDPWTextBlocks[0].m_pstrText.c_str(),
-            (UINT)wcslen(m_IDPWTextBlocks[0].m_pstrText.c_str()), m_IDPWTextBlocks[0].m_pdwFormat, 
+            (UINT)wcslen(m_IDPWTextBlocks[0].m_pstrText.c_str()), m_IDPWTextBlocks[0].m_pdwFormat,
             m_IDPWTextBlocks[0].m_d2dLayoutRect, m_IDPWTextBlocks[0].m_pd2dTextBrush);
 
         if (!m_IDPWTextBlocks[1].m_hide) m_pd2dDeviceContext->DrawText(m_IDPWTextBlocks[1].m_pstrText.c_str(),
@@ -323,11 +324,11 @@ void UIManager::DrawOtherSceneUITextBlock(int32 Scene)
     {
         for (int i = 0; i < m_nRoomListPerPage; ++i)
         {
-            
+
             m_pd2dDeviceContext->DrawRectangle(m_RoomListLayout[i], blackBrush, 4.0f);
             if(!m_RoomListTextBlock[i].m_hide) m_pd2dDeviceContext->DrawText(m_RoomListTextBlock[i].m_pstrText.c_str()
                 , (UINT)wcslen(m_RoomListTextBlock[i].m_pstrText.c_str()), m_RoomListTextBlock[i].m_pdwFormat
-                , m_RoomListTextBlock[i].m_d2dLayoutRect, blackBrush);  
+                , m_RoomListTextBlock[i].m_d2dLayoutRect, blackBrush);
         }
         if (m_selectedLayout >= 0)  m_pd2dDeviceContext->DrawRectangle(m_RoomListLayout[m_selectedLayout], redBrush, 4.0f);
     }
@@ -338,12 +339,12 @@ void UIManager::InitGameSceneUI(CGameScene* gc)
     m_CharProfile[gc->m_playerIdx].m_hide = true;
     for (auto& i : m_GenerateUIButtons) i.m_hide = true;
     m_playerIdx = gc->m_playerIdx;
-    // «√∑π¿ÃæÓ ªÛ≈¬ UI √‚∑¬
+    // ÌîåÎ†àÏù¥Ïñ¥ ÏÉÅÌÉú UI Ï∂úÎ†•
     switch (m_playerIdx)
     {
         case 0:
         {
-           // ªÁ¿Â¥‘¿∫ 3∏Ì ∏µŒ √‚∑¬
+           // ÏÇ¨Ïû•ÎãòÏùÄ 3Î™Ö Î™®Îëê Ï∂úÎ†•
             for (int i = 1; i < 4; ++i)
             {
                 m_CharProfile[i].d2dLayoutRect =
@@ -358,16 +359,16 @@ void UIManager::InitGameSceneUI(CGameScene* gc)
                 MakeLayoutRectByCorner(PROFILE_UI_OFFSET_X + PROFILE_UI_WIDTH, PROFILE_UI_OFFSET_Y * 3, STATUS_UI_WIDTH, STATUS_UI_HEIGHT);
             break;
         }
-        // ≥™∏”¡ˆ¥¬ ¿⁄Ω≈¿ª ¡¶ø‹«— 2∏Ì∏∏ √‚∑¬
+        // ÎÇòÎ®∏ÏßÄÎäî ÏûêÏã†ÏùÑ Ï†úÏô∏Ìïú 2Î™ÖÎßå Ï∂úÎ†•
         case 1:
         {
-            
+
             m_CharProfile[2].d2dLayoutRect =
                 MakeLayoutRectByCorner(PROFILE_UI_OFFSET_X, PROFILE_UI_OFFSET_Y, PROFILE_UI_WIDTH, PROFILE_UI_HEIGHT);
-            
+
             m_CharProfile[3].d2dLayoutRect =
                 MakeLayoutRectByCorner(PROFILE_UI_OFFSET_X, PROFILE_UI_OFFSET_Y * 2, PROFILE_UI_WIDTH, PROFILE_UI_HEIGHT);
-            
+
             // 1 2 3 --> 0 1 2
             m_CharStatus[0].m_hide = true;
             m_CharStatus[1].d2dLayoutRect =
@@ -378,12 +379,12 @@ void UIManager::InitGameSceneUI(CGameScene* gc)
         break;
         case 2:
         {
-   
-            m_CharProfile[1].d2dLayoutRect = 
+
+            m_CharProfile[1].d2dLayoutRect =
                 MakeLayoutRectByCorner(PROFILE_UI_OFFSET_X, PROFILE_UI_OFFSET_Y, PROFILE_UI_WIDTH, PROFILE_UI_HEIGHT);
             m_CharProfile[3].d2dLayoutRect =
                 MakeLayoutRectByCorner(PROFILE_UI_OFFSET_X, PROFILE_UI_OFFSET_Y * 2, PROFILE_UI_WIDTH, PROFILE_UI_HEIGHT);
-            
+
             m_CharStatus[1].m_hide = true;
             m_CharStatus[0].d2dLayoutRect =
                 MakeLayoutRectByCorner(PROFILE_UI_OFFSET_X + PROFILE_UI_WIDTH, PROFILE_UI_OFFSET_Y, STATUS_UI_WIDTH, STATUS_UI_HEIGHT);
@@ -391,16 +392,16 @@ void UIManager::InitGameSceneUI(CGameScene* gc)
                 MakeLayoutRectByCorner(PROFILE_UI_OFFSET_X + PROFILE_UI_WIDTH, PROFILE_UI_OFFSET_Y * 2, STATUS_UI_WIDTH, STATUS_UI_HEIGHT);
         }
         break;
-        
+
         case 3:
         {
-            m_CharProfile[1].d2dLayoutRect = 
+            m_CharProfile[1].d2dLayoutRect =
                 MakeLayoutRectByCorner(PROFILE_UI_OFFSET_X, PROFILE_UI_OFFSET_Y, PROFILE_UI_WIDTH, PROFILE_UI_HEIGHT);
-            m_CharProfile[2].d2dLayoutRect = 
+            m_CharProfile[2].d2dLayoutRect =
                 MakeLayoutRectByCorner(PROFILE_UI_OFFSET_X, PROFILE_UI_OFFSET_Y * 2, PROFILE_UI_WIDTH, PROFILE_UI_HEIGHT);
 
             m_CharStatus[2].m_hide = true;
-            
+
             m_CharStatus[0].d2dLayoutRect =
                 MakeLayoutRectByCorner(PROFILE_UI_OFFSET_X + PROFILE_UI_WIDTH, PROFILE_UI_OFFSET_Y, STATUS_UI_WIDTH, STATUS_UI_HEIGHT);
             m_CharStatus[1].d2dLayoutRect =
@@ -411,12 +412,12 @@ void UIManager::InitGameSceneUI(CGameScene* gc)
 
     for (int i = 0; i < 3; ++i)
     {
-        m_CharStatus[i].resource =  m_CharStatusBitmaps[0]; // normal status∑Œ Ω√¿€
+        m_CharStatus[i].resource =  m_CharStatusBitmaps[0]; // normal statusÎ°ú ÏãúÏûë
     }
-    
+
     m_myProfileLayout = MakeLayoutRectByCorner(PROFILE_UI_OFFSET_X,BIG_PROFILE_UI_OFFSET_Y, BIG_PROFILE_UI_WIDTH, BIG_PROFILE_UI_HEIGHT);
 
-    // «√∑π¿ÃæÓ hp √‚∑¬
+    // ÌîåÎ†àÏù¥Ïñ¥ hp Ï∂úÎ†•
 
 }
 
@@ -424,13 +425,13 @@ void UIManager::UpdateGameSceneUI(CGameScene* gc)
 {
     if (!gc) return;
 
-  // ¡˜ø¯ø° «ÿ¥Á«œ¥¬ µø¿˚ UIµÈ hp, status
+  // ÏßÅÏõêÏóê Ìï¥ÎãπÌïòÎäî ÎèôÏ†Å UIÎì§ hp, status
     for (int i = 0; i < PLAYERNUM; ++i)
     {
         if (!gc->GetScenePlayerByIdx(i)) continue;
         if (i == 0) continue;
 
-        if (i != m_playerIdx) // ªÛ≈¬ ∞ªΩ≈ 
+        if (i != m_playerIdx) // ÏÉÅÌÉú Í∞±Ïã†
         {
             if (MAX_HP == gc->GetScenePlayerByIdx(i)->m_hp)
             {
@@ -442,7 +443,7 @@ void UIManager::UpdateGameSceneUI(CGameScene* gc)
             }
             else m_CharStatus[gc->GetScenePlayerByIdx(i)->m_idx - 1].resource = m_CharStatusBitmaps[1]; // death
         }
-        else if (i == m_playerIdx) // HP , ««∞› ¿Ã∆Â∆Æ
+        else if (i == m_playerIdx) // HP , ÌîºÍ≤© Ïù¥ÌéôÌä∏
         {
             CEmployee* mp = static_cast<CEmployee*>(gc->GetScenePlayerByIdx(i));
 
@@ -484,7 +485,7 @@ void UIManager::UpdateGameSceneUI(CGameScene* gc)
                         m_AttackedEffect[i].m_hide = false;
 
                     if (mp->m_UICoolTime >= 0.0f && i < 3) m_AttackedOpacity[i] = mp->m_UICoolTime * maxOpacity;
-                    
+
                     if (i == 0)
                         m_AttackedOpacity[i] *= baseOpacityExtra;
                     else if (i == 1)
@@ -501,14 +502,14 @@ void UIManager::UpdateGameSceneUI(CGameScene* gc)
         }
     }
 
-    // πﬂ¿¸±‚ && ±∏«œ±‚
-    
+    // Î∞úÏ†ÑÍ∏∞ && Íµ¨ÌïòÍ∏∞
+
     if (gc->GetScenePlayerByIdx(m_playerIdx))
     {
         if (m_playerIdx != 0)
         {
             CEmployee* myPlayer = static_cast<CEmployee*>(gc->GetScenePlayerByIdx(m_playerIdx));
-           
+
             if (myPlayer->GetIsInGenArea())
             {
                 m_GenerateUIButtons[21].m_hide = false;
@@ -519,20 +520,20 @@ void UIManager::UpdateGameSceneUI(CGameScene* gc)
                 for (int i = 0; i < 21; ++i)  m_GenerateUIButtons[i].m_hide = true;
             }
 
-            // πﬂ¿¸±‚
+            // Î∞úÏ†ÑÍ∏∞
             CGenerator* targetGen = myPlayer->GetAvailGen();
             if (myPlayer->GetIsPlayerOnGenInter())
-            {        
+            {
                 if (targetGen && ((int32)targetGen->m_curGuage) < 0.5f)
                     m_GenerateUIButtons[0].m_hide = false;
                 else if (targetGen && (int32)((((int32)targetGen->m_curGuage) % 100) / 5) <= 19)
-                    m_GenerateUIButtons[(int32)((((int32)targetGen->m_curGuage) % 100) / 5) + 1].m_hide = false;  
+                    m_GenerateUIButtons[(int32)((((int32)targetGen->m_curGuage) % 100) / 5) + 1].m_hide = false;
             }
             else
             {
                 for (int i = 0; i < 21; ++i)  m_GenerateUIButtons[i].m_hide = true;
             }
-            // ±∏«œ±‚
+            // Íµ¨ÌïòÍ∏∞
             CEmployee* targetEmp = static_cast<CEmployee*>(gc->GetScenePlayerByIdx(myPlayer->m_curRescuingEmpIdx));
             if (myPlayer->GetIsPlayerOnRescueInter())
             {
@@ -552,7 +553,7 @@ void UIManager::UpdateGameSceneUI(CGameScene* gc)
                 }
             }
             else if (myPlayer->m_bIsRescuing)
-            {     
+            {
                 if (targetEmp->m_curGuage <= 100 && targetEmp->m_curGuage >= 0)
                 {
                     float dx = (targetEmp->m_curGuage * 5.8f / MAX_RESCUE_GUAGE) * 100;
@@ -573,8 +574,8 @@ void UIManager::UpdateGameSceneUI(CGameScene* gc)
 void UIManager::DrawGameSceneUI(int32 Scene)
 {
     if (3 != Scene) return;
-    // ∞Ì¡§ ∑ª¥ı∏µ
-    // ¥Ÿ∏• ƒ≥∏Ø≈Õ √ ªÛ»≠ , ≥ª ƒ≥∏Ø≈Õ √ ªÛ»≠
+    // Í≥†Ï†ï Î†åÎçîÎßÅ
+    // Îã§Î•∏ Ï∫êÎ¶≠ÌÑ∞ Ï¥àÏÉÅÌôî , ÎÇ¥ Ï∫êÎ¶≠ÌÑ∞ Ï¥àÏÉÅÌôî
     for (auto i : m_CharProfile)
     {
         if(!i.m_hide) m_pd2dDeviceContext->DrawBitmap(i.resource, i.d2dLayoutRect, FULL_UI_OPACITY_VALUE);
@@ -585,10 +586,10 @@ void UIManager::DrawGameSceneUI(int32 Scene)
 
     for(auto i : m_CharStatus)
         if(!i.m_hide) m_pd2dDeviceContext->DrawBitmap(i.resource, i.d2dLayoutRect, FULL_UI_OPACITY_VALUE);
-    
-    // ≈´ √ ªÛ»≠ ±◊∏Æ±‚
+
+    // ÌÅ∞ Ï¥àÏÉÅÌôî Í∑∏Î¶¨Í∏∞
     m_pd2dDeviceContext->DrawBitmap(m_CharProfile[m_playerIdx].resource, m_myProfileLayout, FULL_UI_OPACITY_VALUE);
-    // HP ±◊∏Æ±‚
+    // HP Í∑∏Î¶¨Í∏∞
     if (m_playerIdx != 0)
     {
         for(auto i : m_HPUi)  if (!i.m_hide) m_pd2dDeviceContext->DrawBitmap(i.resource, i.d2dLayoutRect, FULL_UI_OPACITY_VALUE);
@@ -607,7 +608,7 @@ void UIManager::DrawGameSceneUI(int32 Scene)
     }
 
     if (m_playerIdx == 0) m_pd2dDeviceContext->DrawBitmap(m_CharCrossHead.resource, m_CharCrossHead.d2dLayoutRect,m_CrossHeadOpacity* FULL_UI_OPACITY_VALUE);
-  
+
 }
 
 D2D1_RECT_F UIManager::GetButtonRect(int32 Scene, int32 idx)
@@ -649,20 +650,20 @@ IDWriteTextFormat* UIManager::CreateTextFormat(const WCHAR* pszFontName, float f
 }
 
 void UIManager::InitializeDevice(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Resource** ppd3dRenderTargets)
-{    
+{
     CreateD3D11On12Device(pd3dDevice,pd3dCommandQueue);
     CreateD2DDevice();
     CreateRenderTarget(ppd3dRenderTargets);;
-    
-    // ∫Í∑ØΩ√µÈ
+
+    // Î∏åÎü¨ÏãúÎì§
     redBrush = CreateBrush(D2D1::ColorF::Red);
     grayBrush = CreateBrush(D2D1::ColorF::Gray);
     blackBrush = CreateBrush(D2D1::ColorF::Black);
     greenBrush = CreateBrush(D2D1::ColorF::Green);
-    // ∆˘∆Æ
-    m_TitleTextFormat = CreateTextFormat(L"∏º¿∫ ∞ÌµÒ", 40);
-    m_LobbyTextFormat = CreateTextFormat(L"∏º¿∫ ∞ÌµÒ", 40);
-    // πË∞Ê ∏Æº“Ω∫µÈ
+    // Ìè∞Ìä∏
+    m_TitleTextFormat = CreateTextFormat(L"ÎßëÏùÄ Í≥†Îîï", 40);
+    m_LobbyTextFormat = CreateTextFormat(L"ÎßëÏùÄ Í≥†Îîï", 40);
+    // Î∞∞Í≤Ω Î¶¨ÏÜåÏä§Îì§
     m_backGround[0].resource = LoadPngFromFile(L"UI/Title.png");
     m_backGround[1].resource = LoadPngFromFile(L"UI/Lobby.png");
     m_backGround[2].resource = LoadPngFromFile(L"UI/Game.png");
@@ -670,19 +671,19 @@ void UIManager::InitializeDevice(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* 
     m_backGround[3].resource = LoadPngFromFile(L"UI/Boss_Result.png");
     m_backGround[4].resource = LoadPngFromFile(L"UI/Emp_Result.png");
 
-    // ≈∏¿Ã∆≤ æ¿ø° « ø‰«— πˆ∆∞
-    m_TitleButtons[0].resource      = LoadPngFromFile(L"UI/Title_Start.png");  
+    // ÌÉÄÏù¥ÌãÄ Ïî¨Ïóê ÌïÑÏöîÌïú Î≤ÑÌäº
+    m_TitleButtons[0].resource      = LoadPngFromFile(L"UI/Title_Start.png");
     m_TitleButtons[1].resource      = LoadPngFromFile(L"UI/Title_Quit.png");
     m_TitleButtons[2].resource      = LoadPngFromFile(L"UI/Title_Register.png");
 
     m_TitleButtons[0].d2dLayoutRect = MakeLayoutRect(CENTER_X + TITLEBUTTON_X_OFFSET, CENTER_Y + TITLEBUTTON_Y_OFFSET, 200, 50);
     m_TitleButtons[1].d2dLayoutRect = MakeLayoutRect(CENTER_X , CENTER_Y + FRAME_BUFFER_HEIGHT / 2.5f, 200, 50);
     m_TitleButtons[2].d2dLayoutRect = MakeLayoutRect(CENTER_X - TITLEBUTTON_X_OFFSET, CENTER_Y + TITLEBUTTON_Y_OFFSET, 200, 50);
-    // ID / PW ¿‘∑¬ √¢
+    // ID / PW ÏûÖÎ†• Ï∞Ω
     m_IDPWTextBlocks[0].m_pd2dTextBrush = CreateBrush(D2D1::ColorF::White);
     m_IDPWTextBlocks[0].m_pdwFormat = m_TitleTextFormat;
     m_IDPWTextBlocks[0].m_pstrText = L"";
-    
+
 
     m_IDPWTextBlocks[1].m_pd2dTextBrush = CreateBrush(D2D1::ColorF::White);
     m_IDPWTextBlocks[1].m_pdwFormat = m_TitleTextFormat;
@@ -690,7 +691,7 @@ void UIManager::InitializeDevice(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* 
 
     m_IDPWTextBlocks[0].m_d2dLayoutRect = MakeLayoutRect(CENTER_X, CENTER_Y + FRAME_BUFFER_HEIGHT / 4.0f,  400, FontSize);
     m_IDPWTextBlocks[1].m_d2dLayoutRect = MakeLayoutRect(CENTER_X, CENTER_Y + FRAME_BUFFER_HEIGHT / 3.0f , 400, FontSize);
-    
+
     m_LoginResult[0].resource = LoadPngFromFile(L"UI/LOGIN_OK.png");
     m_LoginResult[1].resource = LoadPngFromFile(L"UI/LOGIN_FAIL.png");
     m_LoginResult[2].resource = LoadPngFromFile(L"UI/REG.png");
@@ -702,7 +703,7 @@ void UIManager::InitializeDevice(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* 
     }
 
 
-    // ∑Œ∫Ò æ¿ø° « ø‰«— πˆ∆∞
+    // Î°úÎπÑ Ïî¨Ïóê ÌïÑÏöîÌïú Î≤ÑÌäº
     m_LobbyButtons[0].resource = LoadPngFromFile(L"UI/Enter_Room.png");
     m_LobbyButtons[1].resource = LoadPngFromFile(L"UI/Create_Room.png");
     m_LobbyButtons[2].resource = LoadPngFromFile(L"UI/Quit_Lobby.png");
@@ -710,7 +711,7 @@ void UIManager::InitializeDevice(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* 
     m_LobbyButtons[0].d2dLayoutRect = MakeLayoutRectByCorner(LOBBYBUTTON_X_OFFSET,        LOBBYBUTTON_Y_OFFSET, FRAME_BUFFER_WIDTH / 3.0f, FRAME_BUFFER_HEIGHT / 4.0);
     m_LobbyButtons[1].d2dLayoutRect = MakeLayoutRectByCorner(0,                           LOBBYBUTTON_Y_OFFSET, FRAME_BUFFER_WIDTH / 3.0f, FRAME_BUFFER_HEIGHT / 4.0);
     m_LobbyButtons[2].d2dLayoutRect = MakeLayoutRectByCorner(LOBBYBUTTON_X_OFFSET * 2.0f, LOBBYBUTTON_Y_OFFSET, FRAME_BUFFER_WIDTH / 3.0f, FRAME_BUFFER_HEIGHT / 4.0);
-    
+
 
     m_RoomButtons[0].resource = LoadPngFromFile(L"UI/Ready_Game.png");
     m_RoomButtons[1].resource = LoadPngFromFile(L"UI/Quit_Game.png");
@@ -753,7 +754,7 @@ void UIManager::InitializeDevice(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* 
         m_ReadyCard[i].m_hide = true;
     }
 
-    //∑Œ∫Òø°º≠ √‚∑¬«“ πÊ ∏ÆΩ∫∆Æ øµø™
+    //Î°úÎπÑÏóêÏÑú Ï∂úÎ†•Ìï† Î∞© Î¶¨Ïä§Ìä∏ ÏòÅÏó≠
     for (int i = 0; i < m_nRoomListPerPage; ++i)
     {
         m_RoomListLayout[i] = MakeLayoutRectByCorner(LOBBYROOMLIST_X_OFFSET
@@ -764,20 +765,20 @@ void UIManager::InitializeDevice(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* 
         m_RoomListTextBlock[i].m_pstrText =  L"ROOMNUM:   MEMBER:   0/4";
     }
 
-    // ¿Œ∞‘¿” ∫Ò∆Æ∏  ∑ŒµÂ
-    // ƒ≥∏Ø≈Õ «¡∑Œ« 
+    // Ïù∏Í≤åÏûÑ ÎπÑÌä∏Îßµ Î°úÎìú
+    // Ï∫êÎ¶≠ÌÑ∞ ÌîÑÎ°úÌïÑ
     m_CharProfile[0].resource = LoadPngFromFile(L"UI/Char_UI_1.png"); // Boss
     m_CharProfile[1].resource = LoadPngFromFile(L"UI/Char_UI_2.png"); // Yellow
-    m_CharProfile[2].resource = LoadPngFromFile(L"UI/Char_UI_3.png"); // Mask 
+    m_CharProfile[2].resource = LoadPngFromFile(L"UI/Char_UI_3.png"); // Mask
     m_CharProfile[3].resource = LoadPngFromFile(L"UI/Char_UI_5.png"); // Goggle
     for (int i = 0; i < PLAYERNUM; ++i)
         m_CharProfile[i].d2dLayoutRect = MakeLayoutRectByCorner(FRAME_BUFFER_WIDTH * 0.01, FRAME_BUFFER_HEIGHT * 0.1f* i, FRAME_BUFFER_WIDTH * 0.1f, FRAME_BUFFER_HEIGHT * 0.1f);
 
-    // ªÛ≈¬ --> µø¿˚¿∏∑Œ ∫Ø«œ¥¬ ∞Õ¿Ãπ«∑Œ ±◊∂ß ±◊∂ß ¿ßƒ°∏¶ æ˜µ•¿Ã∆Æ«œ±‚∑Œ «—¥Ÿ. ¿œ¥‹ ∫Ò∆Æ∏  ∏Æº“Ω∫∏∏ ∑ŒµÂ«—¥Ÿ.
+    // ÏÉÅÌÉú --> ÎèôÏ†ÅÏúºÎ°ú Î≥ÄÌïòÎäî Í≤ÉÏù¥ÎØÄÎ°ú Í∑∏Îïå Í∑∏Îïå ÏúÑÏπòÎ•º ÏóÖÎç∞Ïù¥Ìä∏ÌïòÍ∏∞Î°ú ÌïúÎã§. ÏùºÎã® ÎπÑÌä∏Îßµ Î¶¨ÏÜåÏä§Îßå Î°úÎìúÌïúÎã§.
     m_CharStatusBitmaps[0] = LoadPngFromFile(L"UI/Normal.png");
     m_CharStatusBitmaps[1] = LoadPngFromFile(L"UI/Danger.png");
     m_CharStatusBitmaps[2] = LoadPngFromFile(L"UI/Dead.png");
-    
+
     // HP
     m_HpBitmap = LoadPngFromFile(L"UI/HP.png");
     for (int i = 0; i < MAX_HP; ++i)
@@ -786,12 +787,12 @@ void UIManager::InitializeDevice(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* 
         m_HPUi[i].d2dLayoutRect = MakeLayoutRectByCorner(PROFILE_UI_OFFSET_X + BIG_PROFILE_UI_WIDTH + STATUS_UI_WIDTH * i,
             BIG_PROFILE_UI_OFFSET_Y + BIG_PROFILE_UI_WIDTH / 4.0, STATUS_UI_WIDTH, STATUS_UI_HEIGHT);
     }
-    // ≈©∑ŒΩ∫ «ÏµÂ
+    // ÌÅ¨Î°úÏä§ Ìó§Îìú
     m_CharCrossHead.resource = LoadPngFromFile(L"UI/crossHair.png");
     m_CharCrossHead.d2dLayoutRect = MakeLayoutRect(CENTER_X, CENTER_Y,10.f,10.f);
     m_CharCrossHead.m_hide = false;
 
-    // ««∞› ¿Ã∆Â∆Æ
+    // ÌîºÍ≤© Ïù¥ÌéôÌä∏
     for (int i = 0; i < m_nAttackedUI; i++)
     {
         m_AttackedOpacity[i] = 0.5f;
@@ -818,8 +819,8 @@ void UIManager::InitializeDevice(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* 
 
 
 
-  
-    // πﬂ¿¸±‚ ∞‘¿Ã¡ˆ
+
+    // Î∞úÏ†ÑÍ∏∞ Í≤åÏù¥ÏßÄ
     for (int i = 0; i < 21; ++i)
     {
         std::wstring filename;
@@ -837,7 +838,7 @@ void UIManager::InitializeDevice(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* 
     m_GenerateUIButtons[21].d2dLayoutRect = MakeLayoutRect(FRAME_BUFFER_WIDTH / 2.0, FRAME_BUFFER_HEIGHT * 0.9, FRAME_BUFFER_WIDTH * 0.1f, FRAME_BUFFER_HEIGHT * 0.1f);
     m_GenerateUIButtons[21].m_hide = true;
 
-    // ªÏ∏Æ±‚ æ∆¿Ãƒ‹
+    // ÏÇ¥Î¶¨Í∏∞ ÏïÑÏù¥ÏΩò
     m_RescueIcon.resource = LoadPngFromFile(L"UI/Rescue.png");
     m_RescueIcon.d2dLayoutRect = m_GenerateUIButtons[21].d2dLayoutRect;
     m_RescueIcon.m_hide = true;
@@ -857,13 +858,13 @@ void UIManager::Render2D(UINT nFrame, int32 curScene)
     m_pd3d11On12Device->AcquireWrappedResources(ppResources, _countof(ppResources));
 
     m_pd2dDeviceContext->BeginDraw();
-    
+
     DrawOtherSceneBackGround(curScene);
-  
+
     DrawOtherSceneUI(curScene, 0);
     DrawOtherSceneUI(curScene, 1);
     DrawOtherSceneUITextBlock(curScene);
-    
+
     DrawGameSceneUI(curScene);
     m_pd2dDeviceContext->EndDraw();
     m_pd3d11On12Device->ReleaseWrappedResources(ppResources, _countof(ppResources));

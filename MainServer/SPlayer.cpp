@@ -1,11 +1,11 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "SPlayer.h"
 #include "CollisionDetector.h"
 #include "CSIocpCore.h"
 
-SPlayer::SPlayer() 
+SPlayer::SPlayer()
 {
-	
+
 	m_xmf3Right = XMFLOAT3(1.0f, 0.0f, 0.0f);
 	m_xmf3Up = XMFLOAT3(0.0f, 1.0f, 0.0f);
 	m_xmf3Look = XMFLOAT3(0.0f, 0.0f, 1.0f);
@@ -19,7 +19,7 @@ SPlayer::SPlayer()
 
 	m_playerBV.Center = m_xmf3Position;
 	m_playerBV.Radius = 0.2f;
-	
+
 }
 
 SPlayer::~SPlayer()
@@ -52,24 +52,24 @@ void SPlayer::Move(const int16& dwDirection, float fDistance)
 		SetVelocity(xmf3Shift);
 		return;
 	}
-	
+
 	if (dwDirection)
 	{
 		if (dwDirection & KEY_FORWARD)  xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look,fDistance);
 		if (dwDirection & KEY_BACKWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look, -fDistance);
 		if (dwDirection & KEY_RIGHT)    xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right,fDistance);
 		if (dwDirection & KEY_LEFT)     xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right,-fDistance);
-		//ÇÃ·¹ÀÌ¾î¸¦ ÇöÀç À§Ä¡ º¤ÅÍ¿¡¼­ xmf3Shift º¤ÅÍ¸¸Å­ ÀÌµ¿ÇÑ´Ù. 
+		//í”Œë ˆì´ì–´ë¥¼ í˜„ì¬ ìœ„ì¹˜ ë²¡í„°ì—ì„œ xmf3Shift ë²¡í„°ë§Œí¼ ì´ë™í•œë‹¤.
 		m_xmf3Velocity = XMFLOAT3(0, 0, 0);
 		SetVelocity(xmf3Shift);
 	}
 	else SetVelocity(xmf3Shift);
-	
+
 }
 
 void SPlayer::Update(float fTimeElapsed)
 {
-	//ÇÃ·¹ÀÌ¾î¸¦ ¼Óµµ º¤ÅÍ ¸¸Å­ ½ÇÁ¦·Î ÀÌµ¿ÇÑ´Ù(Ä«¸Ş¶óµµ ÀÌµ¿µÉ °ÍÀÌ´Ù). 
+	//í”Œë ˆì´ì–´ë¥¼ ì†ë„ ë²¡í„° ë§Œí¼ ì‹¤ì œë¡œ ì´ë™í•œë‹¤(ì¹´ë©”ë¼ë„ ì´ë™ë  ê²ƒì´ë‹¤).
 
 	XMFLOAT3 xmf3Velocity = Vector3::ScalarProduct(m_xmf3Velocity, fTimeElapsed, false);
 	m_xmf3Position = Vector3::Add(m_xmf3Position, xmf3Velocity);

@@ -1,10 +1,10 @@
-#pragma once
+ï»¿#pragma once
 
 #include "IocpEvent.h"
 #include "ASession.h"
 
-// ¼­¹ö¿¡¼­ Å¬¶óÀÌ¾ğÆ® ¼ÒÄÏÀ» °ü¸®ÇÒ Å¬·¡½º
-// ¸¶Âù°¡Áö·Î Iocp¿¡ µî·ÏÇÒ ´ë»óÀÌ±â ¶§¹®¿¡ IocpObject¿¡ ÇØ´çµÈ´Ù
+// ì„œë²„ì—ì„œ í´ë¼ì´ì–¸íŠ¸ ì†Œì¼“ì„ ê´€ë¦¬í•  í´ë˜ìŠ¤
+// ë§ˆì°¬ê°€ì§€ë¡œ Iocpì— ë“±ë¡í•  ëŒ€ìƒì´ê¸° ë•Œë¬¸ì— IocpObjectì— í•´ë‹¹ëœë‹¤
 
 
 class ServerSession : public ASession
@@ -13,11 +13,11 @@ public:
 	ServerSession();
 	virtual ~ServerSession();
 public:
-	// ¼¼¼Ç ÀÎÅÍÆäÀÌ½º
+	// ì„¸ì…˜ ì¸í„°í˜ì´ìŠ¤
 	virtual HANDLE GetHandle() override;
 	virtual void Processing(class IocpEvent* iocpEvent, int32 numOfBytes = 0) override;
 public:
-	// ¼¼¼Ç Á¤º¸¸¦ ¾ò¾î ³»°Å³ª ¼¼ÆÃÇÒ ¼ö ÀÖ´Â ÇÔ¼öµé
+	// ì„¸ì…˜ ì •ë³´ë¥¼ ì–»ì–´ ë‚´ê±°ë‚˜ ì„¸íŒ…í•  ìˆ˜ ìˆëŠ” í•¨ìˆ˜ë“¤
 	SOCKET GetSock() { return _sock; }
 	bool DoSend(void* packet);
 	bool DoRecv();
@@ -28,7 +28,7 @@ public:
 	int32 _curPage = 0;
 	int32 _prev_remain = 0;
 public:
-	
+
 };
 
 

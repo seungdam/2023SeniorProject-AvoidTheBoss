@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 // 0 1 2
 #include "clientIocpCore.h"
 class CPlayer;
@@ -7,14 +7,14 @@ class queueEvent
 {
 public:
 	int64 generateTime = 0;
-	
+
 public:
 	queueEvent() {};
 	virtual ~queueEvent() {};
 	virtual void Task() {};
 };
 
-class moveEvent : public queueEvent // 33 ms ¸¶´Ù Àü¼ÛÇÑ´Ù.
+class moveEvent : public queueEvent // 33 ms ë§ˆë‹¤ ì „ì†¡í•œë‹¤.
 {
 public:
 	moveEvent() { };
@@ -26,7 +26,7 @@ public:
 	virtual void Task();
 };
 
-class posEvent : public queueEvent // 33 ms ¸¶´Ù Àü¼ÛÇÑ´Ù.
+class posEvent : public queueEvent // 33 ms ë§ˆë‹¤ ì „ì†¡í•œë‹¤.
 {
 public:
 	posEvent() { };
@@ -44,7 +44,7 @@ public:
 	uint8 eventId = -1;
 public:
 	virtual void Task();
-	
+
 };
 
 class FrameEvent : public queueEvent
@@ -70,9 +70,9 @@ public:
 		_packet = packet;
 	}
 public:
-	virtual void Task() 
+	virtual void Task()
 	{
-		
+
 		clientCore.DoSend(&_packet);
 		std::cout << "SendAttack";
 	}

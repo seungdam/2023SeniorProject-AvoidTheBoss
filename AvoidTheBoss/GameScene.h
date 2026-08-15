@@ -1,9 +1,9 @@
-#pragma once
+ï»¿#pragma once
 //#include "Shader.h"
 //#include "Player.h"
 //#include "CEmployee.h"
 //#include "CBoss.h"
-//#include "CGenerator.h" // ½ºÀ§Ä¡ ºĞ¸®
+//#include "CGenerator.h" // ìŠ¤ìœ„ì¹˜ ë¶„ë¦¬
 
 #include "CScene.h"
 #include "ClientPacketEvent.h"
@@ -22,25 +22,25 @@ public:
 	CGameScene();
 	~CGameScene();
 	virtual void InitScene() { m_timer.Reset(); }
-	//¾À¿¡¼­ ¸¶¿ì½º¿Í Å°º¸µå ¸Ş½ÃÁö¸¦ Ã³¸®ÇÑ´Ù.
+	//ì”¬ì—ì„œ ë§ˆìš°ìŠ¤ì™€ í‚¤ë³´ë“œ ë©”ì‹œì§€ë¥¼ ì²˜ë¦¬í•œë‹¤.
 	virtual void OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM	lParam);
 	virtual void OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 
 	void BuildDefaultLightsAndMaterials();
 	virtual void BuildObjects(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList);
-	
-	virtual void AnimateObjects();	
-public : // SceneInterface »ó¼Ó ÇÔ¼ö
+
+	virtual void AnimateObjects();
+public : // SceneInterface ìƒì† í•¨ìˆ˜
 	virtual void ProcessInput(HWND& hWnd);
 	virtual void Update(HWND& hWnd);
 	virtual void Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pCamera,bool Raster);
-public: // ¿À½Â´ã ÀÛ¼º ÇÔ¼ö
+public: // ì˜¤ìŠ¹ë‹´ ì‘ì„± í•¨ìˆ˜
 	CPlayer* GetScenePlayerBySid(const int32 sid);
 	CPlayer* GetScenePlayerByIdx(const int32 idx);
 	CGenerator* GetSceneGenByIdx(const int32 idx);
 
 	void InitGame(void* packet ,int32 sid);
-	
+
 	void StopTimer() { m_timer.Stop(); }
 	void StartTimer() { m_timer.Start(); }
 	void AddEvent(queueEvent*, float);
@@ -50,25 +50,25 @@ public: // ¿À½Â´ã ÀÛ¼º ÇÔ¼ö
 	void ResetGame();
 public:
 	WCHAR								txtFrameBuf[20];
-	//¸¶Áö¸·À¸·Î ¸¶¿ì½º ¹öÆ°À» Å¬¸¯ÇÒ ¶§ÀÇ ¸¶¿ì½º Ä¿¼­ÀÇ À§Ä¡ÀÌ´Ù. 
+	//ë§ˆì§€ë§‰ìœ¼ë¡œ ë§ˆìš°ìŠ¤ ë²„íŠ¼ì„ í´ë¦­í•  ë•Œì˜ ë§ˆìš°ìŠ¤ ì»¤ì„œì˜ ìœ„ì¹˜ì´ë‹¤.
 	POINT								m_ptOldCursorPos;
 private:
 	Timer								m_timer;
-// ========== ¼­¹ö Ã³¸®¸¦ À§ÇØ »ç¿ëÇÏ´Â º¯¼öµé ==============
-public: 
-	// ¾À¿¡ ÀÖ´Â ¿ÀºêÁ§Æ® °ü·Ã º¯¼ö
-	CPlayer*					m_players[4];
+// ========== ì„œë²„ ì²˜ë¦¬ë¥¼ ìœ„í•´ ì‚¬ìš©í•˜ëŠ” ë³€ìˆ˜ë“¤ ==============
+public:
+	// ì”¬ì— ìˆëŠ” ì˜¤ë¸Œì íŠ¸ ê´€ë ¨ ë³€ìˆ˜
+	CPlayer*					m_players[4] = {};
 	int16						m_playerIdx = 0;
 	int16						m_lastKeyInput = 0;
 
-	// ¹ßÀü±â
+	// ë°œì „ê¸°
 	int							m_nGenerator = 3;
 	CGenerator**				m_ppGenerator = NULL;
 
 public:
-	int32						m_ActiveGeneratorCnt = 0; // È°¼ºÈ­ µÈ ½ºÀ§Ä¡ Ä«¿îÆ®;
+	int32						m_ActiveGeneratorCnt = 0; // í™œì„±í™” ëœ ìŠ¤ìœ„ì¹˜ ì¹´ìš´íŠ¸;
 public:
-	Atomic<int32>				m_remainPlayerCnt = PLAYERNUM; // ³²¾Æ ÀÖ´Â ÇÃ·¹ÀÌ¾î
+	Atomic<int32>				m_remainPlayerCnt = PLAYERNUM; // ë‚¨ì•„ ìˆëŠ” í”Œë ˆì´ì–´
 	Atomic<int32>				m_ExitedPlayerCnt = 0;
 	bool						m_bEmpExit = false;
 
@@ -76,10 +76,12 @@ public:
 	Scheduler*					m_jobQueue;
 	std::shared_mutex			m_jobQueueLock;
 public:
-	XMFLOAT3					m_xmf3ClearPoint[3]; // Å¬¸®¾î ÁÂÇ¥
+	XMFLOAT3					m_xmf3ClearPoint[3]; // í´ë¦¬ì–´ ì¢Œí‘œ
 public:
 	int32						m_curFrame;
 public:
 	bool						m_exitSoundOn = false;
+
+	virtual void ReleaseObjects() override;
 };
 

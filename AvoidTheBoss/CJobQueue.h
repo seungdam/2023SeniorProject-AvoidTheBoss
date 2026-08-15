@@ -1,7 +1,7 @@
-#pragma once
+ï»¿#pragma once
 #include "ClientPacketEvent.h"
 
-struct JobComparator // ¿ì¼± ¼øÀ§ Å¥¿¡¼­ ºñ±³¿¬»ê ¼öÇà
+struct JobComparator // ìš°ì„  ìˆœìœ„ íì—ì„œ ë¹„êµì—°ì‚° ìˆ˜í–‰
 {
 	bool operator()(const queueEvent* lhs, const queueEvent* rhs)
 	{
@@ -17,12 +17,13 @@ class Scheduler
 public:
 	using Clock = std::chrono::high_resolution_clock;
 	Scheduler();
-	void Reset() 
+	~Scheduler();
+	void Reset()
 	{
-		_BeginTickPoint = Clock::now(); // ½ÃÀÛ ½ÃÁ¡Àº Áö±İ
-		_CurrentTick = GetCurrentTick(); // ÇöÀç Æ½ °ª ÃÊ±âÈ­
+		_BeginTickPoint = Clock::now(); // ì‹œì‘ ì‹œì ì€ ì§€ê¸ˆ
+		_CurrentTick = GetCurrentTick(); // í˜„ì¬ í‹± ê°’ ì´ˆê¸°í™”
 	}
-	void PushTask(queueEvent*, float after); // after ½Ã°£ ÈÄ¿¡ ÇØ´ç ÀÓ¹«¸¦ ¼öÇàÇÑ´Ù.
+	void PushTask(queueEvent*, float after); // after ì‹œê°„ í›„ì— í•´ë‹¹ ì„ë¬´ë¥¼ ìˆ˜í–‰í•œë‹¤.
 	void PushTask(queueEvent*);
 	void DoNormalTasks();
 	void DoTasks();
@@ -34,8 +35,8 @@ public:
 private:
 
 	std::queue<queueEvent*> _normalQueue;
-	JobPriorityQueue _TaskQueue; // JobÀÇ ¹ß»ı Æ½¿¡ µû¶ó ¿ì¼±¼øÀ§¸¦ ºÎ¿©ÇÑ´Ù. --> Æ½°ªÀÌ Å¬ ¼ö·Ï ¿À·¡µÈ ÀÏÀÌ¶ó´Â °Í
-	Clock::time_point _BeginTickPoint; // ÃÖÃÊ ½ÃÀÛ ½Ã°£ ½ºÅÆÇÁ
-	int64 _CurrentTick;  // ÇöÀç Æ½
+	JobPriorityQueue _TaskQueue; // Jobì˜ ë°œìƒ í‹±ì— ë”°ë¼ ìš°ì„ ìˆœìœ„ë¥¼ ë¶€ì—¬í•œë‹¤. --> í‹±ê°’ì´ í´ ìˆ˜ë¡ ì˜¤ë˜ëœ ì¼ì´ë¼ëŠ” ê²ƒ
+	Clock::time_point _BeginTickPoint; // ìµœì´ˆ ì‹œì‘ ì‹œê°„ ìŠ¤íƒ¬í”„
+	int64 _CurrentTick;  // í˜„ì¬ í‹±
 };
 

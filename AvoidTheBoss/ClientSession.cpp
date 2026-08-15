@@ -1,20 +1,20 @@
-#include "pch.h"
-// ³×Æ®¿öÅ© °ü·Ã Çì´õ
+ï»¿#include "pch.h"
+// ë„¤íŠ¸ì›Œí¬ ê´€ë ¨ í—¤ë”
 #include "SocketUtil.h"
 #include "ClientSession.h"
-// ÇÁ·¹ÀÓ ¿öÅ© Çì´õ
+// í”„ë ˆì„ ì›Œí¬ í—¤ë”
 #include "GameFramework.h"
 #include "SceneManager.h"
 #include "UIManager.h"
-// ÀÌº¥Æ® Ã³¸®°ü·Ã Çì´õ
+// ì´ë²¤íŠ¸ ì²˜ë¦¬ê´€ë ¨ í—¤ë”
 #include "IocpEvent.h"
 #include "ClientPacketEvent.h"
 #include "CJobQueue.h"
-// °´Ã¼ °ü·Ã Çì´õ
+// ê°ì²´ ê´€ë ¨ í—¤ë”
 #include "CBullet.h"
 #include "CBoss.h"
 #include "CEmployee.h"
-// ¾À°ü·Ã Çì´õ
+// ì”¬ê´€ë ¨ í—¤ë”
 #include "OtherScenes.h"
 #include "GameScene.h"
 
@@ -23,12 +23,16 @@
 
 CSession::CSession()
 {
-
-	_sock = SocketUtil::CreateSocket();
 }
 
 CSession::~CSession()
 {
+	SocketUtil::Close(_sock);
+}
+
+void CSession::Stop()
+{
+	RequestStop();
 	SocketUtil::Close(_sock);
 }
 
@@ -47,11 +51,12 @@ void CSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 		ConnectEvent* connectEvent = static_cast<ConnectEvent*>(iocpEvent);
 		delete connectEvent;
 		_sid = 0;
-		DoRecv(); // ConnectÇÏ°í Do recv ¼öÇà
+		if (!IsStopping()) DoRecv(); // Connectí•˜ê³  Do recv ìˆ˜í–‰
 	}
 	break;
 	case EventType::Recv:
 	{
+		if (IsStopping()) break;
 		RecvEvent* rev = static_cast<RecvEvent*>(iocpEvent);
 		int remain_data = numOfBytes + _prev_remain;
 		char* p = rev->_rbuf;
@@ -76,9 +81,8 @@ void CSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 	break;
 	case EventType::Send:
 	{
-		SendEvent* sev = static_cast<SendEvent*>(iocpEvent);
 		if (iocpEvent == nullptr) ASSERT_CRASH("double Del");
-		delete iocpEvent;
+		delete static_cast<SendEvent*>(iocpEvent);
 	}
 	break;
 	}
@@ -86,16 +90,20 @@ void CSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 
 bool CSession::DoSend(void* packet)
 {
+	if (IsStopping() || _sock == INVALID_SOCKET) return false;
 	DWORD sendLen(0);
 	DWORD flag(0);
 	SendEvent* sev = new SendEvent(reinterpret_cast<char*>(packet));
 	sev->_sid = _sid;
+	BeginIo();
 	if (WSASend(_sock, &sev->_sWsaBuf, 1, &sendLen, flag, static_cast<LPWSAOVERLAPPED>(sev), NULL) == SOCKET_ERROR)
 	{
 		int32 errcode = WSAGetLastError();
 		if (WSAGetLastError() != WSA_IO_PENDING)
 		{
 			std::cout << errcode << std::endl;
+			CompleteIo();
+			delete sev;
 			return false;
 		}
 	}
@@ -106,7 +114,7 @@ bool CSession::DoSend(void* packet)
 
 bool CSession::DoRecv()
 {
-
+	if (IsStopping() || _sock == INVALID_SOCKET) return false;
 	_rev.Init();
 	_rev._sid = _sid;
 	_rev._cid = _cid;
@@ -114,12 +122,14 @@ bool CSession::DoRecv()
 	DWORD flag(0);
 	_rev._rWsaBuf.buf = _rev._rbuf + _prev_remain;
 	_rev._rWsaBuf.len = BUFSIZE - _prev_remain;
+	BeginIo();
 	if (WSARecv(_sock, &_rev._rWsaBuf, 1, &recvBytes, &flag, static_cast<LPWSAOVERLAPPED>(&_rev), NULL) == SOCKET_ERROR)
 	{
 		int32 errcode = WSAGetLastError();
 		if (WSAGetLastError() != WSA_IO_PENDING)
 		{
 			std::cout << errcode << std::endl;
+			CompleteIo();
 			return false;
 		}
 	}
@@ -144,15 +154,15 @@ void CSession::ProcessPacket(char* packet)
 
 	switch ((uint8)packet[1])
 	{
-	
-	// ================ ·Î±×ÀÎ °ü·Ã Ã³¸® ================
+
+	// ================ ë¡œê·¸ì¸ ê´€ë ¨ ì²˜ë¦¬ ================
 #pragma region Title
 	case (uint8)S_TITLE_PACKET_TYPE::LOGIN_OK:
 	{
 		S2C_LOGIN_OK* lo = (S2C_LOGIN_OK*)packet;
 		_cid = lo->cid;
 		_sid = lo->sid;
-		
+
 		CScene::m_sid = lo->sid;
 		CScene::m_cid = lo->cid;
 		ts->loginLock.lock();
@@ -179,9 +189,9 @@ void CSession::ProcessPacket(char* packet)
 	break;
 
 #pragma endregion
-	// ================ ·Îºñ¾À ÆĞÅ¶      ===============
+	// ================ ë¡œë¹„ì”¬ íŒ¨í‚·      ===============
 #pragma region  Lobby
-	// ============= ¹æ °ü·Ã ÆĞÅ¶ ============
+	// ============= ë°© ê´€ë ¨ íŒ¨í‚· ============
 	case (uint8)S_ROOM_PACKET_TYPE::REP_ENTER_OK:
 	{
 		S2C_ROOM_ENTER* rep = (S2C_ROOM_ENTER*)packet;
@@ -196,7 +206,7 @@ void CSession::ProcessPacket(char* packet)
 	break;
 	case (uint8)S_ROOM_PACKET_TYPE::MK_RM_FAIL:
 	{
-		
+
 	}
 	break;
 	case (uint8)S_ROOM_PACKET_TYPE::MK_RM_OK:
@@ -207,13 +217,13 @@ void CSession::ProcessPacket(char* packet)
 		break;
 	case (uint8)S_ROOM_PACKET_TYPE::UPDATE_LIST:
 	{
-		
+
 		S2C_ROOM_LIST* rp = (S2C_ROOM_LIST*)packet;;
 		ls->UpdateRoomStatus(rp->rmNum, rp->member);
 		std::cout << "RM" << (int32)rp->rmNum << " MEMBER:" << (int32)rp->member << "\n";
 	}
 		break;
-	
+
 #pragma endregion
 #pragma region Room
 	case (uint8)S_ROOM_PACKET_TYPE::REP_READY:
@@ -237,7 +247,7 @@ void CSession::ProcessPacket(char* packet)
 		break;
 	case (uint8)S_ROOM_PACKET_TYPE::ROOM_INFO:
 	{
-		
+
 		S2C_ROOM_INFO* rp = (S2C_ROOM_INFO*)packet;
 		rs->m_memLock.lock();
 		for (int i = 0; i < PLAYERNUM; ++i) rs->m_members[i].m_sid = rp->sids[i];
@@ -248,13 +258,13 @@ void CSession::ProcessPacket(char* packet)
 	break;
 	case (uint8)S_ROOM_PACKET_TYPE::GAME_START:
 	{
-		// ================= ÇÃ·¹ÀÌ¾î ÃÊ±â À§Ä¡ ÃÊ±âÈ­ ==================
-		
+		// ================= í”Œë ˆì´ì–´ ì´ˆê¸° ìœ„ì¹˜ ì´ˆê¸°í™” ==================
+
 
 		 gs->InitGame(packet, _sid);
-		
 
-		// ================= Ä«¸Ş¶ó ¼ÂÆÃ ================================
+
+		// ================= ì¹´ë©”ë¼ ì…‹íŒ… ================================
 		mainGame.m_UIRenderer->InitGameSceneUI(gs);
 
 		mainGame.scLock.lock();
@@ -272,15 +282,15 @@ void CSession::ProcessPacket(char* packet)
 	}
 	break;
 #pragma endregion
-	// ============== ÀÎ°ÔÀÓ °ü·Ã ÆĞÅ¶ =============
+	// ============== ì¸ê²Œì„ ê´€ë ¨ íŒ¨í‚· =============
 #pragma region InGame
 	case (uint8)S_GAME_PACKET_TYPE::SKEY:
 	{
 		S2C_KEY* movePacket = reinterpret_cast<S2C_KEY*>(packet);
-		moveEvent* mev = new moveEvent();
 		CPlayer* player = gs ->GetScenePlayerBySid(movePacket->sid);
 		if (player == nullptr) break;
-		
+
+		moveEvent* mev = new moveEvent();
 		mev->player = player;
 		mev->_dir.x = movePacket->x;
 		mev->_dir.y = 0;
@@ -304,12 +314,12 @@ void CSession::ProcessPacket(char* packet)
 
 	}
 	break;
-	case (uint8)S_GAME_PACKET_TYPE::SPOS: // ¹Ì¸® °è»êÇÑ ÁÂÇ¥°ªÀ» º¸³»ÁØ´Ù.
+	case (uint8)S_GAME_PACKET_TYPE::SPOS: // ë¯¸ë¦¬ ê³„ì‚°í•œ ì¢Œí‘œê°’ì„ ë³´ë‚´ì¤€ë‹¤.
 	{
 		S2C_POS* posPacket = reinterpret_cast<S2C_POS*>(packet);
-		CPlayer* player = gs->GetScenePlayerBySid(posPacket->sid);		
+		CPlayer* player = gs->GetScenePlayerBySid(posPacket->sid);
 		if (player == nullptr) break;
-		
+
 		XMFLOAT3 newPos = XMFLOAT3(posPacket->x, player->GetPosition().y, posPacket->z);
 		posEvent* pe = new posEvent();
 		pe->player = player;
@@ -324,14 +334,12 @@ void CSession::ProcessPacket(char* packet)
 	case (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT:
 	{
 		SC_EVENTPACKET* ev = (SC_EVENTPACKET*)packet;
-		InteractionEvent* gev = new InteractionEvent();
-		gev->eventId = ev->eventId;
-		if (gev->eventId == (uint8)EVENT_TYPE::BOSS_WIN || gev->eventId == (uint8)EVENT_TYPE::EMP_WIN)
+		if (ev->eventId == (uint8)EVENT_TYPE::BOSS_WIN || ev->eventId == (uint8)EVENT_TYPE::EMP_WIN)
 		{
 			std::cout << "Go to Result\n";
-			
-			if (gev->eventId == (uint8)EVENT_TYPE::BOSS_WIN) rrs->m_case = 1;
-			if (gev->eventId == (uint8)EVENT_TYPE::EMP_WIN) rrs->m_case = 0;
+
+			if (ev->eventId == (uint8)EVENT_TYPE::BOSS_WIN) rrs->m_case = 1;
+			if (ev->eventId == (uint8)EVENT_TYPE::EMP_WIN) rrs->m_case = 0;
 
 			rrs->m_timer.Reset();
 			mainGame.scLock.lock();
@@ -342,6 +350,8 @@ void CSession::ProcessPacket(char* packet)
 		}
 		else
 		{
+			InteractionEvent* gev = new InteractionEvent();
+			gev->eventId = ev->eventId;
 			mainGame.dalock.lock();
 			if (mainGame.m_activeDelay) gs->AddEvent(static_cast<queueEvent*>(gev), 320);
 			else if (!mainGame.m_activeDelay) gs->AddEvent(static_cast<queueEvent*>(gev), 0);
@@ -349,7 +359,7 @@ void CSession::ProcessPacket(char* packet)
 		}
 	}
 	break;
-	// ================= ÇÃ·¹ÀÌ¾î ½ºÀ§Ä¡ ¾Ö´Ï¸ŞÀÌ¼Ç °ü·Ã ÆĞÅ¶ ==================
+	// ================= í”Œë ˆì´ì–´ ìŠ¤ìœ„ì¹˜ ì• ë‹ˆë©”ì´ì…˜ ê´€ë ¨ íŒ¨í‚· ==================
 	case (uint8)S_GAME_PACKET_TYPE::ANIM:
 	{
 		S2C_ANIMPACKET* sw = (S2C_ANIMPACKET*)packet;
@@ -369,7 +379,7 @@ void CSession::ProcessPacket(char* packet)
 				std::cout << "Attack Anim\n";
 				static_cast<CBoss*>(myPlayer)->SetAttackAnimOtherClient();
 			}
-			
+
 		}
 	}
 	break;
@@ -382,7 +392,7 @@ void CSession::ProcessPacket(char* packet)
 		if (mainGame.m_activeDelay) gs->AddEvent(static_cast<queueEvent*>(fe), 320);
 		else if (!mainGame.m_activeDelay) gs->AddEvent(static_cast<queueEvent*>(fe), 0);
 		mainGame.dalock.unlock();
-	
+
 	}
 	break;
 #pragma endregion

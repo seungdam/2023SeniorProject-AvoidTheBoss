@@ -1,7 +1,5 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "InputManager.h"
-
-InputManager* InputManager::instance = nullptr;
 
 int8 InputManager::m_keyBuffer[256] = {-1,};
 
@@ -21,7 +19,7 @@ void InputManager::InputStatusUpdate()
 	Update(VK_SPACE);
 	Update(VK_TAB);
 	Update(VK_CAPITAL);
-} 
+}
 
 void InputManager::MouseInputStatusUpdate()
 {
@@ -32,12 +30,12 @@ void InputManager::SetKeyPress(int32 key)
 {
 	if (m_keyBuffer[key] <= 0 )
 	{
-		
+
 		m_keyBuffer[key] = (int8)KEY_STATUS::KEY_PRESS;
 	}
 	else if(m_keyBuffer[key] == (int8)KEY_STATUS::KEY_PRESS)
 	{
-		
+
 		m_keyBuffer[key] = (int8)KEY_STATUS::KEY_DOWN;
 	}
 }
@@ -56,12 +54,12 @@ void InputManager::SetKeyUp(int32 key)
 
 void InputManager::Update(int32 key)
 {
-	
-	if (::GetAsyncKeyState(key) & 0x8000) // Å°¸¦ ÀÌÀüºÎÅÍ ´©¸£°í ÀÖ¾ú´ø °æ¿ì
+
+	if (::GetAsyncKeyState(key) & 0x8000) // í‚¤ë¥¼ ì´ì „ë¶€í„° ëˆ„ë¥´ê³  ìžˆì—ˆë˜ ê²½ìš°
 	{
 		SetKeyPress(key);
-	}	
-	else 
+	}
+	else
 	{
 		SetKeyUp(key);
 	}

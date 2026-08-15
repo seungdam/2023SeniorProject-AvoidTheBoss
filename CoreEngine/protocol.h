@@ -1,9 +1,9 @@
-#pragma once
+ï»¿#pragma once
 
 #define MAX_USER 10
 #define PORTNUM 9001
 #define CHATBUF 50
-// Å¬¶ó -> ¼­¹ö ÆÐÅ¶
+// í´ë¼ -> ì„œë²„ íŒ¨í‚·
 
 
 
@@ -17,12 +17,12 @@ enum class C_TITLE_PACKET_TYPE : uint8
 
 enum class C_ROOM_PACKET_TYPE : uint8
 {
-	ACQ_MK_RM = 119, 
-	ACQ_ENTER_RM = 120, 
+	ACQ_MK_RM = 119,
+	ACQ_ENTER_RM = 120,
 	ACQ_EXIT_ROOM = 121,
 	ACQ_READY = 122,
 	ACQ_READY_CANCEL = 123
-}; // ¹æ »ý¼º, ¹æ »èÁ¦, ÀÔÀå , Á¾·á, ·¹µð °ÔÀÓ 
+}; // ë°© ìƒì„±, ë°© ì‚­ì œ, ìž…ìž¥ , ì¢…ë£Œ, ë ˆë”” ê²Œìž„
 
 enum class C_GAME_PACKET_TYPE : uint8
 {
@@ -33,7 +33,7 @@ enum class C_GAME_PACKET_TYPE : uint8
 	CATTACK = 156,
 };
 
-// ¼­¹ö -> Å¬¶ó ÆÐÅ¶
+// ì„œë²„ -> í´ë¼ íŒ¨í‚·
 
 enum class S_TITLE_PACKET_TYPE : uint8
 {
@@ -44,31 +44,31 @@ enum class S_TITLE_PACKET_TYPE : uint8
 };
 enum class S_ROOM_PACKET_TYPE : uint8
 {
-	MK_RM_OK = 119, 
-	MK_RM_FAIL = 120, 
-	REP_ENTER_FAIL = 121, 
-	REP_ENTER_OK = 122, 
-	REP_EXIT_RM = 123, 
-	UPDATE_LIST = 124, 
+	MK_RM_OK = 119,
+	MK_RM_FAIL = 120,
+	REP_ENTER_FAIL = 121,
+	REP_ENTER_OK = 122,
+	REP_EXIT_RM = 123,
+	UPDATE_LIST = 124,
 	ROOM_INFO = 125,
-	REP_READY = 126, 
-	REP_READY_CANCEL = 127, 
+	REP_READY = 126,
+	REP_READY_CANCEL = 127,
 	GAME_START = 128
 };
 
-enum class S_GAME_PACKET_TYPE : uint8 
-{ 
+enum class S_GAME_PACKET_TYPE : uint8
+{
 
-	SCHAT = 152, 
-	SKEY = 153, 
-	SROT = 154, 
-	SPOS = 155, 
-	GAME_START = 156, 
+	SCHAT = 152,
+	SKEY = 153,
+	SROT = 154,
+	SPOS = 155,
+	GAME_START = 156,
 	ANIM = 157,
 	FRAME = 158,
 };
 
-// °øÅë ÆÐÅ¶
+// ê³µí†µ íŒ¨í‚·
 enum class SC_GAME_PACKET_TYPE : uint8 { GAMEEVENT = 208 };
 
 enum class ANIMTRACK : uint8
@@ -80,8 +80,8 @@ enum class ANIMTRACK : uint8
 	RESCUE_CANCEL = 174,
 };
 
- 
-// ¹æ »ý¼º ÀÀ´ä, ¹æ ÀÔÀå ÀÀ´ä, Á¾·á
+
+// ë°© ìƒì„± ì‘ë‹µ, ë°© ìž…ìž¥ ì‘ë‹µ, ì¢…ë£Œ
 
 enum class PLAYER_BEHAVIOR {IDLE = 0, RUN, WALK, SWITCH_INTER, ATTACKED, DOWN, RESCUE, ATTACK, RUN_ATTACK, CRAWL, STAND, EXIT};
 
@@ -90,7 +90,7 @@ enum class EVENT_TYPE : uint8
 	ATTACK_EVENT = 0,
 	COOLTIME_EVENT = 1,
 
-	// ========= ½ºÀ§Ä¡ °ü·Ã »óÈ£ÀÛ¿ë ÀÌº¥Æ® =========
+	// ========= ìŠ¤ìœ„ì¹˜ ê´€ë ¨ ìƒí˜¸ìž‘ìš© ì´ë²¤íŠ¸ =========
 	SWITCH_ONE_START_EVENT,
 	SWITCH_TWO_START_EVENT,
 	SWITCH_THREE_START_EVENT,
@@ -103,31 +103,31 @@ enum class EVENT_TYPE : uint8
 	SWITCH_TWO_ACTIVATE_EVENT,
 	SWITCH_THREE_ACTIVATE_EVENT,
 
-	// ========  ÇÃ·¹ÀÌ¾î ¼û±â´Â ÀÌº¥Æ® ==============
+	// ========  í”Œë ˆì´ì–´ ìˆ¨ê¸°ëŠ” ì´ë²¤íŠ¸ ==============
 	HIDE_PLAYER_ONE,
 	HIDE_PLAYER_TWO,
 	HIDE_PLAYER_THREE,
 	HIDE_PLAYER_FOUR,
 
-	// ======= ÇÃ·¹ÀÌ¾î ÇÇ°Ý ÀÌº¥Æ® =========== // ÇÇ°Ý½Ã ºÓÀº ÇÇ°Ý ÀÌÆåÆ® ¿¬Ãâ or ÇÇ°Ý ¾Ö´Ï¸ÞÀÌ¼Ç Àç»ý
+	// ======= í”Œë ˆì´ì–´ í”¼ê²© ì´ë²¤íŠ¸ =========== // í”¼ê²©ì‹œ ë¶‰ì€ í”¼ê²© ì´íŽ™íŠ¸ ì—°ì¶œ or í”¼ê²© ì• ë‹ˆë©”ì´ì…˜ ìž¬ìƒ
 	ATTACKED_PLAYER_ONE,
 	ATTACKED_PLAYER_TWO,
 	ATTACKED_PLAYER_THREE,
 	ATTACKED_PLAYER_FOUR,
 
-	// ========= ÇÃ·¹ÀÌ¾î ±ú¿ì±â »óÈ£ÀÛ¿ë ============
+	// ========= í”Œë ˆì´ì–´ ê¹¨ìš°ê¸° ìƒí˜¸ìž‘ìš© ============
 	RESCUE_PLAYER_ONE = 19,
 	RESCUE_PLAYER_TWO = 20,
 	RESCUE_PLAYER_THREE = 21,
 	RESCUE_PLAYER_FOUR = 22,
 
-	// ======== ±ú¿ì±â ================
+	// ======== ê¹¨ìš°ê¸° ================
 	RESCUE_CANCEL_PLAYER_ONE = 23,
 	RESCUE_CANCEL_PLAYER_TWO = 24,
 	RESCUE_CANCEL_PLAYER_THREE = 25,
 	RESCUE_CANCEL_PLAYER_FOUR = 26
 
-	// ======== ±ú¿ì±â ================
+	// ======== ê¹¨ìš°ê¸° ================
 	,
 	ALIVE_PLAYER_ONE = 27,
 	ALIVE_PLAYER_TWO = 28,
@@ -156,7 +156,7 @@ struct _CHAT
 	char buf[CHATBUF];
 };
 
-//============ Å¬¶óÀÌ¾ðÆ® ·Î±×ÀÎ ============
+//============ í´ë¼ì´ì–¸íŠ¸ ë¡œê·¸ì¸ ============
 struct C2S_LOGIN
 {
 	uint8 size;
@@ -172,14 +172,14 @@ struct C2S_LOGOUT
 	uint16 sid = -1;
 };
 
-// ========== Å¬¶óÀÌ¾ðÆ® ¹æ °ü·Ã ÆÐÅ¶ ============
-struct C2S_ROOM_EVENT // »ý¼º, ³ª°¡±â, ·¹µð
+// ========== í´ë¼ì´ì–¸íŠ¸ ë°© ê´€ë ¨ íŒ¨í‚· ============
+struct C2S_ROOM_EVENT // ìƒì„±, ë‚˜ê°€ê¸°, ë ˆë””
 {
 	uint8 size;
 	uint8 type;
 };
 
-struct C2S_ROOM_ENTER // ¹æ ÀÔÀå
+struct C2S_ROOM_ENTER // ë°© ìž…ìž¥
 {
 	uint8 size;
 	uint8 type;
@@ -187,15 +187,15 @@ struct C2S_ROOM_ENTER // ¹æ ÀÔÀå
 };
 
 
-// ======= Å¬¶óÀÌ¾ðÆ® °ÔÀÓ ·ÎÁ÷ ÆÐÅ¶ ==============
+// ======= í´ë¼ì´ì–¸íŠ¸ ê²Œìž„ ë¡œì§ íŒ¨í‚· ==============
 
 struct C2S_KEY
 {
 	uint8 size;
 	uint8 type;
-	uint8 key; // ÀÔ·Â Å°
-	float x,z; // ÇÃ·¹ÀÌ¾î ¹æÇâ // Å° ÀÔ·ÂÀÇ º¯È­°¡ ÀÖÀ» ¶§¸¸ Àü¼Û
-	int8 idx; //  ÇÃ·¹ÀÌ¾î ÀÚ½ÅÀÇ ÀÎµ¦½º¸¦ °¡Á®¿Â´Ù.
+	uint8 key; // ìž…ë ¥ í‚¤
+	float x,z; // í”Œë ˆì´ì–´ ë°©í–¥ // í‚¤ ìž…ë ¥ì˜ ë³€í™”ê°€ ìžˆì„ ë•Œë§Œ ì „ì†¡
+	int8 idx; //  í”Œë ˆì´ì–´ ìžì‹ ì˜ ì¸ë±ìŠ¤ë¥¼ ê°€ì ¸ì˜¨ë‹¤.
 };
 
 
@@ -204,17 +204,17 @@ struct C2S_ROTATE
 	uint8 size;
 	uint8 type;
 	int32 angle;
-}; // ¸¶¿ì½º È¸Àü ½Ã , ¸Å ÇÁ·¹ÀÓ¸¶´Ù Àü¼Û
+}; // ë§ˆìš°ìŠ¤ íšŒì „ ì‹œ , ë§¤ í”„ë ˆìž„ë§ˆë‹¤ ì „ì†¡
 
 struct C2S_ATTACK
 {
 	uint8 size;
 	uint8 type;
-	int16 tidx; // Å¸°Ù
-	int32 wf; // ¹ß»ý ½ÃÁ¡ ¿ùµå ÇÁ·¹ÀÓ
+	int16 tidx; // íƒ€ê²Ÿ
+	int32 wf; // ë°œìƒ ì‹œì  ì›”ë“œ í”„ë ˆìž„
 };
 
-// ================= ¼­¹ö ·Î±×ÀÎ ÆÐÅ¶ ==============
+// ================= ì„œë²„ ë¡œê·¸ì¸ íŒ¨í‚· ==============
 
 struct S2C_LOGIN_OK
 {
@@ -234,16 +234,16 @@ struct S2C_LOGIN_FAIL
 {
 	uint8 size;
 	uint8 type;
-	int8 err_code; // ·Î±×ÀÎ ½ÇÆÐ »çÀ¯
+	int8 err_code; // ë¡œê·¸ì¸ ì‹¤íŒ¨ ì‚¬ìœ 
 };
 
-// ==============  ¼­¹ö °ÔÀÓ ·ÎÁ÷ ÆÐÅ¶ ==============
+// ==============  ì„œë²„ ê²Œìž„ ë¡œì§ íŒ¨í‚· ==============
 struct S2C_GAMESTART
 {
 	uint8 size;
 	uint8 type;
 	int16 sids[4];
-}; 
+};
 
 struct S2C_KEY
 {
@@ -272,7 +272,7 @@ struct S2C_ROTATE
 };
 
 
-// ===========  ¼­¹ö ¹æ ÆÐÅ¶ =======================
+// ===========  ì„œë²„ ë°© íŒ¨í‚· =======================
 
 struct S2C_ROOM_EVENT
 {
@@ -318,12 +318,12 @@ struct S2C_FRAMEPACKET
 };
 
 
-// Å¬¶ó / ¼­¹ö °ø¿ë
+// í´ë¼ / ì„œë²„ ê³µìš©
 struct SC_EVENTPACKET
 {
 	uint8 size;
 	uint8 type;
-	uint8 eventId; // 0: ¹ßÀü±â ½ÃÀÛ / 1: ¹ßÀü±â ¿Ï·á // 2: »çÀå´Ô °ø°Ý Ã³¸® // 3: »çÀå´Ô °ø°Ý ÄðÅ¸ÀÓ 
+	uint8 eventId; // 0: ë°œì „ê¸° ì‹œìž‘ / 1: ë°œì „ê¸° ì™„ë£Œ // 2: ì‚¬ìž¥ë‹˜ ê³µê²© ì²˜ë¦¬ // 3: ì‚¬ìž¥ë‹˜ ê³µê²© ì¿¨íƒ€ìž„
 };
 
 struct S2C_ANIMPACKET

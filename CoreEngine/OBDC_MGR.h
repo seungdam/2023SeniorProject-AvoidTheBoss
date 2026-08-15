@@ -1,7 +1,7 @@
-#pragma once
-#include <windows.h>  
-#include <iostream>  
-#include <sqlext.h>  
+﻿#pragma once
+#include <windows.h>
+#include <iostream>
+#include <sqlext.h>
 class USER_DB_MANAGER
 {
     SQLHENV henv = 0;

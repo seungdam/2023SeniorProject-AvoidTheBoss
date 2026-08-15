@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <stack>
 #include <map>
 #include <vector>
@@ -14,13 +14,13 @@ private:
 	std::unordered_map<const char*, int32> _findIdWithName;
 	std::unordered_map<int32, const char*> _findNameWithId;
 	std::stack<int32> _ls;
-	std::map<int32, std::set<int32>> _lHistory; // °¢ ³ëµåº° ¹æ¹® ±â·Ï
+	std::map<int32, std::set<int32>> _lHistory; // ê° ë…¸ë“œë³„ ë°©ë¬¸ ê¸°ë¡
 
 	Mutex _lock;
-private: // »çÀÌÅ¬ Ã¼Å©ÇÏ±â À§ÇÑ °ªµé
-	std::vector<int32> _discoveredOrder; // ³ëµå°¡ ¹ß°ßµÈ ¼ø¼­¸¦ ±â·ÏÇÏ´Â ¹è¿­
-	int32 _discoveredCnt; // ¹ß°ßµÈ ³ëµå Ä«¿îÆÃ
-	std::vector<int32> _parent; // ³ª¸¦ ¹ß°ßÇÑ ºÎ¸ğ ±â·Ï
-	std::vector<bool> _finished; // DFS(i) Á¾·á ¿©ºÎ ÆÄ¾Ç
+private: // ì‚¬ì´í´ ì²´í¬í•˜ê¸° ìœ„í•œ ê°’ë“¤
+	std::vector<int32> _discoveredOrder; // ë…¸ë“œê°€ ë°œê²¬ëœ ìˆœì„œë¥¼ ê¸°ë¡í•˜ëŠ” ë°°ì—´
+	int32 _discoveredCnt; // ë°œê²¬ëœ ë…¸ë“œ ì¹´ìš´íŒ…
+	std::vector<int32> _parent; // ë‚˜ë¥¼ ë°œê²¬í•œ ë¶€ëª¨ ê¸°ë¡
+	std::vector<bool> _finished; // DFS(i) ì¢…ë£Œ ì—¬ë¶€ íŒŒì•…
 };
 

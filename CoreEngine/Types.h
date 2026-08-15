@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <mutex>
 #include <atomic>
@@ -14,7 +14,7 @@ using uint32 = unsigned __int32;
 using uint64 = unsigned __int64;
 
 
-// atomic, mutex 
+// atomic, mutex
 template<class T>
 using Atomic = std::atomic<T>;
 using Mutex = std::mutex;

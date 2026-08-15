@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "GameScene.h"
 #include "GameFramework.h"
 #include "UIManager.h"
@@ -7,11 +7,11 @@
 #include "SoundManager.h"
 #include "CSound.h"
 
-//³×Æ®¿öÅ© °ü·Ã
+//ë„¤íŠ¸ì›Œí¬ ê´€ë ¨
 #include "clientIocpCore.h"
 #include "CJobQueue.h"
 
-// °´Ã¼ °ü·Ã
+// ê°ì²´ ê´€ë ¨
 #include "CBullet.h"
 #include "CBoss.h"
 #include "CEmployee.h"
@@ -33,19 +33,36 @@ CGameScene::~CGameScene()
 	delete m_jobQueue;
 }
 
+void CGameScene::ReleaseObjects()
+{
+	if (m_jobQueue) m_jobQueue->Clear();
+
+	for (auto& player : m_players)
+	{
+		if (player) player->Release();
+		player = nullptr;
+	}
+	m_pCamera = nullptr;
+
+	delete[] m_ppGenerator;
+	m_ppGenerator = nullptr;
+
+	CScene::ReleaseObjects();
+}
+
 void CGameScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	switch (nMessageID)
 	{
 	case WM_LBUTTONDOWN:
 	case WM_RBUTTONDOWN:
-		//¸¶¿ì½º Ä¸ÃÄ¸¦ ÇÏ°í ÇöÀç ¸¶¿ì½º À§Ä¡¸¦ °¡Á®¿Â´Ù. 
+		//ë§ˆìš°ìŠ¤ ìº¡ì³ë¥¼ í•˜ê³  í˜„ì¬ ë§ˆìš°ìŠ¤ ìœ„ì¹˜ë¥¼ ê°€ì ¸ì˜¨ë‹¤.
 		::SetCapture(hWnd);
 		::GetCursorPos(&m_ptOldCursorPos);
 		break;
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
-		//¸¶¿ì½º Ä¸ÃÄ¸¦ ÇØÁ¦ÇÑ´Ù. 
+		//ë§ˆìš°ìŠ¤ ìº¡ì³ë¥¼ í•´ì œí•œë‹¤.
 		::ReleaseCapture();
 		break;
 	case WM_MOUSEMOVE:
@@ -55,7 +72,7 @@ void CGameScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wPa
 	}
 }
 
-// Æ¯¼öÅ° Ã³¸®¸¦ À§ÇÑ °Í
+// íŠ¹ìˆ˜í‚¤ ì²˜ë¦¬ë¥¼ ìœ„í•œ ê²ƒ
 void CGameScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
 	switch (nMessageID)
@@ -68,9 +85,9 @@ void CGameScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM 
 		//	break;
 		case VK_RETURN:
 			break;
-			/*¡®F1¡¯ Å°¸¦ ´©¸£¸é 1ÀÎÄª Ä«¸Ş¶ó, ¡®F3¡¯ Å°¸¦ ´©¸£¸é 3ÀÎÄª Ä«¸Ş¶ó·Î º¯°æÇÑ´Ù.*/
+			/*â€˜F1â€™ í‚¤ë¥¼ ëˆ„ë¥´ë©´ 1ì¸ì¹­ ì¹´ë©”ë¼, â€˜F3â€™ í‚¤ë¥¼ ëˆ„ë¥´ë©´ 3ì¸ì¹­ ì¹´ë©”ë¼ë¡œ ë³€ê²½í•œë‹¤.*/
 		case VK_F9:
-			//¡°F9¡± Å°°¡ ´­·ÁÁö¸é À©µµ¿ì ¸ğµå¿Í ÀüÃ¼È­¸é ¸ğµåÀÇ ÀüÈ¯À» Ã³¸®ÇÑ´Ù. 
+			//â€œF9â€ í‚¤ê°€ ëˆŒë ¤ì§€ë©´ ìœˆë„ìš° ëª¨ë“œì™€ ì „ì²´í™”ë©´ ëª¨ë“œì˜ ì „í™˜ì„ ì²˜ë¦¬í•œë‹¤.
 			//mainGame.ChangeSwapChainState();
 			break;
 		case VK_F1:
@@ -107,7 +124,7 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 
 	m_xmf4GlobalAmbient = XMFLOAT4(0.15f, 0.15f, 0.15f, 1.0f);
 
-	// ºñ»ó±¸ Á¶¸í
+	// ë¹„ìƒêµ¬ ì¡°ëª…
 	XMFLOAT4 fAmbientExist = XMFLOAT4(0.0f, 0.7f, 0.1f, 1.0f);
 	XMFLOAT4 f4DiffuseExist = XMFLOAT4(0.0f, 0.7f, 0.1f, 1.0f);
 	m_pLights[0].m_bEnable = true;
@@ -128,7 +145,7 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 	m_pLights[10].m_xmf3Position = XMFLOAT3(-24.6359, 1.168867f, -21.98898f);
 	m_pLights[10].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
 
-	// ÀÔ±¸ ¹®Æ´ ÇŞºû È¿°ú
+	// ì…êµ¬ ë¬¸í‹ˆ í–‡ë¹› íš¨ê³¼
 	m_pLights[1].m_bEnable = true;
 	m_pLights[1].m_nType = SPOT_LIGHT;
 	m_pLights[1].m_fRange = 35.0f;
@@ -142,7 +159,7 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 	m_pLights[1].m_fPhi = (float)cos(XMConvertToRadians(150.0f));
 	m_pLights[1].m_fTheta = (float)cos(XMConvertToRadians(20.0f));
 
-	// Àü¿ª Á¶¸í
+	// ì „ì—­ ì¡°ëª…
 	m_pLights[2].m_bEnable = true;
 	m_pLights[2].m_nType = DIRECTIONAL_LIGHT;
 	m_pLights[2].m_xmf4Ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
@@ -150,7 +167,7 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 	m_pLights[2].m_xmf4Specular = XMFLOAT4(0.4f, 0.4f, 0.4f, 0.0f);
 	m_pLights[2].m_xmf3Direction = XMFLOAT3(0.0f, -1.0f, -1.0f);
 
-	// ¹ßÀü±â Á¶¸í
+	// ë°œì „ê¸° ì¡°ëª…
 	XMFLOAT4 fAmbientGen = XMFLOAT4(0.7f, 0.3f, 0.3f, 1.0f);
 	XMFLOAT4 f4DiffuseGen = XMFLOAT4(0.7f, 0.3f, 0.3f, 1.0f);
 	m_pLights[4].m_bEnable = true;
@@ -180,14 +197,14 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 	m_pLights[6].m_xmf3Position = XMFLOAT3(-23.12724f, 1.146619f, 1.614123f);
 	m_pLights[6].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
 
-	// Ã¢¹® ÇŞ»ì Á¶¸í
-	XMFLOAT4 fAmbientWin = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f); // ±âº» »ö»ó (¹ß»ê±¤)
-	XMFLOAT4 f4DiffuseWin = XMFLOAT4(1.0f, 0.53f, 0.27f, 1.0f); // °£Á¢±¤ »ö»ó 
-	XMFLOAT3 fDirectionWin = XMFLOAT3(0.0f, -1.0f, -1.0f); // ¶óÀÌÆ® ¹æÇâ
-	float fFalloff = 0.5f; // ºû³ª´Â ¿µ¿ª - ¾ø¾îÁö´Â ¿µ¿ª°ü ºÎµå·¯¿ò ¼³Á¤ (1.0fÀÌ»óÀº ¼±¸íÇÏ´Ù)
-	float fRangeWin = 20.0f; // ¿ø Å©±â
-	float fphiWin = (float)cos(XMConvertToRadians(25.0f)); // °­µµ¸¦ °¨¼èÇÏ±â ½ÃÀÛÇÏ´Â °¢µµ (½ºÆ÷Æ®¶óÀÌÆ®ÀÇ ³»ºÎ ¿ø»Ô °¢µµ)
-	float fThetaWin = (float)cos(XMConvertToRadians(10.0f)); // °­µµ¸¦ °¨¼èÇÏ±â ½ÃÀÛÇÏ´Â °¢µµ(¿ÜºÎ ¿ø»Ô °¢µµ)
+	// ì°½ë¬¸ í–‡ì‚´ ì¡°ëª…
+	XMFLOAT4 fAmbientWin = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f); // ê¸°ë³¸ ìƒ‰ìƒ (ë°œì‚°ê´‘)
+	XMFLOAT4 f4DiffuseWin = XMFLOAT4(1.0f, 0.53f, 0.27f, 1.0f); // ê°„ì ‘ê´‘ ìƒ‰ìƒ
+	XMFLOAT3 fDirectionWin = XMFLOAT3(0.0f, -1.0f, -1.0f); // ë¼ì´íŠ¸ ë°©í–¥
+	float fFalloff = 0.5f; // ë¹›ë‚˜ëŠ” ì˜ì—­ - ì—†ì–´ì§€ëŠ” ì˜ì—­ê´€ ë¶€ë“œëŸ¬ì›€ ì„¤ì • (1.0fì´ìƒì€ ì„ ëª…í•˜ë‹¤)
+	float fRangeWin = 20.0f; // ì› í¬ê¸°
+	float fphiWin = (float)cos(XMConvertToRadians(25.0f)); // ê°•ë„ë¥¼ ê°ì‡ í•˜ê¸° ì‹œì‘í•˜ëŠ” ê°ë„ (ìŠ¤í¬íŠ¸ë¼ì´íŠ¸ì˜ ë‚´ë¶€ ì›ë¿” ê°ë„)
+	float fThetaWin = (float)cos(XMConvertToRadians(10.0f)); // ê°•ë„ë¥¼ ê°ì‡ í•˜ê¸° ì‹œì‘í•˜ëŠ” ê°ë„(ì™¸ë¶€ ì›ë¿” ê°ë„)
 	m_pLights[7].m_bEnable = false;
 	m_pLights[7].m_nType = SPOT_LIGHT;
 	m_pLights[7].m_fRange = fRangeWin;
@@ -233,7 +250,7 @@ void CGameScene::BuildObjects(ID3D12Device5* pd3dDevice,ID3D12GraphicsCommandLis
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
 
 	CreateCbvSrvDescriptorHeaps(pd3dDevice, 0, 282);
-	// ¸Ê 106+ ½ºÄ«ÀÌ¹Ú½º 2 + Å©·¡ÀÎ 12 + ¹Ù´Ú 2 + »çÀÌ·» 6*16+ ¹ßÀü±â 16*3 + ¼ÅÅÍµµ¾î 4*2 + ºñ»ó±¸1*2 + Á¤¹® 4 + Ä³¸¯ÅÍ?? + È÷Æ® 1 + ÃÑ¾Ë 1
+	// ë§µ 106+ ìŠ¤ì¹´ì´ë°•ìŠ¤ 2 + í¬ë˜ì¸ 12 + ë°”ë‹¥ 2 + ì‚¬ì´ë Œ 6*16+ ë°œì „ê¸° 16*3 + ì…”í„°ë„ì–´ 4*2 + ë¹„ìƒêµ¬1*2 + ì •ë¬¸ 4 + ìºë¦­í„°?? + íˆíŠ¸ 1 + ì´ì•Œ 1
 	CMaterial::PrepareShaders(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
 	BuildDefaultLightsAndMaterials();
 
@@ -255,7 +272,7 @@ void CGameScene::BuildObjects(ID3D12Device5* pd3dDevice,ID3D12GraphicsCommandLis
 		m_players[i]->m_idx = i;
 	}
 	m_pCamera = m_players[m_playerIdx]->GetCamera();
-	
+
 	m_nShaders = 6;
 	m_ppShaders = new CShader * [m_nShaders];
 
@@ -290,13 +307,13 @@ void CGameScene::BuildObjects(ID3D12Device5* pd3dDevice,ID3D12GraphicsCommandLis
 	m_ppShaders[5] = pHitEffectObjectsShader;
 
 	m_ppGenerator = new CGenerator * [m_nGenerator];
-	
+
 	for (int i = 0; i < m_nGenerator; ++i)
 	{
 		m_ppGenerator[i] = ((CGenerator*)pGeneratorObjectsShader->m_ppObjects[i]);
 		m_ppGenerator[i]->m_idx = i;
 	}
-	
+
 	for (int i = 0; i < PLAYERNUM; ++i)
 	{
 		if (i == (int)(CHARACTER_TYPE::BOSS))
@@ -325,17 +342,17 @@ void CGameScene::BuildObjects(ID3D12Device5* pd3dDevice,ID3D12GraphicsCommandLis
 void CGameScene::ProcessInput(HWND& hWnd)
 {
 	//if (hWnd != ::GetActiveWindow()) return;
-	
+
 	uint8 keyInput = 0;
 	InputManager::GetInstance().InputStatusUpdate();
 	InputManager::GetInstance().MouseInputStatusUpdate();
-	
 
-	// ============= ¸¶¿ì½º ¹öÆ° °ü·Ã Ã³¸® ================
+
+	// ============= ë§ˆìš°ìŠ¤ ë²„íŠ¼ ê´€ë ¨ ì²˜ë¦¬ ================
 	float cxDelta = 0.0f, cyDelta = 0.0f;
 	if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::MLBUTTON) > 0 )
 	{
-		
+
 		POINT ptCursorPos;
 		if (::GetCapture() == hWnd)
 		{
@@ -348,14 +365,14 @@ void CGameScene::ProcessInput(HWND& hWnd)
 		if(cxDelta != 0) m_players[m_playerIdx]->Rotate(0.f, cxDelta, 0.0f);
 	}
 
-	//============  ÇÃ·¹ÀÌ¾î¿¡°Ô ÃÖÁ¾ Å°ÀÔ·Â Ã³¸® ============
-	keyInput = m_players[m_playerIdx]->ProcessInput(); // ÀÔ·ÂµÈ Å°¸¦ ±â¹İÀ¸·Î ÀÎÇ² Ã³¸® ÁøÇà
+	//============  í”Œë ˆì´ì–´ì—ê²Œ ìµœì¢… í‚¤ì…ë ¥ ì²˜ë¦¬ ============
+	keyInput = m_players[m_playerIdx]->ProcessInput(); // ì…ë ¥ëœ í‚¤ë¥¼ ê¸°ë°˜ìœ¼ë¡œ ì¸í’‹ ì²˜ë¦¬ ì§„í–‰
 
-	// ============ ÆĞÅ¶ ¼Û½Å ÆÄÆ® ===================
-	// ÀÌµ¿ Å° ÀÔ·Â¿¡ º¯È­°¡ ÀÖ°Å³ª Å° ÀÔ·Â Áß È¸ÀüÀ» ¼öÇàÇÏ´Â °æ¿ì¿¡¸¸.. ÀÌµ¿ °ü·Ã ÆĞÅ¶À» Àü¼ÛÇÑ´Ù.
+	// ============ íŒ¨í‚· ì†¡ì‹  íŒŒíŠ¸ ===================
+	// ì´ë™ í‚¤ ì…ë ¥ì— ë³€í™”ê°€ ìˆê±°ë‚˜ í‚¤ ì…ë ¥ ì¤‘ íšŒì „ì„ ìˆ˜í–‰í•˜ëŠ” ê²½ìš°ì—ë§Œ.. ì´ë™ ê´€ë ¨ íŒ¨í‚·ì„ ì „ì†¡í•œë‹¤.
 	if (m_lastKeyInput != keyInput || (keyInput && cxDelta != 0))
 	{
-		C2S_KEY packet; // Å° ÀÔ·Â + ¹æÇâ Á¤º¸¸¦ º¸³½´Ù.
+		C2S_KEY packet; // í‚¤ ì…ë ¥ + ë°©í–¥ ì •ë³´ë¥¼ ë³´ë‚¸ë‹¤.
 		packet.size = sizeof(C2S_KEY);
 		packet.type = (uint8)C_GAME_PACKET_TYPE::CKEY;
 		packet.key = keyInput;
@@ -370,25 +387,25 @@ void CGameScene::Update(HWND& hWnd)
 
 {
 	m_timer.Tick(0);
-	
+
 	{
 		std::unique_lock<std::shared_mutex> wl(m_jobQueueLock);
 		m_jobQueue->DoTasks();
 	}
-	
+
 	for (int k = 0; k < PLAYERNUM; ++k)
 	{
 		if (k == m_playerIdx) m_players[k]->Update(m_timer.GetTimeElapsed(), CLIENT_TYPE::OWNER);
 		else m_players[k]->Update(m_timer.GetTimeElapsed(), CLIENT_TYPE::OTHER_PLAYER);
 	}
-	for (int k = 0; k < m_nGenerator; ++k) m_ppGenerator[k]->Update(m_timer.GetTimeElapsed()); // ¹ßÀü±â ¾÷µ¥ÀÌÆ® À§Ä¡
-	
-	
+	for (int k = 0; k < m_nGenerator; ++k) m_ppGenerator[k]->Update(m_timer.GetTimeElapsed()); // ë°œì „ê¸° ì—…ë°ì´íŠ¸ ìœ„ì¹˜
+
+
 
 	mainGame.m_UIRenderer->UpdateGameSceneUI(this);
 
 	if (m_bEmpExit) ExitReady();
-	// Æò±Õ ÇÁ·¹ÀÓ ·¹ÀÌÆ® Ãâ·Â
+	// í‰ê·  í”„ë ˆì„ ë ˆì´íŠ¸ ì¶œë ¥
 	std::wstring str = L"[";
 	str.append(std::to_wstring(m_sid));
 	str.append(L"] ");
@@ -399,7 +416,7 @@ void CGameScene::Update(HWND& hWnd)
 }
 
 void CGameScene::AnimateObjects()
-{ 
+{
 	for (int i = 0; i < m_nShaders; i++) if (m_ppShaders[i]) m_ppShaders[i]->AnimateObjects(m_timer.GetTimeElapsed());
 
 	for (int i = 0; i < PLAYERNUM; i++)
@@ -490,7 +507,7 @@ void CGameScene::InitGame(void* packet, int32 sid)
 		if (gsp->sids[i] == sid) m_playerIdx = i;
 		m_players[i]->SetPlayerSid(gsp->sids[i]);
 		std::cout << "[" << m_players[i]->m_sid << "|";
-		// °¢ ÇÃ·¹ÀÌ¾î º°·Î ¼¼¼Ç ¾ÆÀÌµğ ºÎ¿©
+		// ê° í”Œë ˆì´ì–´ ë³„ë¡œ ì„¸ì…˜ ì•„ì´ë”” ë¶€ì—¬
 	}
 	std::cout << "]\n";
 
@@ -503,7 +520,7 @@ void CGameScene::InitGame(void* packet, int32 sid)
 	m_pCamera = m_players[m_playerIdx]->GetCamera();
 	m_pCamera->m_playerIdx = m_playerIdx;
 	m_pCamera->m_fogOn = true;
-	
+
 	m_players[m_playerIdx]->m_clientType = CLIENT_TYPE::OWNER;
 }
 
@@ -515,7 +532,7 @@ void CGameScene::AddEvent(queueEvent* ev, float after)
 
 void CGameScene::ExitReady()
 {
-	if (m_bEmpExit) // Å»Ãâ ¼º°ø ½Ã , ÇØ¾ßÇÒ ÀÏ Ã³¸®
+	if (m_bEmpExit) // íƒˆì¶œ ì„±ê³µ ì‹œ , í•´ì•¼í•  ì¼ ì²˜ë¦¬
 	{
 		if (!m_exitSoundOn)
 		{
@@ -547,14 +564,14 @@ void CGameScene::ResetGame()
 		std::unique_lock<std::shared_mutex> wl(m_jobQueueLock);
 		m_jobQueue->Clear();
 	}
-	// ÇÃ·¹ÀÌ¾î »óÅÂ ÃÊ±âÈ­
+	// í”Œë ˆì´ì–´ ìƒíƒœ ì´ˆê¸°í™”
 	for (auto& i : m_players) if(i) i->ResetState();
-	
+
 	m_players[m_playerIdx]->ChangeCamera(FIRST_PERSON_CAMERA, 0);
 	m_players[m_playerIdx]->GetCamera()->CreateShaderVariables(mainGame.m_pd3dDevice, mainGame.m_pd3dCommandList);
 	m_players[m_playerIdx]->GetCamera()->m_playerIdx = -1;
-	// ¹ßÀü±â »óÅÂ ÃÊ±âÈ­
-	
+	// ë°œì „ê¸° ìƒíƒœ ì´ˆê¸°í™”
+
 	for (int i = 0; i < m_nGenerator; ++i) m_ppGenerator[i]->ResetState();
 	m_players[m_playerIdx]->m_clientType = CLIENT_TYPE::OTHER_PLAYER;
 	m_playerIdx = -1;
@@ -564,8 +581,8 @@ void CGameScene::ResetGame()
 	m_remainPlayerCnt = 0;
 	m_ActiveGeneratorCnt = 0;
 
-	// ¸ğµç Á¶Çü °´Ã¼ ResetState()È£Ãâ
-	
+	// ëª¨ë“  ì¡°í˜• ê°ì²´ ResetState()í˜¸ì¶œ
+
 
 }
 

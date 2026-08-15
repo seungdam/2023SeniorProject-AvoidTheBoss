@@ -1,6 +1,6 @@
-#pragma once
+ï»¿#pragma once
 
-// ¾ÀµéÀ» Á¤ÀÇ
+// ì”¬ë“¤ì„ ì •ì˜
 enum class SCENE_INFO { LOBBY, ROOM, INGAME};
 
 

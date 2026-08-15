@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "RoomManager.h"
 #include "CSIocpCore.h"
 #include "JobQueue.h"
@@ -7,14 +7,14 @@
 using namespace std;
 //========== ROOM =============
 
-//    cList Lock È£Ãâ Å¸ÀÌ¹Ö
-//    1. ¾²´Â °æ¿ì : À¯Àú°¡ ¹æ¿¡ µé¾î¿À°Å³ª ³ª°¥ ¶§, cList °ªÀ» °»½ÅÇÒ ¶§
-//    2. ÀĞ´Â °æ¿ì : ¹æ¿¡ ÀÖ´Â À¯Àú¿¡°Ô ºê·Îµå Ä³½ºÆÃ ÁøÇàÇÏ´Â °æ¿ì cList¸¦ Å½»öÇÒ ¶§
+//    cList Lock í˜¸ì¶œ íƒ€ì´ë°
+//    1. ì“°ëŠ” ê²½ìš° : ìœ ì €ê°€ ë°©ì— ë“¤ì–´ì˜¤ê±°ë‚˜ ë‚˜ê°ˆ ë•Œ, cList ê°’ì„ ê°±ì‹ í•  ë•Œ
+//    2. ì½ëŠ” ê²½ìš° : ë°©ì— ìˆëŠ” ìœ ì €ì—ê²Œ ë¸Œë¡œë“œ ìºìŠ¤íŒ… ì§„í–‰í•˜ëŠ” ê²½ìš° cListë¥¼ íƒìƒ‰í•  ë•Œ
 
 //=============================
 Room::Room()
 {
-	
+
 }
 
 Room::~Room()
@@ -26,7 +26,7 @@ void Room::UserOut(int32 sid)
 	int idx = 0;
 
 	{
-		// cList Lock ¾²±â È£Ãâ	
+		// cList Lock ì“°ê¸° í˜¸ì¶œ
 		std::unique_lock<std::shared_mutex> wll(_listLock);
 		for (int i = 0; i < PLAYERNUM; ++i)
 		{
@@ -41,15 +41,15 @@ void Room::UserOut(int32 sid)
 
 	if (_status == (uint8)ROOM_STATUS::INGAME)
 	{
-		_gameLogic.GetPlayerBySid(sid).SetVelocity(XMFLOAT3(0, 0, 0)); // ¼Óµµ 0
-		idx = _gameLogic.GetPlayerBySid(sid).m_idx; /// ÀÎµ¦½º °¡Á®¿À±â
-		_gameLogic.GetPlayerBySid(sid).m_hide = true; // ¾÷µ¥ÀÌÆ® false·Î 
+		_gameLogic.GetPlayerBySid(sid).SetVelocity(XMFLOAT3(0, 0, 0)); // ì†ë„ 0
+		idx = _gameLogic.GetPlayerBySid(sid).m_idx; /// ì¸ë±ìŠ¤ ê°€ì ¸ì˜¤ê¸°
+		_gameLogic.GetPlayerBySid(sid).m_hide = true; // ì—…ë°ì´íŠ¸ falseë¡œ
 		_gameLogic.GetPlayerBySid(sid).SetBehavior(PLAYER_BEHAVIOR::CRAWL);
-		
+
 		if (_gameLogic._gState == GAMESTATE::IN_GAME)
 		{
-			
-			if (idx == 0) // »çÀå ÇÃ·¹ÀÌ¾î°¡ ³ª°£ °æ¿ì
+
+			if (idx == 0) // ì‚¬ì¥ í”Œë ˆì´ì–´ê°€ ë‚˜ê°„ ê²½ìš°
 			{
 				_gameLogic.ResetGame();
 				SC_EVENTPACKET packet;
@@ -57,10 +57,10 @@ void Room::UserOut(int32 sid)
 				packet.size = sizeof(SC_EVENTPACKET);
 				packet.eventId = (uint8)EVENT_TYPE::EMP_WIN;
 				BroadCastingExcept(&packet, sid);
-				
+
 
 				{
-					// cList Lock ¾²±â È£Ãâ	
+					// cList Lock ì“°ê¸° í˜¸ì¶œ
 					std::unique_lock<std::shared_mutex> wll(_listLock);
 
 
@@ -88,7 +88,7 @@ void Room::UserOut(int32 sid)
 	}
 	else
 	{
-		if (_status == (uint8)ROOM_STATUS::FULL) 
+		if (_status == (uint8)ROOM_STATUS::FULL)
 		{
 			_status = (uint8)ROOM_STATUS::NOT_FULL;
 			std::cout << "LEFT USER SID LIST [";
@@ -96,7 +96,7 @@ void Room::UserOut(int32 sid)
 			std::cout << " ]\n";
 		}
 
-		// ¹æÀÌ ÆøÆÄµÇ´Â °æ¿ì.. °ÔÀÓÀ» ¸®¼ÂÇÑ´Ù.
+		// ë°©ì´ í­íŒŒë˜ëŠ” ê²½ìš°.. ê²Œì„ì„ ë¦¬ì…‹í•œë‹¤.
 		if (IsDestroyRoom())
 		{
 			_status = (uint8)ROOM_STATUS::EMPTY;
@@ -122,13 +122,13 @@ void Room::UserOut(int32 sid)
 void Room::UserIn(int32 sid)
 {
 
-	
+
 	S2C_ROOM_ENTER packet;
 	packet.size = sizeof(S2C_ROOM_ENTER);
 	packet.type = (uint8)S_ROOM_PACKET_TYPE::REP_ENTER_OK;
-	
 
-	// ºñ¾îÀÖ´Â ¹æ (¸¸µé¾îÁöÁö ¾ÊÀº ¹æ) or ÇöÀç ÀÎ¿ø¼ö°¡ 4¸íÀÌ¸é Á¢¼Ó ½ÇÆĞ 
+
+	// ë¹„ì–´ìˆëŠ” ë°© (ë§Œë“¤ì–´ì§€ì§€ ì•Šì€ ë°©) or í˜„ì¬ ì¸ì›ìˆ˜ê°€ 4ëª…ì´ë©´ ì ‘ì† ì‹¤íŒ¨
 	if (_status == (int8)ROOM_STATUS::FULL || _status == (int8)ROOM_STATUS::EMPTY || _status == (int8)ROOM_STATUS::INGAME)
 	{
 		// enter fail
@@ -137,16 +137,16 @@ void Room::UserIn(int32 sid)
 		packet.type = (uint8)S_ROOM_PACKET_TYPE::REP_ENTER_FAIL;
 		ServerIocpCore._clients[sid]->DoSend(&packet);
 	}
-	else if (_status == (int8)ROOM_STATUS::NOT_FULL) // ¾Æ´Ï¸é Á¢¼Ó ¼º°ø
+	else if (_status == (int8)ROOM_STATUS::NOT_FULL) // ì•„ë‹ˆë©´ ì ‘ì† ì„±ê³µ
 	{
 		packet.rmNum = _rmNum;
 		ServerIocpCore._clients[sid]->_myRm = _rmNum;
 		ServerIocpCore._clients[sid]->DoSend(&packet);
 		{
-			//cList Lock ¾²±â È£Ãâ 
+			//cList Lock ì“°ê¸° í˜¸ì¶œ
 			std::unique_lock<std::shared_mutex> wll(_listLock);
 			_memCnt.fetch_add(1);
-			// ºó ¹è¿­ ÀÚ¸®¿¡´Ù°¡ Á¤º¸ Ã¤¿ì±â
+			// ë¹ˆ ë°°ì—´ ìë¦¬ì—ë‹¤ê°€ ì •ë³´ ì±„ìš°ê¸°
 			for (int k = 0; k < PLAYERNUM; ++k)
 			{
 				if (-1 == _cArr[k].sid)
@@ -166,28 +166,28 @@ void Room::UserIn(int32 sid)
 		{
 			_status = (int8)ROOM_STATUS::FULL;
 		}
-	
+
 	}
 
 	SendRoomInfoPacket();
-	// °»½ÅÇÒ ¹æ ¸®½ºÆ® Á¤º¸¿Í ¹æ Á¤º¸¸¦ º¸³½´Ù.
-	
+	// ê°±ì‹ í•  ë°© ë¦¬ìŠ¤íŠ¸ ì •ë³´ì™€ ë°© ì •ë³´ë¥¼ ë³´ë‚¸ë‹¤.
+
 	std::cout << "RM [" << _rmNum << "][" << _memCnt.load() << "/4]" << std::endl;
-	
-	// °»½ÅÇÏ´Â°É º¸³»ÁÙÁö ¸»Áö ¹ÌÁ¤
+
+	// ê°±ì‹ í•˜ëŠ”ê±¸ ë³´ë‚´ì¤„ì§€ ë§ì§€ ë¯¸ì •
 }
 
-void Room::BroadCasting(void* packet) // ¹æ¿¡ ¼ÓÇÏ´Â Å¬¶óÀÌ¾ğÆ®¿¡°Ô¸¸ Àü´ŞÇÏ±â
+void Room::BroadCasting(void* packet) // ë°©ì— ì†í•˜ëŠ” í´ë¼ì´ì–¸íŠ¸ì—ê²Œë§Œ ì „ë‹¬í•˜ê¸°
 {
-	// cList Lock ÀĞ±â È£Ãâ 
+	// cList Lock ì½ê¸° í˜¸ì¶œ
 	std::shared_lock<std::shared_mutex> rll(_listLock);
-	
+
 	for (auto i : _cArr)
 	{
 		if (-1 == i.sid) continue;
-		else 
+		else
 		{
-			
+
 			if (ServerIocpCore._clients[i.sid] == nullptr) continue;
 			if (!ServerIocpCore._clients[i.sid]->DoSend(packet))
 			{
@@ -197,11 +197,11 @@ void Room::BroadCasting(void* packet) // ¹æ¿¡ ¼ÓÇÏ´Â Å¬¶óÀÌ¾ğÆ®¿¡°Ô¸¸ Àü´ŞÇÏ±â
 	}
 }
 
-void Room::BroadCastingExcept(void* packet, int32 sid) // ¹æ¿¡ ¼ÓÇÏ´Â Å¬¶óÀÌ¾ğÆ®¿¡°Ô¸¸ Àü´ŞÇÏ±â
+void Room::BroadCastingExcept(void* packet, int32 sid) // ë°©ì— ì†í•˜ëŠ” í´ë¼ì´ì–¸íŠ¸ì—ê²Œë§Œ ì „ë‹¬í•˜ê¸°
 {
-	// cList Lock ÀĞ±â È£Ãâ 
+	// cList Lock ì½ê¸° í˜¸ì¶œ
 	std::shared_lock<std::shared_mutex> rll(_listLock);
-	
+
 	for (auto i : _cArr)
 	{
 		if (-1 == i.sid || sid == i.sid) continue;
@@ -216,7 +216,7 @@ void Room::BroadCastingExcept(void* packet, int32 sid) // ¹æ¿¡ ¼ÓÇÏ´Â Å¬¶óÀÌ¾ğÆ®
 	}
 }
 
-// ¹æ¿¡ ÀÖ´Â À¯Àú¿¡ ´ëÇÑ °ÔÀÓ ·ÎÁ÷ ¾÷µ¥ÀÌÆ® ÁøÇà 
+// ë°©ì— ìˆëŠ” ìœ ì €ì— ëŒ€í•œ ê²Œì„ ë¡œì§ ì—…ë°ì´íŠ¸ ì§„í–‰
 void Room::Update()
 {
 	if (_status != (int8)ROOM_STATUS::INGAME) return;
@@ -234,12 +234,12 @@ void Room::Update()
 		BroadCasting(&packet);
 	}
 
-	if (_timer.IsAfterTick(45)) // 1/45ÃÊ¸¶´Ù Á¤È®ÇÑ À§Ä¡°ªÀ» ºê·ÎµåÄ³½ºÆÃ ÇÑ´Ù.
+	if (_timer.IsAfterTick(45)) // 1/45ì´ˆë§ˆë‹¤ ì •í™•í•œ ìœ„ì¹˜ê°’ì„ ë¸Œë¡œë“œìºìŠ¤íŒ… í•œë‹¤.
 	{
-	
+
 		for (int i = 0; i < PLAYERNUM; ++i)
 		{
-		
+
 			SPlayer& ps = _gameLogic.GetPlayerByIdx(i);
 
 			S2C_POS packet;
@@ -249,12 +249,12 @@ void Room::Update()
 			packet.x = ps.GetPosition().x;
 			packet.z = ps.GetPosition().z;
 			BroadCasting(&packet);
-			
+
 		}
 	}
 
 
-	// °ÔÀÓÀÌ ³¡³µ´Ù¸é °ÔÀÓÀÌ ³¡³µ´Ù´Â ÆĞÅ¶ Àü¼Û
+	// ê²Œì„ì´ ëë‚¬ë‹¤ë©´ ê²Œì„ì´ ëë‚¬ë‹¤ëŠ” íŒ¨í‚· ì „ì†¡
 	if (GAMESTATE::EMP_WIN == _gameLogic._gState || GAMESTATE::BOSS_WIN == _gameLogic._gState)
 	{
 		_status = (uint8)ROOM_STATUS::FULL;
@@ -288,8 +288,8 @@ void Room::AddEvent(QueueEvent* qe)
 }
 void Room::SendRoomListPacket()
 {
-	
-	S2C_ROOM_LIST rmpacket; // ·Îºñ¿¡¼­ ¸®½ºÆ®¸¦ °»½ÅÇÏ±â À§ÇÑ ÆĞÅ¶
+
+	S2C_ROOM_LIST rmpacket; // ë¡œë¹„ì—ì„œ ë¦¬ìŠ¤íŠ¸ë¥¼ ê°±ì‹ í•˜ê¸° ìœ„í•œ íŒ¨í‚·
 	rmpacket.size = sizeof(S2C_ROOM_LIST);
 	rmpacket.type = (int8)S_ROOM_PACKET_TYPE::UPDATE_LIST;
 	rmpacket.member = _memCnt.load();
@@ -299,11 +299,11 @@ void Room::SendRoomListPacket()
 		READ_SERVER_LOCK;
 		ServerIocpCore.BroadCastingAll(&rmpacket);
 	}
-	
+
 }
 void Room::SendRoomInfoPacket()
 {
-	S2C_ROOM_INFO rmifpacket; // °ÔÀÓ ¹æ¿¡ ÇöÀç µé¾î¿Í ÀÖ´Â ¸â¹öµéÀÇ ¸®½ºÆ®¸¦ º¸³»ÁÖ±â À§ÇÑ ÆĞÅ¶, ¹æ À¯Àú¿¡°Ô¸¸ Àü¼Û
+	S2C_ROOM_INFO rmifpacket; // ê²Œì„ ë°©ì— í˜„ì¬ ë“¤ì–´ì™€ ìˆëŠ” ë©¤ë²„ë“¤ì˜ ë¦¬ìŠ¤íŠ¸ë¥¼ ë³´ë‚´ì£¼ê¸° ìœ„í•œ íŒ¨í‚·, ë°© ìœ ì €ì—ê²Œë§Œ ì „ì†¡
 	rmifpacket.size = sizeof(S2C_ROOM_INFO);
 	rmifpacket.type = (uint8)S_ROOM_PACKET_TYPE::ROOM_INFO;
 	{
@@ -316,11 +316,11 @@ void Room::SendRoomInfoPacket()
 
 	}
 	BroadCasting(&rmifpacket);
-	
+
 }
 void Room::InitGame()
 {
-	
+
 	if (IsGameStartAvailable())
 	{
 		S2C_GAMESTART packet;
@@ -336,7 +336,7 @@ void Room::InitGame()
 		}
 		BroadCasting(&packet);
 		std::cout << "TOTAL USER SID LIST[";
-		
+
 		for (int i = 0; i < 4; ++i) std::cout << _gameLogic._players[i].m_sid << " | ";
 		std::cout << "]\n";
 
@@ -351,12 +351,12 @@ void Room::InitGame()
 }
 void Room::UpdateReady(int32 idx, bool val)
 {
-	_cArr[idx].isReady = val;	
+	_cArr[idx].isReady = val;
 }
 
 bool Room::IsGameStartAvailable()
 {
-	 int cnt = 0;  
+	 int cnt = 0;
 
 	 {
 		 shared_lock<std::shared_mutex> rl(_listLock);
@@ -386,7 +386,7 @@ void RoomManager::CreateRoom(int32 sid)
 	packet.size = sizeof(S2C_ROOM_EVENT);
 
 	if (_rmCnt.load() >= _cap)
-	{	
+	{
 		packet.type = (uint8)S_ROOM_PACKET_TYPE::MK_RM_FAIL;
 		ServerIocpCore._clients[sid]->DoSend(&packet);
 		return;

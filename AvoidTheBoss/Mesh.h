@@ -1,4 +1,4 @@
-//------------------------------------------------------- ----------------------
+﻿//------------------------------------------------------- ----------------------
 // File: Mesh.h
 //-----------------------------------------------------------------------------
 
@@ -158,7 +158,7 @@ protected:
 	D3D12_VERTEX_BUFFER_VIEW		m_d3dBoneWeightBufferView;
 
 public:
-	int								m_nSkinningBones = 0; 
+	int								m_nSkinningBones = 0;
 
 	char							(*m_ppstrSkinningBoneNames)[64];
 	CGameObject						**m_ppSkinningBoneFrameCaches = NULL; //[m_nSkinningBones]

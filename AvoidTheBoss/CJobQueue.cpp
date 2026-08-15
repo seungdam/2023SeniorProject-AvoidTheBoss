@@ -1,10 +1,15 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "CJobQueue.h"
 
 Scheduler::Scheduler()
 {
-	_BeginTickPoint = Clock::now(); // ½ÃÀÛ ½ÃÁ¡Àº Áö±İ
-	_CurrentTick = GetCurrentTick(); // ÇöÀç Æ½ °ª ÃÊ±âÈ­
+	_BeginTickPoint = Clock::now(); // ìŠ¤ì¼€ì¤„ëŸ¬ ì‹œì‘ ì‹œê°
+	_CurrentTick = GetCurrentTick(); // í˜„ì¬ í‹± ì´ˆê¸°í™”
+}
+
+Scheduler::~Scheduler()
+{
+	Clear();
 }
 
 void Scheduler::PushTask(queueEvent* task, float after)
@@ -23,49 +28,54 @@ void Scheduler::PushTask(queueEvent* task)
 
 void Scheduler::DoTasks()
 {
-	/// tick update
+	// í‹± ê°±ì‹ 
 	int32 cycleCnt = 0;
 	while (!_TaskQueue.empty())
 	{
-		if (cycleCnt > 100) break; // 100¹ø µ¹¾Æµµ °è¼Ó ¹«ÇÑ ·çÇÁ¸é ÇÑ¹ø ºüÁ®³ª¿Â´Ù.
-		_CurrentTick = GetCurrentTick(); // ÇöÀç Æ½°ªÀ» ±¸ÇÑ´Ù.
-		queueEvent* jobElem = _TaskQueue.top(); // °¡Àå ¿ì¼±ÀûÀ¸·Î ³ª¿Í¾ßÇÒ ÀÌº¥Æ®¿¡ ´ëÇØ¼­
+		if (cycleCnt > 100) break; // ì•„ì§ ì‹¤í–‰í•  ìˆ˜ ì—†ëŠ” ì‘ì—…ì€ ë‹¤ìŒ í”„ë ˆì„ìœ¼ë¡œ ë„˜ê¸´ë‹¤.
+		_CurrentTick = GetCurrentTick();
+		queueEvent* jobElem = _TaskQueue.top(); // ê°€ì¥ ë¨¼ì € ì‹¤í–‰í•  ì´ë²¤íŠ¸
 		if (_CurrentTick < jobElem->generateTime)
 		{
-			// ÆËÇÏ°í ´Ù½Ã Áı¾î³Ö´Â´Ù.
+			// ìš°ì„ ìˆœìœ„ë¥¼ ê°±ì‹ í•œ ë’¤ ë‹¤ì‹œ ëŒ€ê¸°ì‹œí‚¨ë‹¤.
 			_TaskQueue.pop();
 			_TaskQueue.push(jobElem);
 			cycleCnt += 1;
-			continue; // ¾ÆÁ÷ È£ÃâÇÒ ½ÃÁ¡ÀÌ µÇÁö ¾Ê¾ÒÀ» °æ¿ì ·çÇÁ¸¦ ³ª¿Â´Ù.
+			continue;
 		}
-		jobElem->Task(); // ¸¸¾à È£ÃâÇÒ ½ÃÁ¡ÀÌ µÆ´Ù¸é ÇØ´ç ÀâÀ» ¼öÇàÇÏ°í queue¿¡¼­ Á¦°Å
+		jobElem->Task();
 		_TaskQueue.pop();
 		delete jobElem;
-		
+
 	}
 
 }
 
 void Scheduler::Clear()
 {
-		while (!_TaskQueue.empty())
-		{
-			queueEvent* jobElem = _TaskQueue.top();
-			_TaskQueue.pop();
-			delete jobElem;
-		}
+	while (!_TaskQueue.empty())
+	{
+		queueEvent* jobElem = _TaskQueue.top();
+		_TaskQueue.pop();
+		delete jobElem;
+	}
+	while (!_normalQueue.empty())
+	{
+		delete _normalQueue.front();
+		_normalQueue.pop();
+	}
 }
 
 void Scheduler::DoNormalTasks()
 {
-	/// tick update
+	// ì¼ë°˜ ì‘ì—… ì²˜ë¦¬
 	while (!_normalQueue.empty())
 	{
-		queueEvent* jobElem = _normalQueue.front(); // °¡Àå ¿ì¼±ÀûÀ¸·Î ³ª¿Í¾ßÇÒ ÀÌº¥Æ®¿¡ ´ëÇØ¼­
+		queueEvent* jobElem = _normalQueue.front();
 		_normalQueue.pop();
 		if (jobElem != nullptr)
 		{
-			jobElem->Task(); // ¸¸¾à È£ÃâÇÒ ½ÃÁ¡ÀÌ µÆ´Ù¸é ÇØ´ç ÀâÀ» ¼öÇàÇÏ°í queue¿¡¼­ Á¦°Å
+			jobElem->Task();
 			delete jobElem;
 		}
 	}

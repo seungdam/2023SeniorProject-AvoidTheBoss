@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "CGameManager.h"
 #include "jobQueue.h"
 
@@ -16,31 +16,31 @@ CGameManager::~CGameManager()
 
 void CGameManager::InitGame()
 {
-	// ÇÃ·¹ÀÌ¾î ÃÊ±â À§Ä¡ ¼ÂÆÃ
+	// í”Œë ˆì´ì–´ ì´ˆê¸° ìœ„ì¹˜ ì…‹íŒ…
 	_players[0].SetPosition(XMFLOAT3(0,  0, -18));
 	_players[1].SetPosition(XMFLOAT3(10, 0, -18));
 	_players[2].SetPosition(XMFLOAT3(15, 0, -18));
 	_players[3].SetPosition(XMFLOAT3(20, 0, -18));
 
-	// ¹ßÀü±â À§Ä¡ ¼ÂÆÃ
+	// ë°œì „ê¸° ìœ„ì¹˜ ì…‹íŒ…
 	_generators[0]._pos = XMFLOAT3(-23.12724, 1.146619, 1.814123);
 	_generators[1]._pos = XMFLOAT3(23.08867, 1.083242, 3.155997);
 	_generators[2]._pos = XMFLOAT3(0.6774719, 1.083242, -23.05909);
-	
+
 	_generators[0].ResetState();
 	_generators[1].ResetState();
 	_generators[2].ResetState();
 
 	_gState = GAMESTATE::IN_GAME;
 	_history.Clear();
-	
+
 }
 
 void CGameManager::Update(float eTime)
 {
 	if (GAMESTATE::IN_GAME != _gState) return;
 	{
-		std::unique_lock<std::shared_mutex> ql(_jobQueueLock); // Queue Lock È£Ãâ
+		std::unique_lock<std::shared_mutex> ql(_jobQueueLock); // Queue Lock í˜¸ì¶œ
 		_jobQueue->DoTasks();
 	}
 
@@ -64,13 +64,13 @@ void CGameManager::LateUpdate(float eTime)
 
 void CGameManager::AddEventAfterTime(float after, QueueEvent* qe)
 {
-	std::unique_lock<std::shared_mutex> ql(_jobQueueLock); // Queue Lock È£Ãâ
+	std::unique_lock<std::shared_mutex> ql(_jobQueueLock); // Queue Lock í˜¸ì¶œ
 	_jobQueue->PushTask(qe, after);
 }
 
 void CGameManager::AddEvent(QueueEvent* qe)
 {
-	std::unique_lock<std::shared_mutex> ql(_jobQueueLock); // Queue Lock È£Ãâ
+	std::unique_lock<std::shared_mutex> ql(_jobQueueLock); // Queue Lock í˜¸ì¶œ
 	_jobQueue->PushTask(qe);
 }
 
@@ -93,13 +93,13 @@ GAMESTATE CGameManager::CheckGameState()
 
 void CGameManager::ResetGame()
 {
-	// ¿ùµå È÷½ºÅä¸® ÃÊ±âÈ­
+	// ì›”ë“œ íˆìŠ¤í† ë¦¬ ì´ˆê¸°í™”
 	_history.Clear();
-	// ÇÃ·¹ÀÌ¾î »óÅÂ ÃÊ±âÈ­
+	// í”Œë ˆì´ì–´ ìƒíƒœ ì´ˆê¸°í™”
 	for (auto& i : _players) i.ResetState();
-	// ¹ßÀü±â »óÅÂ ÃÊ±âÈ­
+	// ë°œì „ê¸° ìƒíƒœ ì´ˆê¸°í™”
 	for (auto& i : _generators) i.ResetState();
-	// ÇÃ·¹ÀÌ¾î ÃÊ±â À§Ä¡ ¼ÂÆÃ
+	// í”Œë ˆì´ì–´ ì´ˆê¸° ìœ„ì¹˜ ì…‹íŒ…
 	_players[0].SetPosition(XMFLOAT3(0, 0.25, -18));
 	_players[1].SetPosition(XMFLOAT3(10, 0.25, -18));
 	_players[2].SetPosition(XMFLOAT3(15, 0.25, -18));

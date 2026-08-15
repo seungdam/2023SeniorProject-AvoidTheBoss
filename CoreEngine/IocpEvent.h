@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 
 class ServerSession;
@@ -17,10 +17,10 @@ enum  class EventType : int8
 
 
 //==========================
-//        IOCP EVENT: ¾î¶² »çÀ¯·Î iocp¿¡ ÀÏ°¨ÀÌ µî·ÏµÇ¾ú´Â°¡
+//        IOCP EVENT: ì–´ë–¤ ì‚¬ìœ ë¡œ iocpì— ì¼ê°ì´ ë“±ë¡ë˜ì—ˆëŠ”ê°€
 // =========================
-// »ó¼ÓÀ» ¹ŞÀ¸¸é ¹«Á¶°Ç Ã¹¹øÂ° offsetÀÌ wsaoverlapped °¡ µÈ´Ù.
-// ¿ì¸®°¡ ¼ö¾÷½Ã°£¿¡ overextenÀ» ¸¸µé ¶§, Ã¹ ¸â¹ö º¯¼ö·Î wsaoverlapped¸¦ ³ÖÀº°Í°ú °°´Ù.
+// ìƒì†ì„ ë°›ìœ¼ë©´ ë¬´ì¡°ê±´ ì²«ë²ˆì§¸ offsetì´ wsaoverlapped ê°€ ëœë‹¤.
+// ìš°ë¦¬ê°€ ìˆ˜ì—…ì‹œê°„ì— overextenì„ ë§Œë“¤ ë•Œ, ì²« ë©¤ë²„ ë³€ìˆ˜ë¡œ wsaoverlappedë¥¼ ë„£ì€ê²ƒê³¼ ê°™ë‹¤.
 class IocpEvent : public WSAOVERLAPPED
 {
 public:
@@ -31,11 +31,11 @@ public:
 };
 
 
-//AcceptEx ÇÔ¼ö ÀÎÀÚ¿Í °ü·ÃµÈ Á¤º¸µéÀ» Ãß°¡·Î °¡Áö°í ÀÖ¾î¾ßÇÑ´Ù.
-// ÁÖÀÇ ! virtual ¼Ò¸êÀÚ¸¦ »ç¿ëÇÏÁö ¾Ê´Â´Ù. 
-// offset ¸Ş¸ğ¸®°¡ ´Ù¸¥ °ªÀ¸·Î Ã¤¿öÁú ¼ö ÀÖ±â ¶§¹®ÀÌ´Ù.
+//AcceptEx í•¨ìˆ˜ ì¸ìì™€ ê´€ë ¨ëœ ì •ë³´ë“¤ì„ ì¶”ê°€ë¡œ ê°€ì§€ê³  ìˆì–´ì•¼í•œë‹¤.
+// ì£¼ì˜ ! virtual ì†Œë©¸ìë¥¼ ì‚¬ìš©í•˜ì§€ ì•ŠëŠ”ë‹¤.
+// offset ë©”ëª¨ë¦¬ê°€ ë‹¤ë¥¸ ê°’ìœ¼ë¡œ ì±„ì›Œì§ˆ ìˆ˜ ìˆê¸° ë•Œë¬¸ì´ë‹¤.
 
-// ==== ¼­¹ö ¿¬°á °ü·Ã ÀÌº¥Æ® ====
+// ==== ì„œë²„ ì—°ê²° ê´€ë ¨ ì´ë²¤íŠ¸ ====
 class AcceptEvent : public IocpEvent
 {
 public:
@@ -54,11 +54,11 @@ public:
 };
 
 
-// ==== ¼Û ¼ö½Å °ü·Ã ÀÌº¥Æ® ====
+// ==== ì†¡ ìˆ˜ì‹  ê´€ë ¨ ì´ë²¤íŠ¸ ====
 class SendEvent : public IocpEvent
 {
 public:
-	SendEvent(char* packet) : IocpEvent(EventType::Send) 
+	SendEvent(char* packet) : IocpEvent(EventType::Send)
 	{
 		_sWsaBuf.buf = _sbuf;
 		_sWsaBuf.len = packet[0];
@@ -74,7 +74,7 @@ public:
 class RecvEvent : public IocpEvent
 {
 public:
-	RecvEvent() : IocpEvent(EventType::Recv) 
+	RecvEvent() : IocpEvent(EventType::Recv)
 	{
 		Init();
 		_rWsaBuf.buf = _rbuf;

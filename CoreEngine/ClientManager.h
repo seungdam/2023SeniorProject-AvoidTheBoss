@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "IocpCore.h"
 #include "Session.h"
 
@@ -6,8 +6,8 @@ class ServerSession;
 
 class ClientManager //:public IocpObject
 {
-public: // ÀÎÅÍÆäÀÌ½º ±¸ÇöÇÒ ¿¹Á¤
-	// »ó¼ÓÇÏ°í ÀÖ´Â iocObjectÀÇ Ãß»ó ÇÔ¼öµéÀ» ¿À¹ö¶óÀÌµù
+public: // ì¸í„°í˜ì´ìŠ¤ êµ¬í˜„í•  ì˜ˆì •
+	// ìƒì†í•˜ê³  ìˆëŠ” iocObjectì˜ ì¶”ìƒ í•¨ìˆ˜ë“¤ì„ ì˜¤ë²„ë¼ì´ë”©
 	//virtual HANDLE GetHandle() override;
 	//virtual void Processing(class IocpEvent* iocpEvent, int32 numOfBytes = 0) override;
 public:

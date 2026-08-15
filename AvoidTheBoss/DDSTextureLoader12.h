@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #ifndef _WIN32
 #include <wsl/winadapter.h>

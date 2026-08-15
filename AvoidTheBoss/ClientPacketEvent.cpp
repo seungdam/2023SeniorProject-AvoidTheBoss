@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "ClientPacketEvent.h"
 #include "GameFramework.h"
 #include "CBoss.h"
@@ -34,7 +34,7 @@ void InteractionEvent::Task()
 		if(targetGen->m_bAlreadyOn) targetGen->SetAlreadyOn(false);
 	}
 	break;
-	// ¸¸¾à ½ºÀ§Ä¡ È°¼ºÈ­°¡ µÆ´Ù´Â ÆÐÅ¶ÀÌ Àü¼Û µÇ¾úÀ» ¶§,
+	// ë§Œì•½ ìŠ¤ìœ„ì¹˜ í™œì„±í™”ê°€ ëë‹¤ëŠ” íŒ¨í‚·ì´ ì „ì†¡ ë˜ì—ˆì„ ë•Œ,
 	case EVENT_TYPE::SWITCH_ONE_ACTIVATE_EVENT:
 	case EVENT_TYPE::SWITCH_TWO_ACTIVATE_EVENT:
 	case EVENT_TYPE::SWITCH_THREE_ACTIVATE_EVENT:
@@ -44,7 +44,7 @@ void InteractionEvent::Task()
 		targetGen->m_bGenActive = true;
 		gc->m_ActiveGeneratorCnt += 1;
 
-		if (gc->m_ActiveGeneratorCnt >= GENCNT) gc->m_bEmpExit = true; // Å»Ãâ Á¶°Ç true
+		if (gc->m_ActiveGeneratorCnt >= GENCNT) gc->m_bEmpExit = true; // íƒˆì¶œ ì¡°ê±´ true
 
 	}
 	break;
@@ -72,8 +72,8 @@ void InteractionEvent::Task()
 	case EVENT_TYPE::ATTACKED_PLAYER_TWO:
 	case EVENT_TYPE::ATTACKED_PLAYER_THREE:
 	case EVENT_TYPE::ATTACKED_PLAYER_FOUR:
-		// ========= ÇÃ·¹ÀÌ¾î ÇÇ°Ý °ü·Ã ¾Ö´Ï¸ÞÀÌ¼Ç Àç»ý
-		// ========= ÇÃ·¹ÀÌ¾î HP Á¦°Å ================
+		// ========= í”Œë ˆì´ì–´ í”¼ê²© ê´€ë ¨ ì• ë‹ˆë©”ì´ì…˜ ìž¬ìƒ
+		// ========= í”Œë ˆì´ì–´ HP ì œê±° ================
 	{
 
 		CPlayer* player = gc->m_players[eventId - (int8)(EVENT_TYPE::ATTACKED_PLAYER_ONE)];
@@ -104,8 +104,8 @@ void InteractionEvent::Task()
 	case EVENT_TYPE::ALIVE_PLAYER_TWO:
 	case EVENT_TYPE::ALIVE_PLAYER_THREE:
 	case EVENT_TYPE::ALIVE_PLAYER_FOUR:
-		// ========= ÇÃ·¹ÀÌ¾î ÇÇ°Ý °ü·Ã ¾Ö´Ï¸ÞÀÌ¼Ç Àç»ý
-		// ========= ÇÃ·¹ÀÌ¾î HP Á¦°Å ================
+		// ========= í”Œë ˆì´ì–´ í”¼ê²© ê´€ë ¨ ì• ë‹ˆë©”ì´ì…˜ ìž¬ìƒ
+		// ========= í”Œë ˆì´ì–´ HP ì œê±° ================
 	{
 		CPlayer* player = gc->m_players[eventId - (int8)(EVENT_TYPE::ALIVE_PLAYER_ONE)];
 		if (player == nullptr) break;
@@ -118,8 +118,8 @@ void InteractionEvent::Task()
 	case EVENT_TYPE::EXIT_PLAYER_TWO:
 	case EVENT_TYPE::EXIT_PLAYER_THREE:
 	case EVENT_TYPE::EXIT_PLAYER_FOUR:
-		// ========= ÇÃ·¹ÀÌ¾î ÇÇ°Ý °ü·Ã ¾Ö´Ï¸ÞÀÌ¼Ç Àç»ý
-		// ========= ÇÃ·¹ÀÌ¾î HP Á¦°Å ================
+		// ========= í”Œë ˆì´ì–´ í”¼ê²© ê´€ë ¨ ì• ë‹ˆë©”ì´ì…˜ ìž¬ìƒ
+		// ========= í”Œë ˆì´ì–´ HP ì œê±° ================
 	{
 		CPlayer* player = gc->m_players[eventId - (int8)(EVENT_TYPE::ALIVE_PLAYER_ONE)];
 		if (player == nullptr) break;

@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "AcceptManager.h"
 #include "SocketUtil.h"
 
@@ -25,7 +25,7 @@ HANDLE AcceptManager::GetHandle()
 
 void AcceptManager::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 {
-	// iocpEvent¸¦ º¹¿øÇÑ´Ù.
+	// iocpEventë¥¼ ë³µì›í•œë‹¤.
 	ASSERT_CRASH(iocpEvent->_comp == EventType::Accept);
 	AcceptEvent* acceptEvent = static_cast<AcceptEvent*>(iocpEvent);
 	ProcessAccept(acceptEvent);
@@ -41,7 +41,7 @@ bool AcceptManager::InitAccept()
 	if (ServerIocpCore.Register(this) == false)
 		return false;
 
-	if (SocketUtil::SetReuseAddress(_listenSock, true) == false) // Àç»ç¿ë °¡´ÉÇÑ ÁÖ¼ÒÀÎÁö È®ÀÎ
+	if (SocketUtil::SetReuseAddress(_listenSock, true) == false) // ì¬ì‚¬ìš© ê°€ëŠ¥í•œ ì£¼ì†Œì¸ì§€ í™•ì¸
 		return false;
 
 	if (SocketUtil::SetLinger(_listenSock, 0, 0) == false)
@@ -68,33 +68,33 @@ void AcceptManager::CloseSocket()
 	SocketUtil::Close(_listenSock);
 }
 
-// Accept Event¸¦ °É¾îÁà Iocp¿¡¼­ Ã³¸®ÇÒ ¼ö ÀÖ´Â ÀÏ°¨À» ´øÁ®ÁÖ´Â ¿ªÇÒÀ» ¼öÇàÇÑ´Ù.
-// SocketUtil::AcceptEx¸¦ ¿©±â¼­ »ç¿ëÇÒ °ÍÀÓ.
+// Accept Eventë¥¼ ê±¸ì–´ì¤˜ Iocpì—ì„œ ì²˜ë¦¬í•  ìˆ˜ ìˆëŠ” ì¼ê°ì„ ë˜ì ¸ì£¼ëŠ” ì—­í• ì„ ìˆ˜í–‰í•œë‹¤.
+// SocketUtil::AcceptExë¥¼ ì—¬ê¸°ì„œ ì‚¬ìš©í•  ê²ƒì„.
 void AcceptManager::RegisterAccept(AcceptEvent* acceptEvent)
 {
 	ServerSession* session = new ServerSession();
 
-	// ³ªÁß¿¡ ¾î¶² ¼¼¼Ç¿¡ °üÇØ ÀÌ¸¦ ÁøÇàÇß´ÂÁö ¾Ë ¼ö ÀÖ±â À§ÇØ¼­ acceptEvent¿¡ ¼¼¼ÇÀ» Æ÷ÇÔÇØ¼­ ³Ñ°ÜÁÖµµ·Ï ÇÑ´Ù.
+	// ë‚˜ì¤‘ì— ì–´ë–¤ ì„¸ì…˜ì— ê´€í•´ ì´ë¥¼ ì§„í–‰í–ˆëŠ”ì§€ ì•Œ ìˆ˜ ìˆê¸° ìœ„í•´ì„œ acceptEventì— ì„¸ì…˜ì„ í¬í•¨í•´ì„œ ë„˜ê²¨ì£¼ë„ë¡ í•œë‹¤.
 	acceptEvent->Init();
 	acceptEvent->_session = session;
 
 	DWORD recvBytes(0);
-	
-	// 1. ¸®½¼ ¼ÒÄÏ
-	// 2. Å¬¶ó ¼ÒÄÏ
-	// 3. accept½Ã Àü´ŞµÇ´Â µ¥ÀÌÅÍ
-	// 4. 5. ¿ø°İ ÁÖ¼Ò¿Í ·ÎÄÃ ÁÖ¼Ò¸¦ ´ã±â À§ÇÑ ¹öÆÛ »çÀÌÁî·Î SOCKADDR_IN + 16 Å©±â·Î °íÁ¤µÊ
+
+	// 1. ë¦¬ìŠ¨ ì†Œì¼“
+	// 2. í´ë¼ ì†Œì¼“
+	// 3. acceptì‹œ ì „ë‹¬ë˜ëŠ” ë°ì´í„°
+	// 4. 5. ì›ê²© ì£¼ì†Œì™€ ë¡œì»¬ ì£¼ì†Œë¥¼ ë‹´ê¸° ìœ„í•œ ë²„í¼ ì‚¬ì´ì¦ˆë¡œ SOCKADDR_IN + 16 í¬ê¸°ë¡œ ê³ ì •ë¨
 	bool retVal = SocketUtil::AcceptEx(_listenSock, session->_sock, acceptEvent->_buf, (BUFSIZE / 2) - 1,
 		sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, OUT &recvBytes, static_cast<LPOVERLAPPED>(acceptEvent));
-	
+
 	if (!retVal)
 	{
 		const int32 errorCode = ::WSAGetLastError();
 		if (errorCode != WSA_IO_PENDING)
 		{
 			delete session;
-			// ÀÏ´Ü ´Ù½Ã Accept °É¾îÁØ´Ù.
-			// accept¸¦ ½ÇÆĞÇÑ °æ¿ì ´Ù½Ã ´Ù¸¥ Å¬¶óÀÌ¾ğÆ®°¡ ¿¬°áµÉ ¼ö ÀÖµµ·Ï ÇÑ´Ù.
+			// ì¼ë‹¨ ë‹¤ì‹œ Accept ê±¸ì–´ì¤€ë‹¤.
+			// acceptë¥¼ ì‹¤íŒ¨í•œ ê²½ìš° ë‹¤ì‹œ ë‹¤ë¥¸ í´ë¼ì´ì–¸íŠ¸ê°€ ì—°ê²°ë  ìˆ˜ ìˆë„ë¡ í•œë‹¤.
 			acceptEvent->_session = nullptr;
 			std::cout << "Accept Error" << std::endl;
 			RegisterAccept(acceptEvent);
@@ -106,42 +106,42 @@ void AcceptManager::RegisterAccept(AcceptEvent* acceptEvent)
 
 
 
-// Accept Ã³¸® ¿Ï·á ½Ã , ÈÄÃ³¸®¸¦ ÁøÇàÇÑ´Ù. callBack Ã³¸®
+// Accept ì²˜ë¦¬ ì™„ë£Œ ì‹œ , í›„ì²˜ë¦¬ë¥¼ ì§„í–‰í•œë‹¤. callBack ì²˜ë¦¬
 void AcceptManager::ProcessAccept(AcceptEvent* acceptEvent)
 {
-	ServerSession* session = acceptEvent->_session; // º¹¿øµÈ ¼¼¼ÇÀ» °¡Á®¿Â´Ù.
-	ASSERT_CRASH(ServerIocpCore.Register(session)); // iocpÇÚµé¿¡ ¼ÒÄÏ µî·Ï
+	ServerSession* session = acceptEvent->_session; // ë³µì›ëœ ì„¸ì…˜ì„ ê°€ì ¸ì˜¨ë‹¤.
+	ASSERT_CRASH(ServerIocpCore.Register(session)); // iocpí•¸ë“¤ì— ì†Œì¼“ ë“±ë¡
 	C2S_LOGIN* lp = reinterpret_cast<C2S_LOGIN*>(acceptEvent->_buf);
-	
-	
-	
+
+
+
 
 	int32 sid = GetNewSessionIdx();
 	session->_sid = sid;
 	session->_cid = sid;
-	
-	
-	//Å¬¶óÀÌ¾ğÆ® ¼ÒÄÏ°ú ¼­¹ö ¸®½¼ ¼ÒÄÏ°ú ¿É¼ÇÀ» µ¿ÀÏÇÏ°Ô ¸ÂÃçÁØ´Ù.
-	
+
+
+	//í´ë¼ì´ì–¸íŠ¸ ì†Œì¼“ê³¼ ì„œë²„ ë¦¬ìŠ¨ ì†Œì¼“ê³¼ ì˜µì…˜ì„ ë™ì¼í•˜ê²Œ ë§ì¶°ì¤€ë‹¤.
+
 	if (false == SocketUtil::SetUpdateAcceptSocket(session->_sock, _listenSock))
 	{
 		RegisterAccept(acceptEvent);
 		return;
 	}
 
-	// Å¬¶óÀÌ¾ğÆ® ID ¼ÂÆÃ or unordered_map ÄÁÅ×ÀÌ³Ê¿¡ ´ã´Â´Ù.
+	// í´ë¼ì´ì–¸íŠ¸ ID ì…‹íŒ… or unordered_map ì»¨í…Œì´ë„ˆì— ë‹´ëŠ”ë‹¤.
 	// TODO
-	
+
 	curAcceptCnt.fetch_add(1);
-	{ // ¸Ê¿¡´Ù Ãß°¡ÇÏ´Â ÆÄÆ® ÀÌ¹Ç·Î ¶ô °É¾îÁØ´Ù.
+	{ // ë§µì—ë‹¤ ì¶”ê°€í•˜ëŠ” íŒŒíŠ¸ ì´ë¯€ë¡œ ë½ ê±¸ì–´ì¤€ë‹¤.
 
 		WRITE_SERVER_LOCK;
-		ServerIocpCore._cList.insert(sid);                 
-		ServerIocpCore._clients.try_emplace(sid, session); 
+		ServerIocpCore._cList.insert(sid);
+		ServerIocpCore._clients.try_emplace(sid, session);
 		std::cout << sid << " Accept Success\n";
 	}
-	
-	
+
+
 	S2C_ROOM_LIST packet;
 	packet.size = sizeof(S2C_ROOM_LIST);
 	packet.type = (uint8)S_ROOM_PACKET_TYPE::UPDATE_LIST;
@@ -151,14 +151,14 @@ void AcceptManager::ProcessAccept(AcceptEvent* acceptEvent)
 		packet.rmNum = session->_curPage * 5 + i;
 		session->DoSend(&packet);
 	}
-	session->DoRecv();  // recv »óÅÂ·Î ¸¸µç´Ù.
+	session->DoRecv();  // recv ìƒíƒœë¡œ ë§Œë“ ë‹¤.
 	acceptEvent->_session = nullptr;
-	RegisterAccept(acceptEvent); // ´Ù½Ã acceptEvent¸¦ µî·ÏÇÑ´Ù.
+	RegisterAccept(acceptEvent); // ë‹¤ì‹œ acceptEventë¥¼ ë“±ë¡í•œë‹¤.
 }
 
 int32 AcceptManager::GetNewSessionIdx()
 {
 
 	return curAcceptCnt.load();
-	
+
 }

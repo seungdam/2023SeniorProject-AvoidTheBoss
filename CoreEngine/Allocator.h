@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 //============
 // BasicAllocator
@@ -7,22 +7,22 @@ class BasicAllocator
 {
 public:
 
-	static void* Alloc(size_t s); 
+	static void* Alloc(size_t s);
 	static void  Rel(void* ptr);
 };
 
 
 // ============
-// Stomp Allocator 
-// ¸Ş¸ğ¸® ¿À¿° ¹ö±×¸¦ Ã£´Âµ¥ °¡Àå À¯¿ëÇÑ ±â´ÉÀÌ¶ó°í º¼ ¼ö ÀÖ´Ù.
-// ¿À¿°µÈ ¸Ş¸ğ¸®¿¡ °ü·ÃÇÏ¿© ¾ğÁ¦ ¾î´À »óÈ²¿¡ ¹ß»ıÇÏ´ÂÁö ¾Ë ±â¶õ ¸Å¿ì Èûµç »óÈ²
-// 
-// 
+// Stomp Allocator
+// ë©”ëª¨ë¦¬ ì˜¤ì—¼ ë²„ê·¸ë¥¼ ì°¾ëŠ”ë° ê°€ì¥ ìœ ìš©í•œ ê¸°ëŠ¥ì´ë¼ê³  ë³¼ ìˆ˜ ìˆë‹¤.
+// ì˜¤ì—¼ëœ ë©”ëª¨ë¦¬ì— ê´€ë ¨í•˜ì—¬ ì–¸ì œ ì–´ëŠ ìƒí™©ì— ë°œìƒí•˜ëŠ”ì§€ ì•Œ ê¸°ë€ ë§¤ìš° í˜ë“  ìƒí™©
+//
+//
 // ============
 
 class StompAllocator
 {
-	enum  { PAGESIZE = 0x1000 }; // page »çÀÌÁîÀÇ ¹è¼ö¿¡ ÇØ´çÇÏ´Â °ªÀ» ÀÔ·ÂÇÒ ¼ö ÀÖ´Ù.
+	enum  { PAGESIZE = 0x1000 }; // page ì‚¬ì´ì¦ˆì˜ ë°°ìˆ˜ì— í•´ë‹¹í•˜ëŠ” ê°’ì„ ì…ë ¥í•  ìˆ˜ ìˆë‹¤.
 public:
 
 	static void* Alloc(int32 s);
@@ -42,15 +42,15 @@ public:
 	using value_type = T;
 
 	STLAllocator() {};
-	
+
 	template<class Other>
 	STLAllocator(const STLAllocator<Other>&) {};
 
-	T* allocate(size_t count) // ¹«¾ğ°¡¸¦ ÇÒ´ç
+	T* allocate(size_t count) // ë¬´ì–¸ê°€ë¥¼ í• ë‹¹
 	{
 		const int32 size = static_cast<int32>(count * sizeof(T));
 		return static_cast<T*>(Xalloc(size));
-		// °´Ã¼ Å¸ÀÔ * Ä«¿îÆ® ¸¸Å­ÀÌ ¸Ş¸ğ¸® »çÀÌÁî
+		// ê°ì²´ íƒ€ì… * ì¹´ìš´íŠ¸ ë§Œí¼ì´ ë©”ëª¨ë¦¬ ì‚¬ì´ì¦ˆ
 	}
 	void deallocate(T* ptr, size_t count)
 	{

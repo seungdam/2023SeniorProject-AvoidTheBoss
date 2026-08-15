@@ -1,4 +1,4 @@
-//-----------------------------------------------------------------------------
+﻿//-----------------------------------------------------------------------------
 // File: Shader.h
 //-----------------------------------------------------------------------------
 
@@ -14,7 +14,7 @@ public:
 	virtual ~CShader();
 
 private:
-	int								
+	int
 		m_nReferences = 0;
 
 public:
@@ -36,9 +36,8 @@ public:
 	virtual D3D12_SHADER_BYTECODE CreatePixelShader();
 
 	D3D12_SHADER_BYTECODE CompileShaderFromFile(const WCHAR *pszFileName, LPCSTR pszShaderName, LPCSTR pszShaderProfile, ID3DBlob **ppd3dShaderBlob);
-	D3D12_SHADER_BYTECODE ReadCompiledShaderFromFile(WCHAR *pszFileName, ID3DBlob **ppd3dShaderBlob=NULL);
 
-	virtual void CreateShader(ID3D12Device5 *pd3dDevice, 
+	virtual void CreateShader(ID3D12Device5 *pd3dDevice,
 		ID3D12GraphicsCommandList4
 		*pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature);
 

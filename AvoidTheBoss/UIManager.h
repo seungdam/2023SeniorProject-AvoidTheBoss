@@ -1,23 +1,23 @@
-#pragma once
+ï»¿#pragma once
 
-// UI¸Å´ÏÀú °³¿ä
-// °ÔÀÓ ÇÁ·¹ÀÓ¿öÅ© ½ÃÀÛ ½Ã, °¢ È­¸é¿¡ ÇÊ¿äÇÑ ¸ğµç UI ÀÌ¹ÌÁö¸¦ ·ÎµåÇÑ´Ù. WCI ÄÁ¹öÅÍ¸¦ È°¿ë
-// D2D¸¦ È°¿ëÇØ¼­ ÀÌ¹ÌÁö¸¦ ±×¸°´Ù.
+// UIë§¤ë‹ˆì € ê°œìš”
+// ê²Œì„ í”„ë ˆì„ì›Œí¬ ì‹œì‘ ì‹œ, ê° í™”ë©´ì— í•„ìš”í•œ ëª¨ë“  UI ì´ë¯¸ì§€ë¥¼ ë¡œë“œí•œë‹¤. WCI ì»¨ë²„í„°ë¥¼ í™œìš©
+// D2Dë¥¼ í™œìš©í•´ì„œ ì´ë¯¸ì§€ë¥¼ ê·¸ë¦°ë‹¤.
 // LobbyButton
 
 const int32 MAX_HP = 3;
 
 struct UITextBlock
 {
-    std::wstring                    m_pstrText; // Ãâ·ÂÇÒ ÅØ½ºÃ³
-    D2D1_RECT_F                     m_d2dLayoutRect; // Ãâ·ÂÇÒ ·¹ÀÌ¾Æ¿ô ¿µ¿ª
-    IDWriteTextFormat*              m_pdwFormat = NULL; // ÀÔ·Â Æ÷¸Ë
-    ID2D1SolidColorBrush*           m_pd2dTextBrush= NULL; // ÅØ½ºÃ³¸¦ Ãâ·ÂÇÒ ºê·¯½¬
+    std::wstring                    m_pstrText; // ì¶œë ¥í•  í…ìŠ¤ì²˜
+    D2D1_RECT_F                     m_d2dLayoutRect; // ì¶œë ¥í•  ë ˆì´ì•„ì›ƒ ì˜ì—­
+    IDWriteTextFormat*              m_pdwFormat = NULL; // ì…ë ¥ í¬ë§·
+    ID2D1SolidColorBrush*           m_pd2dTextBrush= NULL; // í…ìŠ¤ì²˜ë¥¼ ì¶œë ¥í•  ë¸ŒëŸ¬ì‰¬
     bool                            m_hide = false;
 };
 struct UIButton
 {
-    D2D1_RECT_F                     d2dLayoutRect; // Ãâ·ÂÇÒ ·¹ÀÌ¾Æ¿ô ¿µ¿ª
+    D2D1_RECT_F                     d2dLayoutRect; // ì¶œë ¥í•  ë ˆì´ì•„ì›ƒ ì˜ì—­
     ID2D1Bitmap*                    resource = NULL;
     bool                            m_hide = false;
 };
@@ -31,19 +31,19 @@ struct ANIMButton
 };
 struct UIBackGround
 {
-    D2D1_RECT_F                     d2dLayoutRect; // Ãâ·ÂÇÒ ·¹ÀÌ¾Æ¿ô ¿µ¿ª
+    D2D1_RECT_F                     d2dLayoutRect; // ì¶œë ¥í•  ë ˆì´ì•„ì›ƒ ì˜ì—­
     ID2D1Bitmap*                    resource = NULL;
 };
 
 struct GuageUI
 {
     bool                            m_hide;
-    D2D1_RECT_F                     d2dLayoutRect[2]; // Å×µÎ¸®¶û ´Ù Ã¤¿î ¿ëµµ ÇÏ³ª
+    D2D1_RECT_F                     d2dLayoutRect[2]; // í…Œë‘ë¦¬ë‘ ë‹¤ ì±„ìš´ ìš©ë„ í•˜ë‚˜
 };
 
 struct InGameUI
 {
-    D2D1_RECT_F                     d2dLayoutRect; // Ãâ·ÂÇÒ ·¹ÀÌ¾Æ¿ô ¿µ¿ª
+    D2D1_RECT_F                     d2dLayoutRect; // ì¶œë ¥í•  ë ˆì´ì•„ì›ƒ ì˜ì—­
     ID2D1Bitmap*                    resource = NULL;
     bool                            m_hide = false;
 };
@@ -56,6 +56,7 @@ class UIManager
 
 public:
     UIManager(UINT nFrames, ID3D12Device5* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Resource** ppd3dRenderTargets, UINT nWidth, UINT nHeight);
+    ~UIManager();
 
     void CreateD2DDevice();
     ID2D1Bitmap1* LoadPngFromFile(const wchar_t* filePath);
@@ -65,7 +66,7 @@ public:
     void UpdateRoomTextBlocks(UINT nIndex,const WCHAR* pstrUIText, const D2D1_RECT_F& pd2dLayoutRect, bool hide);
     void UpdateRoomText();
 
-   
+
 
     void Render2D(UINT nFrame,int32 curScene);
     void ReleaseResources();
@@ -108,72 +109,72 @@ public:
 
     // TextBlock
     UINT                           m_nTextBlocks = 0;
-    IDWriteTextFormat*             m_TitleTextFormat;
-    IDWriteTextFormat*             m_LobbyTextFormat;
-    
-    
-    
-    // ¹è°æ ·¹ÀÌ¾î ºñÆ®¸Êµé
+    IDWriteTextFormat*             m_TitleTextFormat = nullptr;
+    IDWriteTextFormat*             m_LobbyTextFormat = nullptr;
+
+
+
+    // ë°°ê²½ ë ˆì´ì–´ ë¹„íŠ¸ë§µë“¤
     UIBackGround m_backGround[5];
 
-    // Å¸ÀÌÆ² Àü¿ë
+    // íƒ€ì´í‹€ ì „ìš©
     ANIMButton m_LoginResult[3];
 
-    // ¹öÆ° ºñÆ®¸Êµé
+    // ë²„íŠ¼ ë¹„íŠ¸ë§µë“¤
     int m_nRoomListPerPage = 5;
     UIButton m_TitleButtons[3];
-    
-    // ·Îºñ Àü¿ë
+
+    // ë¡œë¹„ ì „ìš©
     UIButton m_LobbyButtons[3];
     UITextBlock m_RoomListTextBlock[5];
-    
+
     int32 m_lastRoomPage = 0;
     int32 m_selectedLayout = -1;
     D2D1_RECT_F m_RoomListLayout[5];
 
-    // ¹æ Àü¿ë
+    // ë°© ì „ìš©
     UIButton m_RoomButtons[2];
 
-    // ÀÎ °ÔÀÓ
-    InGameUI m_RescueIcon; // »ì¸®±â UI
-    InGameUI m_CharCrossHead; // Á¶ÁØ¼± UI
+    // ì¸ ê²Œì„
+    InGameUI m_RescueIcon; // ì‚´ë¦¬ê¸° UI
+    InGameUI m_CharCrossHead; // ì¡°ì¤€ì„  UI
 
-    int m_nAttackedUI = 5; // ÇÇ°İ UI ÅØ½ºÃÄ ¼ö
-    InGameUI m_AttackedEffect[5]; // ÇÇ°İ UI ÅØ½ºÃÄ
-    
-    float m_AttackedOpacity[5]; // ÇÇ°İ UI Åõ¸íµµ
-    float m_CrossHeadOpacity = 0.8f; // Á¶ÁØ¼± Åõ¸íµµ
+    int m_nAttackedUI = 5; // í”¼ê²© UI í…ìŠ¤ì³ ìˆ˜
+    InGameUI m_AttackedEffect[5]; // í”¼ê²© UI í…ìŠ¤ì³
+
+    float m_AttackedOpacity[5]; // í”¼ê²© UI íˆ¬ëª…ë„
+    float m_CrossHeadOpacity = 0.8f; // ì¡°ì¤€ì„  íˆ¬ëª…ë„
 
 
-    // ÀÎ °ÔÀÓ Àü¿ë
+    // ì¸ ê²Œì„ ì „ìš©
     int32                      m_playerIdx = -1;
     UIButton                   m_GenerateUIButtons[23];
-    UIButton                   m_CharProfile[4]; // ´Ù¸¥ Ä³¸¯ÅÍ ÃÊ»óÈ­ Ç¥½Ã
-    
-    ID2D1Bitmap*               m_CharStatusBitmaps[3]; // ºñÆ®¸Ê ¸®¼Ò½º¸¦ °¡Á®¿Í¼­ °øÀ¯ÇÑ´Ù.
-    ID2D1Bitmap*               m_HpBitmap;
+    UIButton                   m_CharProfile[4]; // ë‹¤ë¥¸ ìºë¦­í„° ì´ˆìƒí™” í‘œì‹œ
 
-    D2D_RECT_F                 m_myProfileLayout; // ÀÚ±â Ä³¸¯ÅÍ ·¹ÀÌ¾Æ¿ô
+    ID2D1Bitmap*               m_CharStatusBitmaps[3] = {}; // ë¹„íŠ¸ë§µ ë¦¬ì†ŒìŠ¤ë¥¼ ê°€ì ¸ì™€ì„œ ê³µìœ í•œë‹¤.
+    ID2D1Bitmap*               m_HpBitmap = nullptr;
 
-    InGameUI                   m_CharStatus[3]; // Ä³¸¯ÅÍ »óÅÂ
-    InGameUI                   m_HPUi[MAX_HP];    // Ä³¸¯ÅÍ HP
+    D2D_RECT_F                 m_myProfileLayout; // ìê¸° ìºë¦­í„° ë ˆì´ì•„ì›ƒ
+
+    InGameUI                   m_CharStatus[3]; // ìºë¦­í„° ìƒíƒœ
+    InGameUI                   m_HPUi[MAX_HP];    // ìºë¦­í„° HP
     GuageUI                    m_RescueGuage;
 
-    // µ¿ÀûÀ¸·Î ¹Ù²î´Â ÅØ½ºÆ® ¹öÆ°µé Id,PW 
+    // ë™ì ìœ¼ë¡œ ë°”ë€ŒëŠ” í…ìŠ¤íŠ¸ ë²„íŠ¼ë“¤ Id,PW
     UITextBlock                m_IDPWTextBlocks[2];
-    // ·¹µğ ¹öÆ°
+    // ë ˆë”” ë²„íŠ¼
     UIButton                   m_ReadyBitmaps[4];
     UIButton                   m_ReadyCard[4];
 
-   
-    // °á°úÃ¢ 
+
+    // ê²°ê³¼ì°½
     UITextBlock m_ResultTextBlock[2];
-    
-    // ·¹ÀÌ¾î À§Ä¡ Ãâ·ÂÀ» À§ÇÑ ºê·¯½Ã
-    ID2D1SolidColorBrush* redBrush; // »¡°­
-    ID2D1SolidColorBrush* grayBrush; // È¸»ö
-    ID2D1SolidColorBrush* blackBrush; // È¸»ö
-    ID2D1SolidColorBrush* whiteBrush;
-    ID2D1SolidColorBrush* greenBrush;
+
+    // ë ˆì´ì–´ ìœ„ì¹˜ ì¶œë ¥ì„ ìœ„í•œ ë¸ŒëŸ¬ì‹œ
+    ID2D1SolidColorBrush* redBrush = nullptr; // ë¹¨ê°•
+    ID2D1SolidColorBrush* grayBrush = nullptr; // íšŒìƒ‰
+    ID2D1SolidColorBrush* blackBrush = nullptr; // íšŒìƒ‰
+    ID2D1SolidColorBrush* whiteBrush = nullptr;
+    ID2D1SolidColorBrush* greenBrush = nullptr;
 };
 

@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "clientIocpCore.h"
 #include "SocketUtil.h"
 #include "IocpEvent.h"
@@ -19,12 +19,13 @@ CCIocpCore::CCIocpCore()
 
 CCIocpCore::~CCIocpCore()
 {
-	
+	delete _client;
+	_client = nullptr;
 }
 
 void CCIocpCore::InitConnect(const char* address)
 {
-	
+
 		_client->_sock = SocketUtil::CreateSocket();
 		_client->_sid = -1;
 		ASSERT_CRASH(_client->_sock != INVALID_SOCKET);
@@ -35,18 +36,19 @@ void CCIocpCore::InitConnect(const char* address)
 		inet_pton(AF_INET, address, &_serveraddr.sin_addr);
 		_serveraddr.sin_port = htons(PORTNUM);
 		ASSERT_CRASH(Register(static_cast<IocpObject*>(_client)));
-	
-	
+
+
 }
 
 void CCIocpCore::DoConnect(void* loginInfo)
 {
-	
+
 	if (!_client) return;
 		_client->_sid = 0;
 		DWORD sendBytes(0);
 		DWORD sendLength = BUFSIZE / 2;
 		ConnectEvent* _connectEvent = new ConnectEvent();
+		_client->BeginIo();
 		//memcpy(_connectEvent->_buf, loginInfo, BUFSIZE / 2);
 		bool retVal = SocketUtil::ConnectEx(_client->_sock, reinterpret_cast<sockaddr*>(&_serveraddr), sizeof(_serveraddr), _connectEvent->_buf, (BUFSIZE / 2) - 1, NULL,
 			static_cast<LPWSAOVERLAPPED>(_connectEvent));
@@ -56,35 +58,46 @@ void CCIocpCore::DoConnect(void* loginInfo)
 			const int32 errorCode = ::WSAGetLastError();
 			if (errorCode == WSAETIMEDOUT)
 			{
-			
+				_client->CompleteIo();
 				delete _connectEvent;
 				std::cout << "Time Out\n";
 				DoConnect(nullptr);
 			}
 			else if (errorCode != WSA_IO_PENDING)
 			{
+				_client->CompleteIo();
 				delete _connectEvent;
 				std::cout << errorCode << std::endl;
 				std::cout << "Connect Error" << std::endl;
-				
+
 				Disconnect(0);
 			}
-			
+
 		}
-	
+
 }
 
 bool CCIocpCore::Processing(uint32_t timelimit)
 {
-		DWORD numOfBytes(0); // ¸î ¹ÙÀÌÆ®°¡ Àü¼ÛµÇ¾ú´Â°¡?
-		IocpObject* iocpObject = nullptr; // ÀÏ°¨ÀÌ ¿Ï·áµÈ iocpObjectÀÇ Á¾·ù¸¦ º¹¿øÇÏ±â À§ÇÑ IocpObject
-		IocpEvent* iocpEvent = nullptr; // ÀÏ°¨ÀÌ ¿Ï·áµÈ iocpEventÀÇ Á¾·ù(AcceptÀÎ°¡?)
+		DWORD numOfBytes(0); // ëª‡ ë°”ì´íŠ¸ê°€ ì „ì†¡ë˜ì—ˆëŠ”ê°€?
+		IocpObject* iocpObject = nullptr; // ì¼ê°ì´ ì™„ë£Œëœ iocpObjectì˜ ì¢…ë¥˜ë¥¼ ë³µì›í•˜ê¸° ìœ„í•œ IocpObject
+		IocpEvent* iocpEvent = nullptr; // ì¼ê°ì´ ì™„ë£Œëœ iocpEventì˜ ì¢…ë¥˜(Acceptì¸ê°€?)
 
-		BOOL retVal = ::GetQueuedCompletionStatus(_hIocp, OUT & numOfBytes, reinterpret_cast<PULONG_PTR>(&iocpObject), // ÇÏÁö¸¸ ÀÌ·¸°Ô iocpObject¸¦ ÀÎÀÚ·Î ³Ñ°ÜÁÖ°Ô µÇ¸é, ´Ù¸¥ ½º·¹µå¿¡¼­ ÀÌ ¿ÀºêÁ§Æ®¸¦ »èÁ¦ÇßÀ» ¶§, ¹®Á¦°¡ »ı±æ ¼öµµ ÀÖ´Ù. --> 
-			//¾ÖÃÊ¿¡ iocpEvent¿¡¼­ ÇØ´ç iocp°´Ã¼µé¿¡ °üÇÑ Á¤º¸(ÇØ´ç ÀÌº¥Æ®¸¦ È£ÃâÇÑ ÁÖÀÎ iocp°´Ã¼µé)À» ´ã°í ÀÖµµ·ÏÇÏÀÚ.
+		BOOL retVal = ::GetQueuedCompletionStatus(_hIocp, OUT & numOfBytes, reinterpret_cast<PULONG_PTR>(&iocpObject), // í•˜ì§€ë§Œ ì´ë ‡ê²Œ iocpObjectë¥¼ ì¸ìë¡œ ë„˜ê²¨ì£¼ê²Œ ë˜ë©´, ë‹¤ë¥¸ ìŠ¤ë ˆë“œì—ì„œ ì´ ì˜¤ë¸Œì íŠ¸ë¥¼ ì‚­ì œí–ˆì„ ë•Œ, ë¬¸ì œê°€ ìƒê¸¸ ìˆ˜ë„ ìˆë‹¤. -->
+			//ì• ì´ˆì— iocpEventì—ì„œ í•´ë‹¹ iocpê°ì²´ë“¤ì— ê´€í•œ ì •ë³´(í•´ë‹¹ ì´ë²¤íŠ¸ë¥¼ í˜¸ì¶œí•œ ì£¼ì¸ iocpê°ì²´ë“¤)ì„ ë‹´ê³  ìˆë„ë¡í•˜ì.
 			OUT reinterpret_cast<LPOVERLAPPED*>(&iocpEvent), timelimit);
 
-		if (!retVal) // ½ÇÆĞÇß´Ù¸é ¿¡·¯ÄÚµå È®ÀÎ
+		if (!iocpObject && !iocpEvent)
+		{
+			if (!_client || !_client->IsStopping()) return false;
+			_client->Stop();
+			return _client->PendingIo() > 0;
+		}
+
+		CSession* session = static_cast<CSession*>(iocpObject);
+		session->CompleteIo();
+
+		if (!retVal) // ì‹¤íŒ¨í–ˆë‹¤ë©´ ì—ëŸ¬ì½”ë“œ í™•ì¸
 		{
 			int32 errCode = ::WSAGetLastError();
 			switch (errCode)
@@ -93,36 +106,44 @@ bool CCIocpCore::Processing(uint32_t timelimit)
 			case WSAECONNREFUSED:
 				if (_client != nullptr)
 				{
-					if (iocpEvent != nullptr) delete iocpEvent;
+					if (iocpEvent && iocpEvent->_comp == EventType::Connect)
+						delete static_cast<ConnectEvent*>(iocpEvent);
 					std::cout << "Check The Server On... Retry Connecting\n";
-					DoConnect(nullptr);
+					if (!session->IsStopping()) DoConnect(nullptr);
 					return true;
 				}
 				else return false;
 				break;
-			case WAIT_TIMEOUT: // time_limitÀÌ INFINITE°¡ ¾Æ´Ñ °æ¿ì ==> ³ªÁß¿¡ ´ÙÁß Á¢¼Ó ½Ã, Á¢¼Ó ½Ã°£¿¡ µû¶ó ÁöÁ¤ °¡´É
+			case WAIT_TIMEOUT: // time_limitì´ INFINITEê°€ ì•„ë‹Œ ê²½ìš° ==> ë‚˜ì¤‘ì— ë‹¤ì¤‘ ì ‘ì† ì‹œ, ì ‘ì† ì‹œê°„ì— ë”°ë¼ ì§€ì • ê°€ëŠ¥
 				return false;
 			default:
-				// TODO : ·Î±× Âï±â
+				// TODO : ë¡œê·¸ ì°ê¸°
 			{
 				std::cout << ::WSAGetLastError() << "\n";
-				ASession* s = static_cast<ASession*>(iocpObject);
-				Disconnect(s->_sid);
+				if (iocpEvent && iocpEvent->_comp == EventType::Connect)
+					delete static_cast<ConnectEvent*>(iocpEvent);
+				else if (iocpEvent && iocpEvent->_comp == EventType::Send)
+					delete static_cast<SendEvent*>(iocpEvent);
+				session->Stop();
 			}
-			return false;
+			return session->PendingIo() > 0;
 			}
 		}
 
-		// Å¬¶óÀÌ¾ğÆ®°¡ Á¤»óÀûÀ¸·Î Á¾·áÇÑ °æ¿ì
+		// í´ë¼ì´ì–¸íŠ¸ê°€ ì •ìƒì ìœ¼ë¡œ ì¢…ë£Œí•œ ê²½ìš°
 		if (numOfBytes == 0 && (iocpEvent->_comp == EventType::Recv || iocpEvent->_comp == EventType::Send))
 		{
 			//Disconnect
-			ASession* s = static_cast<ASession*>(iocpObject);
-			Disconnect(s->_sid);
-			if (iocpEvent->_comp == EventType::Send) delete iocpEvent;
-			return false;
+			if (iocpEvent->_comp == EventType::Send) delete static_cast<SendEvent*>(iocpEvent);
+			session->Stop();
+			return session->PendingIo() > 0;
 		}
-		iocpObject->Processing(iocpEvent, numOfBytes); // ¼º°øÇÏ¸é Àü¹İÀûÀÎ ÇÁ·Î¼¼½ÌÀ» ½ÃÀÛÇØº¸ÀÚ;
+		iocpObject->Processing(iocpEvent, numOfBytes); // ì„±ê³µí•˜ë©´ ì „ë°˜ì ì¸ í”„ë¡œì„¸ì‹±ì„ ì‹œì‘í•´ë³´ì;
+		if (session->IsStopping())
+		{
+			session->Stop();
+			return session->PendingIo() > 0;
+		}
 		return true;
 
 }
@@ -132,7 +153,7 @@ void CCIocpCore::Disconnect(int32 sid = 0)
 	std::cout << "Disconnect Client" << std::endl;
 	if (_client != nullptr)
 	{
-		delete _client;
-		_client = nullptr;
+		_client->RequestStop();
+		::PostQueuedCompletionStatus(_hIocp, 0, 0, nullptr);
 	}
 }

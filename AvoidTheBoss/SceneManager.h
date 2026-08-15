@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 class CSound;
 class CScene;
 
@@ -10,12 +10,12 @@ protected:
 
 	CScene* m_pScenes[5];
 public:
-	SceneManager() 
+	SceneManager()
 	{
 		for (int i = 0; i < 5; ++i) m_pScenes[i] = nullptr;
 	}
-	~SceneManager() { }
-	
+	~SceneManager();
+
 	void Render(ID3D12GraphicsCommandList4* pd3dCommandList, int32, bool);
 	void Update(HWND& hWnd, int32);
 	void Animate(int32);
@@ -26,9 +26,9 @@ public:
 	void ReleaseUpBuffers();
 	void ReleaseScene();
 
-	
+
 	void ResetScene();
 	CScene* ChangeScene(int32 idx);
-	CScene* GetSceneByIdx(int32 idx) { return m_pScenes[idx];   } // ÇöÀç ¾ÀÀ» ¹ÝÈ¯ ¹Þ´Â´Ù.
+	CScene* GetSceneByIdx(int32 idx) { return m_pScenes[idx];   } // í˜„ìž¬ ì”¬ì„ ë°˜í™˜ ë°›ëŠ”ë‹¤.
 };
 

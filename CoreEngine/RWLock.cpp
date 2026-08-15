@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "RWLock.h"
 #include "CoreTLS.h"
 #include <chrono>
@@ -8,8 +8,8 @@ using namespace std;
 
 void RWLock::WriteLock()
 {
-	// ¾Æ¹«µµ °øÀ¯ ÀÚ¿ø ¼ÒÀ¯ X 
-	// ¸¸¾à µ¿ÀÏÇÑ ½º·¹µå°¡ Àç±ÍÀûÀ¸·Î lockÀ» Àâ´Â °æ¿ì, ¹«Á¶°Ç ¼º°øÇÏµµ·Ï ÇÑ´Ù.
+	// ì•„ë¬´ë„ ê³µìœ  ìžì› ì†Œìœ  X
+	// ë§Œì•½ ë™ì¼í•œ ìŠ¤ë ˆë“œê°€ ìž¬ê·€ì ìœ¼ë¡œ lockì„ ìž¡ëŠ” ê²½ìš°, ë¬´ì¡°ê±´ ì„±ê³µí•˜ë„ë¡ í•œë‹¤.
 	const uint32 curThreadId = (_rwFlag.load() & WRITE_FLAG_MASK) >> 16;
 	if (lThreadId == curThreadId)
 	{
@@ -17,20 +17,20 @@ void RWLock::WriteLock()
 		return;
 	}
 
-	const uint32 desired = (WRITE_FLAG_MASK & lThreadId << 16); // ½º·¹µåid(»óÀ§ 16ºñÆ®)  0000 0000
-	
+	const uint32 desired = (WRITE_FLAG_MASK & lThreadId << 16); // ìŠ¤ë ˆë“œid(ìƒìœ„ 16ë¹„íŠ¸)  0000 0000
+
 
 	auto begin = chrono::high_resolution_clock::now();
 	while (true)
-	{	
-		for (uint32 spinCnt = 0; spinCnt < MAX_SPIN_CNT; ++spinCnt) // tick µ¿¾È ¸øÇÒ °æ¿ì ¼ÒÀ¯±ÇÀ» ³»·Á³õ°í ³ªÁß¿¡ ´Ù½Ã ¿Í¶ó
+	{
+		for (uint32 spinCnt = 0; spinCnt < MAX_SPIN_CNT; ++spinCnt) // tick ë™ì•ˆ ëª»í•  ê²½ìš° ì†Œìœ ê¶Œì„ ë‚´ë ¤ë†“ê³  ë‚˜ì¤‘ì— ë‹¤ì‹œ ì™€ë¼
 		{
 			uint32 expected = EMPTY_FLAG;
 			if (_rwFlag.compare_exchange_strong(MOUTPUT expected, MINPUT desired))
 			{
-				++_writeCnt; // Àç±ÍÀûÀ¸·Î lockÀ» °É ¼ö ÀÖÀ½.
+				++_writeCnt; // ìž¬ê·€ì ìœ¼ë¡œ lockì„ ê±¸ ìˆ˜ ìžˆìŒ.
 				return;
-			} // empty ÀÏ¶§¸¸ ÇÏ°í~ 
+			} // empty ì¼ë•Œë§Œ í•˜ê³ ~
 		}
 		auto end = chrono::high_resolution_clock::now();
 		if (chrono::duration_cast<chrono::milliseconds>(begin - end).count() > MAX_WAIT_TICK) CRASH("TIME OUT");
@@ -40,8 +40,8 @@ void RWLock::WriteLock()
 
 void RWLock::WriteUnLock()
 {
-	// Read »óÅÂ¿¡¼­ W¸¦ ½ÃµµÇÒ °æ¿ì
-	if ((_rwFlag.load() & READ_FLAG_MASK) != 0) CRASH("INVALID UNLOCK ORDER"); // Å©·¡½Ã ¹ß»ý
+	// Read ìƒíƒœì—ì„œ Wë¥¼ ì‹œë„í•  ê²½ìš°
+	if ((_rwFlag.load() & READ_FLAG_MASK) != 0) CRASH("INVALID UNLOCK ORDER"); // í¬ëž˜ì‹œ ë°œìƒ
 
 	const uint32 cnt = _writeCnt -= 1;
 	if (cnt == 0)
@@ -51,7 +51,7 @@ void RWLock::WriteUnLock()
 
 void RWLock::ReadLock()
 {
-	// µ¿ÀÏÇÑ ½º·¹µå°¡ read¸¦ ½ÃµµÇÏ¸é ±×³É read flag¿¡ 1À» ´õÇØÁØ´Ù.
+	// ë™ì¼í•œ ìŠ¤ë ˆë“œê°€ readë¥¼ ì‹œë„í•˜ë©´ ê·¸ëƒ¥ read flagì— 1ì„ ë”í•´ì¤€ë‹¤.
 	const uint32 curThreadId = (_rwFlag.load() & WRITE_FLAG_MASK) >> 16;
 	if (lThreadId == curThreadId)
 	{
@@ -59,13 +59,13 @@ void RWLock::ReadLock()
 		return;
 	}
 
-	// ´©°¡ w ÇÏ°í ÀÖÁö ¾Ê´Â´Ù¸é ¹«Á¶°Ç ¼º°ø
+	// ëˆ„ê°€ w í•˜ê³  ìžˆì§€ ì•ŠëŠ”ë‹¤ë©´ ë¬´ì¡°ê±´ ì„±ê³µ
 	auto begin = chrono::high_resolution_clock::now();
 	while (true)
 	{
-		for (uint32 spinCnt = 0; spinCnt < MAX_SPIN_CNT; ++spinCnt) // tick µ¿¾È ¸øÇÒ °æ¿ì ¼ÒÀ¯±ÇÀ» ³»·Á³õ°í ³ªÁß¿¡ ´Ù½Ã ¿Í¶ó
+		for (uint32 spinCnt = 0; spinCnt < MAX_SPIN_CNT; ++spinCnt) // tick ë™ì•ˆ ëª»í•  ê²½ìš° ì†Œìœ ê¶Œì„ ë‚´ë ¤ë†“ê³  ë‚˜ì¤‘ì— ë‹¤ì‹œ ì™€ë¼
 		{
-			uint32 expected = (_rwFlag.load() & READ_FLAG_MASK); 
+			uint32 expected = (_rwFlag.load() & READ_FLAG_MASK);
 			if (_rwFlag.compare_exchange_strong(MOUTPUT expected, expected + 1)) return;
 		}
 		auto end = chrono::high_resolution_clock::now();
@@ -80,5 +80,5 @@ void RWLock::ReadUnLock()
 
 }
 
-// RWLockÀ» À§ÇÑ LockGuard
+// RWLockì„ ìœ„í•œ LockGuard
 

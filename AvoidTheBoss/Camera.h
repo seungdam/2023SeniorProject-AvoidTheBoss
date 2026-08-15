@@ -1,21 +1,21 @@
-#pragma once
+ï»¿#pragma once
 
-//ÇÁ·¹ÀÓ ¹öÆÛÀÇ Å©±â¿Í Á¾È¾ºñ(Aspect Ratio)¸¦ ³ªÅ¸³»´Â »ó¼ö¸¦ ´ÙÀ½°ú °°ÀÌ ¼±¾ðÇÑ
+//í”„ë ˆìž„ ë²„í¼ì˜ í¬ê¸°ì™€ ì¢…íš¡ë¹„(Aspect Ratio)ë¥¼ ë‚˜íƒ€ë‚´ëŠ” ìƒìˆ˜ë¥¼ ë‹¤ìŒê³¼ ê°™ì´ ì„ ì–¸í•œ
 #define ASPECT_RATIO (float(FRAME_BUFFER_WIDTH) / float(FRAME_BUFFER_HEIGHT))
 
-//Ä«¸Þ¶óÀÇ Á¾·ù(¸ðµå: Mode)¸¦ ³ªÅ¸³»´Â »ó¼ö¸¦ ´ÙÀ½°ú °°ÀÌ ¼±¾ðÇÑ´Ù. 
+//ì¹´ë©”ë¼ì˜ ì¢…ë¥˜(ëª¨ë“œ: Mode)ë¥¼ ë‚˜íƒ€ë‚´ëŠ” ìƒìˆ˜ë¥¼ ë‹¤ìŒê³¼ ê°™ì´ ì„ ì–¸í•œë‹¤.
 #define FIRST_PERSON_CAMERA		0x01
 #define SPACESHIP_CAMERA		0x02
 #define THIRD_PERSON_CAMERA		0x03
 
-//---Ä«¸Þ¶ó »ó¼ö ¹öÆÛ¸¦ À§ÇÑ ±¸Á¶Ã¼
+//---ì¹´ë©”ë¼ ìƒìˆ˜ ë²„í¼ë¥¼ ìœ„í•œ êµ¬ì¡°ì²´
 struct VS_CB_CAMERA_INFO
 {
 	XMFLOAT4X4						m_xmf4x4View;
 	XMFLOAT4X4						m_xmf4x4Projection;
 	XMFLOAT4						m_xmf4FogOption;
 	XMFLOAT3						m_xmf3Position;
-	
+
 };
 
 class CPlayer;
@@ -24,46 +24,46 @@ class CPlayer;
 class CCamera
 {
 public:
-	//Ä«¸Þ¶óÀÇ Á¾·ù(1ÀÎÄª Ä«¸Þ¶ó, ½ºÆäÀÌ½º-½± Ä«¸Þ¶ó, 3ÀÎÄª Ä«¸Þ¶ó)¸¦ ³ªÅ¸³½´Ù. 
+	//ì¹´ë©”ë¼ì˜ ì¢…ë¥˜(1ì¸ì¹­ ì¹´ë©”ë¼, ìŠ¤íŽ˜ì´ìŠ¤-ì‰½ ì¹´ë©”ë¼, 3ì¸ì¹­ ì¹´ë©”ë¼)ë¥¼ ë‚˜íƒ€ë‚¸ë‹¤.
 	DWORD m_nMode;
 protected:
-	//Ä«¸Þ¶óÀÇ À§Ä¡(¿ùµåÁÂÇ¥°è) º¤ÅÍÀÌ´Ù. 
+	//ì¹´ë©”ë¼ì˜ ìœ„ì¹˜(ì›”ë“œì¢Œí‘œê³„) ë²¡í„°ì´ë‹¤.
 	XMFLOAT3 m_xmf3Position;
 
-	//Ä«¸Þ¶óÀÇ ·ÎÄÃ x-Ãà(Right), y-Ãà(Up), z-Ãà(Look)À» ³ªÅ¸³»´Â º¤ÅÍÀÌ´Ù.*/
+	//ì¹´ë©”ë¼ì˜ ë¡œì»¬ x-ì¶•(Right), y-ì¶•(Up), z-ì¶•(Look)ì„ ë‚˜íƒ€ë‚´ëŠ” ë²¡í„°ì´ë‹¤.*/
 	XMFLOAT3 m_xmf3Right;
 	XMFLOAT3 m_xmf3Up;
 	XMFLOAT3 m_xmf3Look;
 
-	//Ä«¸Þ¶ó°¡ x-Ãà, z-Ãà, y-ÃàÀ¸·Î ¾ó¸¶¸¸Å­ È¸ÀüÇß´Â °¡¸¦ ³ªÅ¸³»´Â °¢µµÀÌ´Ù. 
+	//ì¹´ë©”ë¼ê°€ x-ì¶•, z-ì¶•, y-ì¶•ìœ¼ë¡œ ì–¼ë§ˆë§Œí¼ íšŒì „í–ˆëŠ” ê°€ë¥¼ ë‚˜íƒ€ë‚´ëŠ” ê°ë„ì´ë‹¤.
 	float m_fPitch;
 	float m_fRoll;
 	float m_fYaw;
 
-	//ÇÃ·¹ÀÌ¾î°¡ ¹Ù¶óº¼ À§Ä¡ º¤ÅÍÀÌ´Ù. ÁÖ·Î 3ÀÎÄª Ä«¸Þ¶ó¿¡¼­ »ç¿ëµÈ´Ù. 
+	//í”Œë ˆì´ì–´ê°€ ë°”ë¼ë³¼ ìœ„ì¹˜ ë²¡í„°ì´ë‹¤. ì£¼ë¡œ 3ì¸ì¹­ ì¹´ë©”ë¼ì—ì„œ ì‚¬ìš©ëœë‹¤.
 	XMFLOAT3 m_xmf3LookAtWorld;
 
-	//ÇÃ·¹ÀÌ¾î¿Í Ä«¸Þ¶óÀÇ ¿ÀÇÁ¼ÂÀ» ³ªÅ¸³»´Â º¤ÅÍÀÌ´Ù. ÁÖ·Î 3ÀÎÄª Ä«¸Þ¶ó¿¡¼­ »ç¿ëµÈ´Ù. 
+	//í”Œë ˆì´ì–´ì™€ ì¹´ë©”ë¼ì˜ ì˜¤í”„ì…‹ì„ ë‚˜íƒ€ë‚´ëŠ” ë²¡í„°ì´ë‹¤. ì£¼ë¡œ 3ì¸ì¹­ ì¹´ë©”ë¼ì—ì„œ ì‚¬ìš©ëœë‹¤.
 	XMFLOAT3 m_xmf3Offset;
 
-	//ÇÃ·¹ÀÌ¾î°¡ È¸ÀüÇÒ ¶§ ¾ó¸¶¸¸Å­ÀÇ ½Ã°£À» Áö¿¬½ÃÅ² ÈÄ Ä«¸Þ¶ó¸¦ È¸Àü½ÃÅ³ °ÍÀÎ°¡¸¦ ³ªÅ¸³½´Ù.
+	//í”Œë ˆì´ì–´ê°€ íšŒì „í•  ë•Œ ì–¼ë§ˆë§Œí¼ì˜ ì‹œê°„ì„ ì§€ì—°ì‹œí‚¨ í›„ ì¹´ë©”ë¼ë¥¼ íšŒì „ì‹œí‚¬ ê²ƒì¸ê°€ë¥¼ ë‚˜íƒ€ë‚¸ë‹¤.
 	float m_fTimeLag;
 
-	//Ä«¸Þ¶ó º¯È¯ Çà·Ä
+	//ì¹´ë©”ë¼ ë³€í™˜ í–‰ë ¬
 	XMFLOAT4X4 m_xmf4x4View;
-	//Åõ¿µ º¯È¯ Çà·Ä
+	//íˆ¬ì˜ ë³€í™˜ í–‰ë ¬
 	XMFLOAT4X4 m_xmf4x4Projection;
 
-	//ºäÆ÷Æ®¿Í ¾¾Àú »ç°¢Çü
-	D3D12_VIEWPORT m_d3dViewport; // ·»´õ¸µ ÇÒ ·»´õÅ¸°Ù(ÈÄ¸é¹öÆÛ) ¿µ¿ª ³ªÅ¸³»´Â ±¸Á¶Ã¼ 
-	D3D12_RECT m_d3dScissorRect; // ·»´õ¸µ¿¡¼­ Á¦°ÅÇÏÁö ¾ÊÀ» ¿µ¿ª ¼³Á¤
+	//ë·°í¬íŠ¸ì™€ ì”¨ì € ì‚¬ê°í˜•
+	D3D12_VIEWPORT m_d3dViewport; // ë Œë”ë§ í•  ë Œë”íƒ€ê²Ÿ(í›„ë©´ë²„í¼) ì˜ì—­ ë‚˜íƒ€ë‚´ëŠ” êµ¬ì¡°ì²´
+	D3D12_RECT m_d3dScissorRect; // ë Œë”ë§ì—ì„œ ì œê±°í•˜ì§€ ì•Šì„ ì˜ì—­ ì„¤ì •
 
-	//Ä«¸Þ¶ó¸¦ °¡Áö°í ÀÖ´Â ÇÃ·¹ÀÌ¾î¿¡ ´ëÇÑ Æ÷ÀÎÅÍÀÌ´Ù.
+	//ì¹´ë©”ë¼ë¥¼ ê°€ì§€ê³  ìžˆëŠ” í”Œë ˆì´ì–´ì— ëŒ€í•œ í¬ì¸í„°ì´ë‹¤.
 	CPlayer* m_pPlayer = NULL;
 
 	ID3D12Resource* m_pd3dcbCamera = NULL;
 	VS_CB_CAMERA_INFO* m_pcbMappedCamera = NULL;
-	
+
 	int m_fFogRenderCountTime = 0;
 public:
 	int32		m_playerIdx = -1;
@@ -74,20 +74,20 @@ public:
 	CCamera(CCamera* pCamera);
 	virtual ~CCamera();
 
-	//Ä«¸Þ¶óÀÇ Á¤º¸¸¦ ¼ÎÀÌ´õ ÇÁ·Î±×·¥¿¡°Ô Àü´ÞÇÏ±â À§ÇÑ »ó¼ö ¹öÆÛ¸¦ »ý¼ºÇÏ°í °»½ÅÇÑ´Ù.
+	//ì¹´ë©”ë¼ì˜ ì •ë³´ë¥¼ ì…°ì´ë” í”„ë¡œê·¸ëž¨ì—ê²Œ ì „ë‹¬í•˜ê¸° ìœ„í•œ ìƒìˆ˜ ë²„í¼ë¥¼ ìƒì„±í•˜ê³  ê°±ì‹ í•œë‹¤.
 	virtual void CreateShaderVariables(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList);
 	virtual void ReleaseShaderVariables();
 	virtual void UpdateShaderVariables(
 		ID3D12GraphicsCommandList4* pd3dCommandList);
 
-	//Ä«¸Þ¶ó º¯È¯ Çà·ÄÀ» »ý¼ºÇÑ´Ù.
+	//ì¹´ë©”ë¼ ë³€í™˜ í–‰ë ¬ì„ ìƒì„±í•œë‹¤.
 	void GenerateViewMatrix();
 	void GenerateViewMatrix(XMFLOAT3 xmf3Position, XMFLOAT3 xmf3LookAt, XMFLOAT3 xmf3Up);
-	/*Ä«¸Þ¶ó°¡ ¿©·¯¹ø È¸ÀüÀ» ÇÏ°Ô µÇ¸é ´©ÀûµÈ ½Ç¼ö ¿¬»êÀÇ ºÎÁ¤È®¼º ¶§¹®¿¡ Ä«¸Þ¶óÀÇ ·ÎÄÃ x-Ãà(Right), y-Ãà(Up), z- Ãà(Look)ÀÌ ¼­·Î Á÷±³ÇÏÁö ¾ÊÀ» ¼ö ÀÖ´Ù. Ä«¸Þ¶óÀÇ ·ÎÄÃ x-Ãà(Right), y-Ãà(Up), z-Ãà(Look)ÀÌ ¼­·Î Á÷±³ÇÏµµ·Ï ¸¸µé
-¾îÁØ´Ù.*/
+	/*ì¹´ë©”ë¼ê°€ ì—¬ëŸ¬ë²ˆ íšŒì „ì„ í•˜ê²Œ ë˜ë©´ ëˆ„ì ëœ ì‹¤ìˆ˜ ì—°ì‚°ì˜ ë¶€ì •í™•ì„± ë•Œë¬¸ì— ì¹´ë©”ë¼ì˜ ë¡œì»¬ x-ì¶•(Right), y-ì¶•(Up), z- ì¶•(Look)ì´ ì„œë¡œ ì§êµí•˜ì§€ ì•Šì„ ìˆ˜ ìžˆë‹¤. ì¹´ë©”ë¼ì˜ ë¡œì»¬ x-ì¶•(Right), y-ì¶•(Up), z-ì¶•(Look)ì´ ì„œë¡œ ì§êµí•˜ë„ë¡ ë§Œë“¤
+ì–´ì¤€ë‹¤.*/
 	void RegenerateViewMatrix();
 
-	//Åõ¿µ º¯È¯ Çà·ÄÀ» »ý¼ºÇÑ´Ù.
+	//íˆ¬ì˜ ë³€í™˜ í–‰ë ¬ì„ ìƒì„±í•œë‹¤.
 	void GenerateProjectionMatrix(float fNearPlaneDistance, float fFarPlaneDistance, float
 		fAspectRatio, float fFOVAngle);
 
@@ -117,7 +117,7 @@ public:
 	float& GetRoll() { return(m_fRoll); }
 	float& GetYaw() { return(m_fYaw); }
 
-	void SetOffset(XMFLOAT3 xmf3Offset) { m_xmf3Offset = xmf3Offset; } // ÇÃ·¹ÀÌ¾îXZ·ÎÄÃÁÂÇ¥~Ä«¸Þ¶ó±îÁö °Å¸® ( ÇÃ·¹ÀÌ¾î ³ôÀÌ )
+	void SetOffset(XMFLOAT3 xmf3Offset) { m_xmf3Offset = xmf3Offset; } // í”Œë ˆì´ì–´XZë¡œì»¬ì¢Œí‘œ~ì¹´ë©”ë¼ê¹Œì§€ ê±°ë¦¬ ( í”Œë ˆì´ì–´ ë†’ì´ )
 	XMFLOAT3& GetOffset() { return(m_xmf3Offset); }
 
 	void SetTimeLag(float fTimeLag) { m_fTimeLag = fTimeLag; }
@@ -128,20 +128,20 @@ public:
 	D3D12_VIEWPORT GetViewport() { return(m_d3dViewport); }
 	D3D12_RECT GetScissorRect() { return(m_d3dScissorRect); }
 
-	//Ä«¸Þ¶ó¸¦ xmf3Shift ¸¸Å­ ÀÌµ¿ÇÑ´Ù. 
+	//ì¹´ë©”ë¼ë¥¼ xmf3Shift ë§Œí¼ ì´ë™í•œë‹¤.
 	virtual void Move(const XMFLOAT3& xmf3Shift) {
 		m_xmf3Position.x += xmf3Shift.x;
 		m_xmf3Position.y += xmf3Shift.y;
 		m_xmf3Position.z += xmf3Shift.z;
 	}
 
-	//Ä«¸Þ¶ó¸¦ x-Ãà, y-Ãà, z-ÃàÀ¸·Î È¸ÀüÇÏ´Â °¡»óÇÔ¼öÀÌ´Ù.
+	//ì¹´ë©”ë¼ë¥¼ x-ì¶•, y-ì¶•, z-ì¶•ìœ¼ë¡œ íšŒì „í•˜ëŠ” ê°€ìƒí•¨ìˆ˜ì´ë‹¤.
 	virtual void Rotate(float fPitch = 0.0f, float fYaw = 0.0f, float fRoll = 0.0f) { }
 
-	//Ä«¸Þ¶óÀÇ ÀÌµ¿, È¸Àü¿¡ µû¶ó Ä«¸Þ¶óÀÇ Á¤º¸¸¦ °»½ÅÇÏ´Â °¡»óÇÔ¼öÀÌ´Ù. 
+	//ì¹´ë©”ë¼ì˜ ì´ë™, íšŒì „ì— ë”°ë¼ ì¹´ë©”ë¼ì˜ ì •ë³´ë¥¼ ê°±ì‹ í•˜ëŠ” ê°€ìƒí•¨ìˆ˜ì´ë‹¤.
 	virtual void Update(XMFLOAT3& xmf3LookAt, float fTimeElapsed) {}
 
-	//3ÀÎÄª Ä«¸Þ¶ó¿¡¼­ Ä«¸Þ¶ó°¡ ¹Ù¶óº¸´Â ÁöÁ¡À» ¼³Á¤ÇÑ´Ù. ÀÏ¹ÝÀûÀ¸·Î ÇÃ·¹ÀÌ¾î¸¦ ¹Ù¶óº¸µµ·Ï ¼³Á¤ÇÑ´Ù.
+	//3ì¸ì¹­ ì¹´ë©”ë¼ì—ì„œ ì¹´ë©”ë¼ê°€ ë°”ë¼ë³´ëŠ” ì§€ì ì„ ì„¤ì •í•œë‹¤. ì¼ë°˜ì ìœ¼ë¡œ í”Œë ˆì´ì–´ë¥¼ ë°”ë¼ë³´ë„ë¡ ì„¤ì •í•œë‹¤.
 	virtual void SetLookAt(XMFLOAT3& xmf3LookAt) { }
 };
 

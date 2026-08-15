@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "CollisionDetector.h"
 #include <string>
 
@@ -7,7 +7,7 @@ int32 OcTree::_maxLevel = 3;
 
 
 
-float DotProduct(XMFLOAT3 a, XMFLOAT3 b) 
+float DotProduct(XMFLOAT3 a, XMFLOAT3 b)
 {
 	return  a.x * b.x + a.y + b.y + a.z * b.z;
 }
@@ -35,13 +35,13 @@ void OcTree::ReadBoundingBoxInfoFromFile(const char* filename)
 				cx = atof(line.substr(centerStart + 1, centerXend - centerStart - 1).c_str());
 				cy = atof(line.substr(centerXend + 1, centerYend - centerXend - 1).c_str());
 				cz = atof(line.substr(centerYend + 1, centerZend - centerYend - 1).c_str());
-				
+
 			}
 		}
 
 		// extract the EXTENTS values
 		float ex, ey, ez;
-		if (extentsDelimeter != std::string::npos) 
+		if (extentsDelimeter != std::string::npos)
 		{
 			size_t extentsStart = line.find("(", extentsDelimeter);
 			size_t extentsXend = line.find(",", extentsStart);
@@ -129,22 +129,22 @@ bool OcTree::CheckCollision(DirectX::BoundingSphere& playerBox, XMFLOAT3& player
 				{
 
 					// To Do Collision Respons
-					XMFLOAT3 centerVec{ playerBox.Center.x - i.Center.x, 0.f , playerBox.Center.z - i.Center.z }; // »óÀÚ Áß½ÉÀ¸·Î ÇÃ·¹ÀÌ¾î »ó´ëÀûÀÎ À§Ä¡ º¤ÅÍ.
+					XMFLOAT3 centerVec{ playerBox.Center.x - i.Center.x, 0.f , playerBox.Center.z - i.Center.z }; // ìƒìž ì¤‘ì‹¬ìœ¼ë¡œ í”Œë ˆì´ì–´ ìƒëŒ€ì ì¸ ìœ„ì¹˜ ë²¡í„°.
 
-					//// ÁöÇüÀÇ »ç°¢Çü ¿µ¿ª Áß ±¸ÀÇ Áß½É°ú °¡Àå °¡±î¿î Á¤Á¡ÀÇ x , z ÁÂÇ¥¸¦ ±¸ÇÑ´Ù.
+					//// ì§€í˜•ì˜ ì‚¬ê°í˜• ì˜ì—­ ì¤‘ êµ¬ì˜ ì¤‘ì‹¬ê³¼ ê°€ìž¥ ê°€ê¹Œìš´ ì •ì ì˜ x , z ì¢Œí‘œë¥¼ êµ¬í•œë‹¤.
 					float closeX = clamp(centerVec.x, -1 * i.Extents.x, i.Extents.x);
 					float closeZ = clamp(centerVec.z, -1 * i.Extents.z, i.Extents.z);
 
-					//// ÇÃ·¹ÀÌ¾î ÁÂÇ¥±âÁØÀ¸·Î ¾ó¸¸Å­ °Å¸®ÀÎÁö ±¸ÇÑ´Ù.
+					//// í”Œë ˆì´ì–´ ì¢Œí‘œê¸°ì¤€ìœ¼ë¡œ ì–¼ë§Œí¼ ê±°ë¦¬ì¸ì§€ êµ¬í•œë‹¤.
 					XMFLOAT3 closeDist{ 0,0,0 };
-					if (centerVec.x >= 0) closeDist.x = centerVec.x - closeX; // ÁÂÃø¿¡ ÀÖÀ» °æ¿ì
-					else  closeDist.x = closeX - centerVec.x; // ¿ìÃø¿¡ ÀÖÀ» °æ¿ì
+					if (centerVec.x >= 0) closeDist.x = centerVec.x - closeX; // ì¢Œì¸¡ì— ìžˆì„ ê²½ìš°
+					else  closeDist.x = closeX - centerVec.x; // ìš°ì¸¡ì— ìžˆì„ ê²½ìš°
 
 
 					if (centerVec.z >= 0) closeDist.z = centerVec.z - closeZ;
 					else  closeDist.z = closeZ - centerVec.z;
-					
-					if (::fabs(playerBox.Radius - fabs(closeDist.x)) < ::fabs(playerBox.Radius - fabs(closeDist.z))) // offset ¼öÄ¡°¡ ÀÛÀº ÂÊÀ¸·Î °è»ê.
+
+					if (::fabs(playerBox.Radius - fabs(closeDist.x)) < ::fabs(playerBox.Radius - fabs(closeDist.z))) // offset ìˆ˜ì¹˜ê°€ ìž‘ì€ ìª½ìœ¼ë¡œ ê³„ì‚°.
 					{
 						if(centerVec.x < 0) playerBox.Center.x -= ::fabs((playerBox.Radius - closeDist.x)) * 1.2f;
 						else playerBox.Center.x += ::fabs((playerBox.Radius - closeDist.x)) * 1.2f;

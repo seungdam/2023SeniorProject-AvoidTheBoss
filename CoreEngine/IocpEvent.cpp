@@ -1,14 +1,14 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "IocpEvent.h"
 
-IocpEvent::IocpEvent(EventType et) : _comp(et) 
+IocpEvent::IocpEvent(EventType et) : _comp(et)
 {
 	Init();
 }
 
 void IocpEvent::Init()
 {
-	// ¿À¹ö·¦µå ±¸Á¶Ã¼¸¦ ÃÊ±âÈ­ ½ÃÅ²´Ù.
+	// ì˜¤ë²„ëž©ë“œ êµ¬ì¡°ì²´ë¥¼ ì´ˆê¸°í™” ì‹œí‚¨ë‹¤.
 	WSAOVERLAPPED::hEvent = 0;
 	WSAOVERLAPPED::Offset = 0;
 	WSAOVERLAPPED::OffsetHigh = 0;

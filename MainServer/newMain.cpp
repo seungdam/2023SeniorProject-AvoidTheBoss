@@ -1,4 +1,4 @@
-
+ï»¿
 #include "pch.h"
 #include "ThreadManager.h"
 #include "SocketUtil.h"
@@ -12,7 +12,7 @@ int main()
 	std::cout.tie(NULL);
 	::SetConsoleTitle(TEXT("GAMESERVER"));
 	SocketUtil::Init();
-	
+
 	ThreadManager* GThreadManager = nullptr;
 	GThreadManager = new ThreadManager;
 
@@ -25,14 +25,14 @@ int main()
 			{
 				while (true)
 				{
-					
-					ServerIocpCore.Processing(); // Accept ¹Ş±â ¼º°ø 
-					//±âÁ¸ °ÔÀÓ ¼­¹ö ÇÁ·Î±×·¡¹Ö Worker Thread¿¡ ÇØ´çÇÏ´Â ºÎºĞ
+
+					ServerIocpCore.Processing(); // Accept ë°›ê¸° ì„±ê³µ
+					//ê¸°ì¡´ ê²Œì„ ì„œë²„ í”„ë¡œê·¸ë˜ë° Worker Threadì— í•´ë‹¹í•˜ëŠ” ë¶€ë¶„
 					std::this_thread::sleep_for(0ms);
 				}
 				std::cout << "End Thread \n";
 			});
-		
+
 	}
 	GThreadManager->Launch([=]()
 		{
@@ -46,5 +46,5 @@ int main()
 	delete GThreadManager;
 	SocketUtil::Clear();
 
-	
+
 }

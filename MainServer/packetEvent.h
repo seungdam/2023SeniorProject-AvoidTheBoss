@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "IocpCore.h"
 #include "Session.h"
 #include "CSIocpCore.h"
@@ -16,7 +16,7 @@ public:
 	virtual void Task() {};
 };
 
-class moveEvent : public QueueEvent // 33 ms ¸¶´Ù Àü¼ÛÇÑ´Ù.
+class moveEvent : public QueueEvent // 33 ms ë§ˆë‹¤ ì „ì†¡í•œë‹¤.
 {
 public:
 	moveEvent() { };

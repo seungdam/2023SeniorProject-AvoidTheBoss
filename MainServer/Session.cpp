@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "SocketUtil.h"
 #include "Session.h"
 #include "SPlayer.h"
@@ -9,25 +9,25 @@
 
 
 using namespace std;
-// =========== ¼­¹ö ¼¼¼Ç ============
+// =========== ì„œë²„ ì„¸ì…˜ ============
 
 
 
 void LoginProcess(ServerSession* s, std::wstring sqlexec)
 {
-	
+
 }
 
 
 void RegisterProcess(ServerSession* s, std::wstring sqlexec)
 {
-	
+
 }
 
-ServerSession::ServerSession() 
+ServerSession::ServerSession()
 {
 	_sock = SocketUtil::CreateSocket();
-}                   
+}
 
 ServerSession::~ServerSession()
 {
@@ -75,12 +75,12 @@ void ServerSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 		}
 		break;
 	}
-	
+
 }
 
 bool ServerSession::DoSend(void* packet)
 {
-	
+
 	DWORD sendLen(0);
 	DWORD flag(0);
 	SendEvent* sev = new SendEvent(reinterpret_cast<char*>(packet));
@@ -94,7 +94,7 @@ bool ServerSession::DoSend(void* packet)
 			cout << "Send Error " << errcode << "\n";
 			return false;
 		}
-		
+
 	}
 	return true;
 }
@@ -108,7 +108,7 @@ bool ServerSession::DoRecv()
 	_rev._rWsaBuf.len = BUFSIZE - _prev_remain;
 	DWORD recvBytes(0);
 	DWORD flag(0);
-	
+
 	if (WSARecv(_sock, &_rev._rWsaBuf, 1, &recvBytes, &flag, static_cast<LPWSAOVERLAPPED>(&_rev), NULL) == SOCKET_ERROR)
 	{
 		int32 errcode = WSAGetLastError();
@@ -168,7 +168,7 @@ void ServerSession::ProcessPacket(char* packet)
 		}
 		break;
 
-		// ======== ¹æ ½Ã½ºÅÛ ÆÐÅ¶
+		// ======== ë°© ì‹œìŠ¤í…œ íŒ¨í‚·
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_ENTER_RM:
 		{
 			C2S_ROOM_ENTER* rep = reinterpret_cast<C2S_ROOM_ENTER*>(packet);
@@ -195,7 +195,7 @@ void ServerSession::ProcessPacket(char* packet)
 			ServerIocpCore._rmgr->GetRoom(_myRm).BroadCastingExcept(&packet, _sid);
 			ServerIocpCore._rmgr->GetRoom(_myRm).UpdateReady(idx, true);
 			ServerIocpCore._rmgr->GetRoom(_myRm).InitGame();
-			
+
 		}
 		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_READY_CANCEL:
@@ -216,12 +216,12 @@ void ServerSession::ProcessPacket(char* packet)
 
 		case (uint8)C_GAME_PACKET_TYPE::CKEY:
 		{
-			// Å° ÆÐÅ¶ Ã³¸®
+			// í‚¤ íŒ¨í‚· ì²˜ë¦¬
 			C2S_KEY* movePacket = reinterpret_cast<C2S_KEY*>(packet);
 			moveEvent* mv = new moveEvent(_sid, movePacket->key, XMFLOAT3{ movePacket->x,0,movePacket->z });
 			QueueEvent* me = static_cast<QueueEvent*>(mv);
-			
-			// ¼­¹öÅ° ÆÐÅ¶ Àü¼Û
+
+			// ì„œë²„í‚¤ íŒ¨í‚· ì „ì†¡
 			S2C_KEY packet;
 			packet.size = sizeof(S2C_KEY);
 			packet.type = (uint8)S_GAME_PACKET_TYPE::SKEY;
@@ -229,7 +229,7 @@ void ServerSession::ProcessPacket(char* packet)
 			packet.key = movePacket->key;
 			packet.x = movePacket->x;
 			packet.z = movePacket->z;
-			
+
 			ServerIocpCore._rmgr->GetRoom(_myRm).AddEvent(me , 0.f);
 			ServerIocpCore._rmgr->GetRoom(_myRm).BroadCastingExcept(&packet, _sid);
 		}
@@ -253,7 +253,7 @@ void ServerSession::ProcessPacket(char* packet)
 			_CHAT  np;
 			memcpy(&np, cp, sizeof(_CHAT));
 			np.type = (uint8)S_GAME_PACKET_TYPE::SCHAT;
-	
+
 			ServerIocpCore._rmgr->_rooms[_myRm].BroadCasting(&np);
 		}
 		break;
@@ -279,7 +279,7 @@ void ServerSession::ProcessPacket(char* packet)
 			ServerIocpCore._rmgr->GetRoom(_myRm).AddEvent(swev, 0);
 		}
 		break;
-		
+
 	}
 }
 

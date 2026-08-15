@@ -1,15 +1,15 @@
-#pragma once
+ï»¿#pragma once
 
-// ¿ÀÁ÷ À§Ä¡ Á¤º¸¸¸ °¡Áö°í ÀÖ´Â ÇÃ·¹ÀÌ¾î Å¬·¡½º
-// ·»´õ¸µ°ú °ü·ÃµÈ Á¤º¸ X
+// ì˜¤ì§ ìœ„ì¹˜ ì •ë³´ë§Œ ê°€ì§€ê³  ìˆëŠ” í”Œë ˆì´ì–´ í´ë˜ìŠ¤
+// ë Œë”ë§ê³¼ ê´€ë ¨ëœ ì •ë³´ X
 
 class SPlayer
 {
 public:
-	//ÇÃ·¹ÀÌ¾îÀÇ À§Ä¡ º¤ÅÍ, x-Ãà(Right), y-Ãà(Up), z-Ãà(Look) º¤ÅÍÀÌ´Ù.
+	//í”Œë ˆì´ì–´ì˜ ìœ„ì¹˜ ë²¡í„°, x-ì¶•(Right), y-ì¶•(Up), z-ì¶•(Look) ë²¡í„°ì´ë‹¤.
 	XMFLOAT3 m_xmf3Right;
 	XMFLOAT3 m_xmf3Up;
-	XMFLOAT3 m_xmf3Look; // direction°ú µ¿ÀÏ
+	XMFLOAT3 m_xmf3Look; // directionê³¼ ë™ì¼
 
 	std::mutex _lock;
 
@@ -20,15 +20,15 @@ public:
 	XMFLOAT3 m_xmf3Position;
 	XMFLOAT3 m_xmf3Velocity;
 
-	// 05-24 Ãß°¡ º¯¼ö
+	// 05-24 ì¶”ê°€ ë³€ìˆ˜
 	bool m_bIsRescue = false;
-	
+
 public:
 	BoundingSphere m_playerBV;
 	int32 m_sid = -1;
 	int32 m_idx = -1;
 	bool m_hide = false;
-	int32 m_hp = 3; // 05-06Ãß°¡ ÇÃ·¹ÀÌ¾î HP
+	int32 m_hp = 3; // 05-06ì¶”ê°€ í”Œë ˆì´ì–´ HP
 public:
 	int32 m_behavior = (int32)PLAYER_BEHAVIOR::IDLE;
 	int32 m_attackedAnimationCount = 0;
@@ -37,14 +37,14 @@ public:
 	bool m_isEscaped = false;
 public:
 	SPlayer();
-	
+
 	virtual ~SPlayer();
 
 	XMFLOAT3 GetPosition() const { return(m_xmf3Position); }
 	XMFLOAT3 GetLook() const { return(m_xmf3Look); }
 	void SetVelocity(const XMFLOAT3& xmf3Velocity) { m_xmf3Velocity = xmf3Velocity; }
 	void SetSpeed(const XMFLOAT3& xmf3Shift);
-	
+
 	void SetPosition(const XMFLOAT3& xmf3Position)
 	{
 		m_xmf3Position = xmf3Position;
@@ -53,7 +53,7 @@ public:
 
 	XMFLOAT3& GetVelocity() { return(m_xmf3Velocity); }
 
-	// Ãâ·Â ÇÔ¼ö
+	// ì¶œë ¥ í•¨ìˆ˜
 	void PrintRightVec()
 	{
 		std::cout << "(" << m_xmf3Right.x << " " << m_xmf3Right.z << ")\n";
@@ -67,13 +67,13 @@ public:
 		std::cout << m_xmf3Position.x << " " << m_xmf3Position.z << "\n";
 	}
 
-	// Çàµ¿ Æ®¸® ÇÔ¼ö
+	// í–‰ë™ íŠ¸ë¦¬ í•¨ìˆ˜
 	void SetBehavior(PLAYER_BEHAVIOR pb) { m_behavior = (int32)pb; }
 	int32 GetBehavior()					 { return m_behavior;	   }
 	bool  GetEscaped()					 { return m_isEscaped;	   }
 
-	void ProcessAttack() 
-	{ 
+	void ProcessAttack()
+	{
 		if (m_isEscaped || m_behavior == (int32)PLAYER_BEHAVIOR::CRAWL) return;
 
 		if(m_hp > 0) m_hp -= 1;
@@ -95,6 +95,6 @@ public:
 	void Move(const int16& dwDirection, float fDistance);
 	void Update(float fTimeElapsed);
 	void LateUpdate(float fTimeElapsed);
-	
+
 	void ResetState();
 };

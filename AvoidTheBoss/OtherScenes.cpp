@@ -1,4 +1,4 @@
-#include "pch.h"
+Ôªø#include "pch.h"
 
 #include "Player.h"
 #include "GameFramework.h"
@@ -40,7 +40,7 @@ void CLobbyScene::MouseAction(const POINT& mp)
 {
 	SoundManager::GetInstance().SoundStop(21);
 	SoundManager::GetInstance().PlayObjectSound(21, 21);
-	// √º≈©∏ÆΩ∫∆Æ √Êµπ√º≈© √≥∏Æ
+	// Ï≤¥ÌÅ¨Î¶¨Ïä§Ìä∏ Ï∂©ÎèåÏ≤¥ÌÅ¨ Ï≤òÎ¶¨
 	for (int i = 0; i < mainGame.m_UIRenderer->m_nRoomListPerPage; ++i)
 	{
 		if (IntersectRectByPoint(mainGame.m_UIRenderer->m_RoomListLayout[i], mp))
@@ -90,7 +90,7 @@ void CLobbyScene::ChangePage(int32 newPage)
 }
 void CLobbyScene::UpdateRoomText(int32 index = -1, int32 member = -1)
 {
-	
+
 	if (index >= 0 || member >= 0)
 	{
 		if(member != -1) m_rooms[m_curPage * 5 + index].member = member;
@@ -131,7 +131,7 @@ void CTitleScene::MouseAction(const POINT& mp)
 		if (mainGame.m_UIRenderer->m_IDPWTextBlocks[0].m_pstrText.length() <= 0
 			|| mainGame.m_UIRenderer->m_IDPWTextBlocks[1].m_pstrText.length() <= 0) return;
 
-		
+
 		C2S_LOGIN loginPacket;
 		loginPacket.size = sizeof(C2S_LOGIN);
 		loginPacket.type = (uint8)C_TITLE_PACKET_TYPE::ACQ_LOGIN;
@@ -159,20 +159,20 @@ void CTitleScene::ProcessInput(HWND& hWnd)
 {
 	InputManager::GetInstance().InputStatusUpdate();
 
-	// TAB √≥∏Æ
+	// TAB Ï≤òÎ¶¨
 	if ((int8)KEY_STATUS::KEY_UP == InputManager::GetInstance().GetKeyBuffer(VK_TAB))
 	{
 		if (0 == focus) focus = 1;
 		else if (1 == focus) focus = 0;
 		std::cout << focus << "\n";
 	}
-	// CAP √≥∏Æ
+	// CAP Ï≤òÎ¶¨
 	if ((int8)KEY_STATUS::KEY_UP == InputManager::GetInstance().GetKeyBuffer(VK_CAPITAL))
 	{
 		if (cap) cap = false;
 		else cap = true;
 	}
-	//æÀ∆ƒ∫™ ¿‘∑¬ πﬁ±‚
+	//ÏïåÌååÎ≤≥ ÏûÖÎ†• Î∞õÍ∏∞
 	for (int i = 65; i < 90; ++i)
 	{
 		if ((int8)KEY_STATUS::KEY_UP == InputManager::GetInstance().GetKeyBuffer(i))
@@ -197,8 +197,8 @@ void CTitleScene::ProcessInput(HWND& hWnd)
 			else if (focus == 1 && mainGame.m_UIRenderer->m_IDPWTextBlocks[1].m_pstrText.length() <= 10)
 				mainGame.m_UIRenderer->m_IDPWTextBlocks[1].m_pstrText.append(str);
 		}
-	
-	// ≈ÿΩ∫∆Æ ¡ˆøÏ±‚
+
+	// ÌÖçÏä§Ìä∏ ÏßÄÏö∞Í∏∞
 	if ((int8)KEY_STATUS::KEY_UP == InputManager::GetInstance().GetKeyBuffer(VK_BACK))
 	{
 		if (1 == focus)
@@ -235,7 +235,7 @@ void CTitleScene::Update(HWND& hWnd)
 				}
 				loginLock.unlock();
 			}
-			
+
 			break;
 		}
 	}
@@ -243,7 +243,7 @@ void CTitleScene::Update(HWND& hWnd)
 void CTitleScene::Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pCamera,bool Raster)
 {
 
-	
+
 }
 #pragma endregion
 
@@ -273,7 +273,7 @@ void CRoomScene::MouseAction(const POINT& mp)
 	m_memLock.lock();
 	if (IntersectRectByPoint(mainGame.m_UIRenderer->m_RoomButtons[0].d2dLayoutRect, mp)) // Ready
 	{
-		
+
 		for (int i = 0; i < PLAYERNUM; ++i)
 		{
 			if (m_members[i].m_sid == CScene::m_sid)
@@ -297,16 +297,16 @@ void CRoomScene::MouseAction(const POINT& mp)
 				break;
 			}
 		}
-		
+
 	}
 	else if (IntersectRectByPoint(mainGame.m_UIRenderer->m_RoomButtons[1].d2dLayoutRect, mp))
 	{
-		
+
 		C2S_ROOM_EVENT acpacket;
 		acpacket.size = sizeof(C2S_ROOM_EVENT);
 		acpacket.type = (uint8)C_ROOM_PACKET_TYPE::ACQ_EXIT_ROOM;
 		clientCore.DoSend(&acpacket);
-		
+
 		mainGame.ChangeScene(CGameFramework::SCENESTATE::LOBBY);
 	}
 	m_memLock.unlock();

@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "DeadLockFinder.h"
 
 using namespace std;
@@ -8,33 +8,33 @@ void DeadLockFinder::PushLock(const char* name)
 	lockG lg(_lock);
 	int32 lockId = 0;
 	auto findId = _findIdWithName.find(name);
-	if (findId == _findIdWithName.end()) // ¹ß°ßµÇÁö ¾ÊÀº Id = Ã³À½ ¹ß°ßµÈ Id¶ó¸é? È¤Àº ½ÃÀÛ ÁöÁ¡ÀÌ¶ó¸é?
+	if (findId == _findIdWithName.end()) // ë°œê²¬ë˜ì§€ ì•Šì€ Id = ì²˜ìŒ ë°œê²¬ëœ Idë¼ë©´? í˜¹ì€ ì‹œì‘ ì§€ì ì´ë¼ë©´?
 	{
 		lockId = (int32)(_findIdWithName.size());
 		_findIdWithName[name] = lockId;
 		_findNameWithId[lockId] = name;
-		// µî·Ï 
+		// ë“±ë¡
 	}
 	else
 	{
-		// ÀÌ¹ø¿¡ ÇÑ¹ø Ã£Àº ÀûÀÌ ÀÖ´Ù¸é~ 
-		//ÇØ´çÇÏ´Â lockId¸¦ ÃßÃâÇÑ´Ù.
+		// ì´ë²ˆì— í•œë²ˆ ì°¾ì€ ì ì´ ìˆë‹¤ë©´~
+		//í•´ë‹¹í•˜ëŠ” lockIdë¥¼ ì¶”ì¶œí•œë‹¤.
 		lockId = findId->second;
 	}
 
-	// Àâ°íÀÖ´Â ¶ôÀÌ ÀÖ¾ú´Ù¸é?
-	if (_ls.empty() == false) // »õ·Î¿î °£¼± ¹ß°ß ½Ã,
+	// ì¡ê³ ìˆëŠ” ë½ì´ ìˆì—ˆë‹¤ë©´?
+	if (_ls.empty() == false) // ìƒˆë¡œìš´ ê°„ì„  ë°œê²¬ ì‹œ,
 	{
-		// ±âÁ¸¿¡ ¹ß°ßµÇÁö ¾ÊÀº ÄÉÀÌ½º¶ó¸é »çÀÌÅ¬ È®ÀÎ
+		// ê¸°ì¡´ì— ë°œê²¬ë˜ì§€ ì•Šì€ ì¼€ì´ìŠ¤ë¼ë©´ ì‚¬ì´í´ í™•ì¸
 		const int32 prevId = _ls.top();
 		if (lockId != prevId)
 		{
 			set<int32>& tmpHistory = _lHistory[prevId];
 			if (tmpHistory.find(lockId) == tmpHistory.end())
 			{
-				// ±âÁ¸ÀÇ ¹æ¹® ±â·ÏÀ» µÚÁ®ºÁ¼­ ¹ß°ßµÇÁö ¾ÊÀº Á¤º¸¶ó°í ÇßÀ» ¶§,
+				// ê¸°ì¡´ì˜ ë°©ë¬¸ ê¸°ë¡ì„ ë’¤ì ¸ë´ì„œ ë°œê²¬ë˜ì§€ ì•Šì€ ì •ë³´ë¼ê³  í–ˆì„ ë•Œ,
 				tmpHistory.insert(lockId);
-				IsCycle(); // »çÀÌÅ¬ Ã¼Å©
+				IsCycle(); // ì‚¬ì´í´ ì²´í¬
 			}
 		}
 	}
@@ -54,7 +54,7 @@ void DeadLockFinder::PopLock(const char* name)
 void DeadLockFinder::IsCycle()
 {
 	const int32 lockCnt = (int32)(_findIdWithName.size());
-	_discoveredOrder = std::vector<int32>(lockCnt, -1); // º¤ÅÍ ÃÊ±âÈ­
+	_discoveredOrder = std::vector<int32>(lockCnt, -1); // ë²¡í„° ì´ˆê¸°í™”
 	_discoveredCnt = 0;
 	_finished = std::vector<bool>(lockCnt, false);
 	_parent = std::vector<int32>(lockCnt, -1);
@@ -86,7 +86,7 @@ void DeadLockFinder::Dfs(int32 here)
 			Dfs(there);
 			continue;
 		}
-		// ¼ø¹æÇâÀÌ ¾Æ´Ï°í Dfs(there)°¡ ¾ÆÁ÷ ¾È³¡³µ´Ù¸é there´Â hereÀÇ parent´Ù. --> ¿ª¹æÇâ
+		// ìˆœë°©í–¥ì´ ì•„ë‹ˆê³  Dfs(there)ê°€ ì•„ì§ ì•ˆëë‚¬ë‹¤ë©´ thereëŠ” hereì˜ parentë‹¤. --> ì—­ë°©í–¥
 		if (_finished[here] == false)
 		{
 			int32 now = here;
@@ -100,7 +100,7 @@ void DeadLockFinder::Dfs(int32 here)
 			CRASH("DEAD_LOCK");
 		}
 	}
-	
-	
+
+
 	_finished[here] = true;
 }
