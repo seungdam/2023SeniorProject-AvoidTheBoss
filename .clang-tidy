@@ -1,0 +1,15 @@
+---
+Checks: >
+  -*,
+  clang-analyzer-core.*,
+  clang-analyzer-cplusplus.NewDelete,
+  clang-analyzer-cplusplus.NewDeleteLeaks,
+  clang-analyzer-cplusplus.Move,
+  clang-analyzer-cplusplus.SmartPtr,
+  bugprone-use-after-move
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*'
+ExcludeHeaderFilterRegex: '.*[\\/](FMOD|DXRHelpers)[\\/].*|.*[\\/]d3dx12\.h'
+SystemHeaders: false
+FormatStyle: none
+...

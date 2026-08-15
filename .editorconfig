@@ -1,0 +1,29 @@
+root = true
+
+[*.{cpp,h,hlsl}]
+charset = utf-8-bom
+end_of_line = crlf
+insert_final_newline = true
+
+[*.md]
+charset = utf-8-bom
+end_of_line = crlf
+insert_final_newline = true
+
+[CMakeLists.txt]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+
+[*.cmake]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+
+[.clang-tidy]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+
+[AvoidTheBoss/DXRHelpers/**]
+charset = utf-8
