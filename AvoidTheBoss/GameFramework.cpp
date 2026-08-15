@@ -31,6 +31,7 @@ CGameFramework::CGameFramework()
 
 	m_pd3dRtvDescriptorHeap = NULL;
 	m_pd3dDsvDescriptorHeap = NULL;
+	m_pd3dDepthStencilBuffer = NULL;
 
 	m_nRtvDescriptorIncrementSize = 0;
 	m_nDsvDescriptorIncrementSize = 0;
@@ -78,17 +79,22 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 
 void CGameFramework::OnDestroy()
 {
+	if (m_pd3dCommandQueue && m_pd3dFence && m_hFenceEvent)
+	{
+		WaitForGpuComplete();
+	}
+
 	//delete m_pSound;
 	SoundManager::GetInstance().SoundRelease();
 
 	ReleaseScenes();
 	//게임 객체(게임 월드 객체)를 소멸한다.
 
-	::CloseHandle(m_hFenceEvent);
-
-#if defined(_DEBUG)
-	if (m_pd3dDebugController) m_pd3dDebugController->Release();
-#endif
+	if (m_hFenceEvent)
+	{
+		::CloseHandle(m_hFenceEvent);
+		m_hFenceEvent = NULL;
+	}
 
 	if (m_pd3dDepthStencilBuffer) m_pd3dDepthStencilBuffer->Release();
 	if (m_pd3dDsvDescriptorHeap) m_pd3dDsvDescriptorHeap->Release();
@@ -113,10 +119,12 @@ void CGameFramework::OnDestroy()
 	if (m_pdxgiFactory) m_pdxgiFactory->Release();
 
 #if defined(_DEBUG)
-	IDXGIDebug1* pdxgiDebug = NULL;
-	DXGIGetDebugInterface1(0, __uuidof(IDXGIDebug1), (void**)&pdxgiDebug);
-	HRESULT hResult = pdxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL);
-	pdxgiDebug->Release();
+	ComPtr<IDXGIDebug1> pdxgiDebug;
+	if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(pdxgiDebug.GetAddressOf()))))
+	{
+		::OutputDebugStringW(L"\n[Phase 0] DXGI live object report\n");
+		pdxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL);
+	}
 #endif
 }
 
@@ -175,20 +183,11 @@ void CGameFramework::CreateSwapChain()
 
 	HRESULT hResult = m_pdxgiFactory->CreateSwapChain(m_pd3dCommandQueue, &dxgiSwapChainDesc, (IDXGISwapChain**)&m_pdxgiSwapChain);
 #endif
+	ThrowIfFailed(hResult);
 	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
 
-	if (!m_pdxgiSwapChain)
-	{
-		MessageBox(NULL, L"Swap Chain Cannot be Created.", L"Error", MB_OK);
-		::PostQuitMessage(0);
-		return;
-	}
-
 	hResult = m_pdxgiFactory->MakeWindowAssociation(m_hWnd, DXGI_MWA_NO_ALT_ENTER);
-
-#ifndef _WITH_SWAPCHAIN_FULLSCREEN_STATE // 23.7.29 추가코드
-	CreateRenderTargetViews();
-#endif
+	ThrowIfFailed(hResult);
 }
 
 void CGameFramework::CreateRtvAndDsvDescriptorHeaps()
@@ -201,6 +200,7 @@ void CGameFramework::CreateRtvAndDsvDescriptorHeaps()
 	d3dDescriptorHeapDesc.NodeMask = 0;
 	HRESULT hResult = m_pd3dDevice->CreateDescriptorHeap(&d3dDescriptorHeapDesc,
 		__uuidof(ID3D12DescriptorHeap), (void**)&m_pd3dRtvDescriptorHeap);
+	ThrowIfFailed(hResult);
 	//렌더 타겟 서술자 힙(서술자의 개수는 스왑체인 버퍼의 개수)을 생성한다.
 	m_nRtvDescriptorIncrementSize = m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	//렌더 타겟 서술자 힙의 원소의 크기를 저장한다.
@@ -209,6 +209,7 @@ void CGameFramework::CreateRtvAndDsvDescriptorHeaps()
 	d3dDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	hResult = m_pd3dDevice->CreateDescriptorHeap(&d3dDescriptorHeapDesc,
 		__uuidof(ID3D12DescriptorHeap), (void**)&m_pd3dDsvDescriptorHeap);
+	ThrowIfFailed(hResult);
 	//깊이-스텐실 서술자 힙(서술자의 개수는 1)을 생성한다.
 	m_nDsvDescriptorIncrementSize = m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 	//깊이-스텐실 서술자 힙의 원소의 크기를 저장한다.
@@ -220,17 +221,16 @@ void CGameFramework::CreateDirect3DDevice()
 
 	UINT nDXGIFactoryFlags = 0;
 #if defined(_DEBUG)
-	ID3D12Debug* pd3dDebugController = NULL;
-	hResult = D3D12GetDebugInterface(__uuidof(ID3D12Debug), (void**)&pd3dDebugController);
-	if (pd3dDebugController)
+	ComPtr<ID3D12Debug> pd3dDebugController;
+	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(pd3dDebugController.GetAddressOf()))))
 	{
 		pd3dDebugController->EnableDebugLayer();
-		pd3dDebugController->Release();
+		nDXGIFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 	}
-	nDXGIFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
 	hResult = ::CreateDXGIFactory2(nDXGIFactoryFlags, __uuidof(IDXGIFactory4), (void**)&m_pdxgiFactory);
+	ThrowIfFailed(hResult);
 
 	IDXGIAdapter1* pd3dAdapter = NULL;
 
@@ -251,9 +251,20 @@ void CGameFramework::CreateDirect3DDevice()
 
 	if (!m_pd3dDevice)
 	{
-		m_pdxgiFactory->EnumWarpAdapter(_uuidof(IDXGIAdapter1), (void**)&pd3dAdapter);
+		ThrowIfFailed(m_pdxgiFactory->EnumWarpAdapter(_uuidof(IDXGIAdapter1), (void**)&pd3dAdapter));
 		hResult = D3D12CreateDevice(pd3dAdapter, D3D_FEATURE_LEVEL_12_0, _uuidof(ID3D12Device5), (void**)&m_pd3dDevice);
+		ThrowIfFailed(hResult);
 	}
+
+#if defined(_DEBUG)
+	SetName(m_pd3dDevice, L"GameClient D3D12 Device");
+	ComPtr<ID3D12InfoQueue> pd3dInfoQueue;
+	if (SUCCEEDED(m_pd3dDevice->QueryInterface(IID_PPV_ARGS(pd3dInfoQueue.GetAddressOf()))))
+	{
+		pd3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
+		pd3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
+	}
+#endif
 
 	D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS d3dMsaaQualityLevels;
 	d3dMsaaQualityLevels.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -265,9 +276,15 @@ void CGameFramework::CreateDirect3DDevice()
 	m_bMsaa4xEnable = (m_nMsaa4xQualityLevels > 1) ? true : false;
 
 	hResult = m_pd3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void**)&m_pd3dFence);
+	ThrowIfFailed(hResult);
 	for (UINT i = 0; i < m_nSwapChainBuffers; i++) m_nFenceValues[i] = 0;
 
 	m_hFenceEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+	if (!m_hFenceEvent) ThrowIfFailed(HRESULT_FROM_WIN32(::GetLastError()));
+
+#if defined(_DEBUG)
+	SetName(m_pd3dFence, L"GameClient Frame Fence");
+#endif
 
 	::gnCbvSrvDescriptorIncrementSize = m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	::gnRtvDescriptorIncrementSize = m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
@@ -285,19 +302,29 @@ void CGameFramework::CreateCommandQueueAndList()
 	d3dCommandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	HRESULT hResult = m_pd3dDevice->CreateCommandQueue(&d3dCommandQueueDesc,
 		_uuidof(ID3D12CommandQueue), (void**)&m_pd3dCommandQueue);
+	ThrowIfFailed(hResult);
 	//직접(Direct) 명령 큐를 생성한다.
 
 	hResult = m_pd3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
 		__uuidof(ID3D12CommandAllocator), (void**)&m_pd3dCommandAllocator);
+	ThrowIfFailed(hResult);
 	//직접(Direct) 명령 할당자를 생성한다.
 
 	hResult = m_pd3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,
 		m_pd3dCommandAllocator, NULL, __uuidof(ID3D12GraphicsCommandList4), (void
 			**)&m_pd3dCommandList);
+	ThrowIfFailed(hResult);
 	//직접(Direct) 명령 리스트를 생성한다.
 
 	hResult = m_pd3dCommandList->Close();
+	ThrowIfFailed(hResult);
 	//명령 리스트는 생성되면 열린(Open) 상태이므로 닫힌(Closed) 상태로 만든다.
+
+#if defined(_DEBUG)
+	SetName(m_pd3dCommandQueue, L"GameClient Direct Command Queue");
+	SetName(m_pd3dCommandAllocator, L"GameClient Direct Command Allocator");
+	SetName(m_pd3dCommandList, L"GameClient Direct Command List");
+#endif
 }
 
 void CGameFramework::CreateRenderTargetViews()
@@ -306,10 +333,13 @@ void CGameFramework::CreateRenderTargetViews()
 		m_pd3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	for (UINT i = 0; i < m_nSwapChainBuffers; i++)
 	{
-		m_pdxgiSwapChain->GetBuffer(i, __uuidof(ID3D12Resource), (void
-			**)&m_ppd3dSwapChainBackBuffers[i]);
+		ThrowIfFailed(m_pdxgiSwapChain->GetBuffer(i, __uuidof(ID3D12Resource), (void
+			**)&m_ppd3dSwapChainBackBuffers[i]));
 		m_pd3dDevice->CreateRenderTargetView(m_ppd3dSwapChainBackBuffers[i], NULL,
 			d3dRtvCPUDescriptorHandle);
+#if defined(_DEBUG)
+		SetNameIndexed(m_ppd3dSwapChainBackBuffers[i], L"GameClient Back Buffer", i);
+#endif
 		d3dRtvCPUDescriptorHandle.ptr += m_nRtvDescriptorIncrementSize;
 	}
 }
@@ -346,10 +376,14 @@ void CGameFramework::CreateDepthStencilView()
 	//D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle =
 	//m_pd3dDsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	//깊이-스텐실 버퍼 뷰를 생성한다.
-	m_pd3dDevice->CreateCommittedResource(&d3dHeapProperties, D3D12_HEAP_FLAG_NONE,
+	ThrowIfFailed(m_pd3dDevice->CreateCommittedResource(&d3dHeapProperties, D3D12_HEAP_FLAG_NONE,
 		&d3dResourceDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &d3dClearValue,
-		__uuidof(ID3D12Resource), (void**)&m_pd3dDepthStencilBuffer);
+		__uuidof(ID3D12Resource), (void**)&m_pd3dDepthStencilBuffer));
 	//깊이-스텐실 버퍼를 생성한다.
+
+#if defined(_DEBUG)
+	SetName(m_pd3dDepthStencilBuffer, L"GameClient Depth Stencil Buffer");
+#endif
 
 	D3D12_DEPTH_STENCIL_VIEW_DESC d3dDepthStencilViewDesc;
 	::ZeroMemory(&d3dDepthStencilViewDesc, sizeof(D3D12_DEPTH_STENCIL_VIEW_DESC));
@@ -623,6 +657,7 @@ LRESULT CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WP
 		break;
 	case WM_KEYDOWN:
 		OnKeyDown(static_cast<UINT8>(wParam));
+		break;
 	case WM_KEYUP:
 		OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
 		break;

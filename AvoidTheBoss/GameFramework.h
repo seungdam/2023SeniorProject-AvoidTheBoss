@@ -91,9 +91,6 @@ private:
 protected:
 	SceneManager*				m_SceneManager = nullptr;
 	UIManager*					m_UIRenderer   = nullptr;
-#if defined(_DEBUG)
-	ID3D12Debug*				m_pd3dDebugController = nullptr;
-#endif
 
 	ID3D12Fence					*m_pd3dFence;
 	UINT64						m_nFenceValues[m_nSwapChainBuffers];
