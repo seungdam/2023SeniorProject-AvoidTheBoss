@@ -38,7 +38,7 @@ CGameFramework::CGameFramework()
 
 	m_hFenceEvent = NULL;
 	m_pd3dFence = NULL;
-	for (int i = 0; i < m_nSwapChainBuffers; i++) m_nFenceValues[i] = 0;
+	m_nLastSubmittedFenceValue = 0;
 
 	m_nWndClientWidth = FRAME_BUFFER_WIDTH;
 	m_nWndClientHeight = FRAME_BUFFER_HEIGHT;
@@ -104,9 +104,9 @@ void CGameFramework::OnDestroy()
 			m_ppd3dSwapChainBackBuffers[i]->Release();
 	if (m_pd3dRtvDescriptorHeap) m_pd3dRtvDescriptorHeap->Release();
 
+	if (m_pd3dCommandList) m_pd3dCommandList->Release();
 	if (m_pd3dCommandAllocator) m_pd3dCommandAllocator->Release();
 	if (m_pd3dCommandQueue) m_pd3dCommandQueue->Release();
-	if (m_pd3dCommandList) m_pd3dCommandList->Release();
 
 	if (m_pd3dFence) m_pd3dFence->Release();
 
@@ -277,7 +277,8 @@ void CGameFramework::CreateDirect3DDevice()
 
 	hResult = m_pd3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void**)&m_pd3dFence);
 	ThrowIfFailed(hResult);
-	for (UINT i = 0; i < m_nSwapChainBuffers; i++) m_nFenceValues[i] = 0;
+	m_nLastSubmittedFenceValue = 0;
+	m_nNextFenceValue = 1;
 
 	m_hFenceEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 	if (!m_hFenceEvent) ThrowIfFailed(HRESULT_FROM_WIN32(::GetLastError()));
@@ -397,11 +398,18 @@ void CGameFramework::CreateDepthStencilView()
 
 void CGameFramework::BuildScenes()
 {
-	m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
+	ThrowIfFailed(m_pd3dCommandAllocator->Reset());
+	ThrowIfFailed(m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL));
 
 	//씬 객체를 생성하고 씬에 포함될 게임 객체들을 생성한다.
 
+#if defined(_DEBUG)
+	::OutputDebugStringA("[Phase 0] UI initialization begin\n");
+#endif
 	m_UIRenderer = new UIManager(m_nSwapChainBuffers, m_pd3dDevice, m_pd3dCommandQueue, m_ppd3dSwapChainBackBuffers, m_nWndClientWidth, m_nWndClientHeight);
+#if defined(_DEBUG)
+	::OutputDebugStringA("[Phase 0] UI initialization complete\n");
+#endif
 	m_SceneManager = new SceneManager();
 
 	m_SceneManager->BuildScene(m_pd3dDevice, m_pd3dCommandList);
@@ -494,23 +502,26 @@ void CGameFramework::FrameAdvance() // 여기서 업데이트랑 렌더링 동�
 
 void CGameFramework::WaitForGpuComplete()
 {
-	//CPU 펜스의 값을 증가한다.
-	const UINT64 nFenceValue = ++m_nFenceValues[m_nSwapChainBufferIndex];
-	HRESULT hResult = m_pd3dCommandQueue->Signal(m_pd3dFence, nFenceValue);
+	const UINT64 fenceValue = m_nNextFenceValue++;
+	ThrowIfFailed(m_pd3dCommandQueue->Signal(m_pd3dFence, fenceValue));
+	WaitForFenceValue(fenceValue);
+}
 
-	//GPU가 펜스의 값을 설정하는 명령을 명령 큐에 추가한다.
-	if (m_pd3dFence->GetCompletedValue() < nFenceValue)
-	{
-		//펜스의 현재 값이 설정한 값보다 작으면 펜스의 현재 값이 설정한 값이 될 때까지 기다린다.
-		hResult = m_pd3dFence->SetEventOnCompletion(nFenceValue, m_hFenceEvent);
-		::WaitForSingleObject(m_hFenceEvent, INFINITE);
-	}
+void CGameFramework::WaitForFenceValue(UINT64 fenceValue)
+{
+	if (m_pd3dFence->GetCompletedValue() >= fenceValue) return;
+
+	ThrowIfFailed(m_pd3dFence->SetEventOnCompletion(fenceValue, m_hFenceEvent));
+	if (::WaitForSingleObject(m_hFenceEvent, INFINITE) == WAIT_FAILED)
+		ThrowIfFailed(HRESULT_FROM_WIN32(::GetLastError()));
 }
 
 void CGameFramework::Render()
 {
-	HRESULT hResult = m_pd3dCommandAllocator->Reset();
-	hResult = m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
+	//이전 프레임의 명령과 동적 상수 버퍼 사용이 끝난 뒤 같은 메모리를 다시 쓴다.
+	WaitForFenceValue(m_nLastSubmittedFenceValue);
+	ThrowIfFailed(m_pd3dCommandAllocator->Reset());
+	ThrowIfFailed(m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL));
 	//명령 할당자와 명령 리스트를 리셋한다.
 
 	D3D12_RESOURCE_BARRIER d3dResourceBarrier;
@@ -565,14 +576,10 @@ void CGameFramework::Render()
 #endif
 
 
-	d3dResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	d3dResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-	d3dResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	m_pd3dCommandList->ResourceBarrier(1, &d3dResourceBarrier);
-	/*현재 렌더 타겟에 대한 렌더링이 끝나기를 기다린다. GPU가 렌더 타겟(버퍼)을 더 이상 사용하지 않으면 렌더 타겟
-	의 상태는 프리젠트 상태(D3D12_RESOURCE_STATE_PRESENT)로 바뀔 것이다.*/
+	// D3D11On12 UI가 RENDER_TARGET 상태를 이어받는다.
+	// UIManager::ReleaseWrappedResources()가 마지막에 PRESENT 상태로 전환한다.
 
-	hResult = m_pd3dCommandList->Close();
+	ThrowIfFailed(m_pd3dCommandList->Close());
 	//명령 리스트를 닫힌 상태로 만든다.
 
 	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
@@ -582,16 +589,11 @@ void CGameFramework::Render()
 
 void CGameFramework::MoveToNextFrame()
 {
+	const UINT64 fenceValue = m_nNextFenceValue++;
+	ThrowIfFailed(m_pd3dCommandQueue->Signal(m_pd3dFence, fenceValue));
+	m_nLastSubmittedFenceValue = fenceValue;
+
 	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
-
-	UINT64 nFenceValue = ++m_nFenceValues[m_nSwapChainBufferIndex];
-	HRESULT hResult = m_pd3dCommandQueue->Signal(m_pd3dFence, nFenceValue);
-
-	if (m_pd3dFence->GetCompletedValue() < nFenceValue)
-	{
-		hResult = m_pd3dFence->SetEventOnCompletion(nFenceValue, m_hFenceEvent);
-		::WaitForSingleObject(m_hFenceEvent, INFINITE);
-	}
 }
 
 void CGameFramework::ChangeScene(SCENESTATE ss)

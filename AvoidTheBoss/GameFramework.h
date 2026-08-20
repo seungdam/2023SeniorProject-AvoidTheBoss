@@ -93,7 +93,8 @@ protected:
 	UIManager*					m_UIRenderer   = nullptr;
 
 	ID3D12Fence					*m_pd3dFence;
-	UINT64						m_nFenceValues[m_nSwapChainBuffers];
+	UINT64						m_nLastSubmittedFenceValue = 0;
+	UINT64						m_nNextFenceValue = 1;
 	HANDLE						m_hFenceEvent;
 	//펜스 인터페이스 포인터, 펜스의 값, 이벤트 핸들이다.
 
@@ -145,6 +146,7 @@ public:
 	void AnimateObjects();
 	void FrameAdvance();
 	void WaitForGpuComplete();
+	void WaitForFenceValue(UINT64 fenceValue);
 	//CPU와 GPU를 동기화하는 함수이다.
 	void Render();
 	void MoveToNextFrame();

@@ -82,6 +82,7 @@ public:
 public:
 	bool						m_exitSoundOn = false;
 
-	virtual void ReleaseObjects() override;
+	void ReleaseUploadBuffers() override;
+	void ReleaseObjects() override;
 };
 

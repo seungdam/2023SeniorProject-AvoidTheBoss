@@ -13,14 +13,23 @@
 //#include "Win32Application.h"
 #include <d3d12.h>
 #include <wrl/client.h>
+#include <cstdio>
 #include <exception>
+#include <filesystem>
+#include <source_location>
 #include <CoreWindow.h>
 #include <corecrt_wstdio.h>
 
-inline void ThrowIfFailed(HRESULT hr)
+inline void ThrowIfFailed(
+	HRESULT hr,
+	const std::source_location location = std::source_location::current())
 {
 	if (FAILED(hr))
 	{
+		char message[1024]{};
+		sprintf_s(message, "[HRESULT] 0x%08lX at %s:%u (%s)\n",
+			static_cast<unsigned long>(hr), location.file_name(), location.line(), location.function_name());
+		OutputDebugStringA(message);
 		throw std::exception();
 	}
 }
@@ -44,6 +53,13 @@ inline void GetAssetsPath(_Out_writes_(pathSize) WCHAR* path, UINT pathSize)
 	{
 		*(lastSlash + 1) = L'\0';
 	}
+}
+
+inline std::filesystem::path GetAssetPath(const std::filesystem::path& relativePath)
+{
+	WCHAR executableDirectory[MAX_PATH]{};
+	GetAssetsPath(executableDirectory, _countof(executableDirectory));
+	return std::filesystem::path(executableDirectory) / L"Assets" / relativePath;
 }
 
 inline HRESULT ReadDataFromFile(LPCWSTR filename, byte** data, UINT* size);

@@ -135,6 +135,7 @@ public:
 	static CShader					*m_pSkinnedAnimationShader;
 
 	static void PrepareShaders(ID3D12Device5 *pd3dDevice, ID3D12GraphicsCommandList4  *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature);
+	static void ReleaseShaders();
 
 	void SetStandardShader() { CMaterial::SetShader(m_pStandardShader); }
 	void SetSkinnedAnimationShader() { CMaterial::SetShader(m_pSkinnedAnimationShader); }

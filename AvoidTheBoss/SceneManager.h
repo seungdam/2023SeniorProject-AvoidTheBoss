@@ -6,13 +6,14 @@ class SceneManager
 {
 public:
 	enum class SCENESTATE { TITLE = 0, LOBBY = 1, ROOM = 2, INGAME = 3, RESULT = 4 };
+	static constexpr int32 SceneCount = 5;
 protected:
 
-	CScene* m_pScenes[5];
+	CScene* m_pScenes[SceneCount];
 public:
 	SceneManager()
 	{
-		for (int i = 0; i < 5; ++i) m_pScenes[i] = nullptr;
+		for (int i = 0; i < SceneCount; ++i) m_pScenes[i] = nullptr;
 	}
 	~SceneManager();
 
@@ -29,6 +30,10 @@ public:
 
 	void ResetScene();
 	CScene* ChangeScene(int32 idx);
-	CScene* GetSceneByIdx(int32 idx) { return m_pScenes[idx];   } // 현재 씬을 반환 받는다.
+	CScene* GetSceneByIdx(int32 idx)
+	{
+		assert(idx >= 0 && idx < SceneCount);
+		return (idx >= 0 && idx < SceneCount) ? m_pScenes[idx] : nullptr;
+	}
 };
 

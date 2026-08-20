@@ -57,16 +57,34 @@ void SceneManager::Animate(int32 idx)
 
 void SceneManager::BuildScene(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList)
 {
+#if defined(_DEBUG)
+	::OutputDebugStringA("[Phase 0] TITLE scene build\n");
+#endif
 	m_pScenes[(int32)SCENESTATE::TITLE] = new CTitleScene();
 	m_pScenes[(int32)SCENESTATE::TITLE]->BuildObjects(pd3dDevice, pd3dCommandList);
+#if defined(_DEBUG)
+	::OutputDebugStringA("[Phase 0] LOBBY scene build\n");
+#endif
 	m_pScenes[(int32)SCENESTATE::LOBBY] = new CLobbyScene();
 	m_pScenes[(int32)SCENESTATE::LOBBY]->BuildObjects(pd3dDevice, pd3dCommandList);
+#if defined(_DEBUG)
+	::OutputDebugStringA("[Phase 0] ROOM scene build\n");
+#endif
 	m_pScenes[(int32)SCENESTATE::ROOM] = new CRoomScene();
 	m_pScenes[(int32)SCENESTATE::ROOM]->BuildObjects(pd3dDevice, pd3dCommandList);
+#if defined(_DEBUG)
+	::OutputDebugStringA("[Phase 0] INGAME scene build\n");
+#endif
 	m_pScenes[(int32)SCENESTATE::INGAME] = new CGameScene();
 	m_pScenes[(int32)SCENESTATE::INGAME]->BuildObjects(pd3dDevice, pd3dCommandList);
 
+#if defined(_DEBUG)
+	::OutputDebugStringA("[Phase 0] RESULT scene build\n");
+#endif
 	m_pScenes[(int32)SCENESTATE::RESULT] = new CResultScene();
 	m_pScenes[(int32)SCENESTATE::RESULT]->BuildObjects(pd3dDevice, pd3dCommandList);
+#if defined(_DEBUG)
+	::OutputDebugStringA("[Phase 0] scene build complete\n");
+#endif
 }
 

@@ -7,6 +7,7 @@
 #include "CGenerator.h"
 
 #include "SceneManager.h"
+#include "DXSampleHelper.h"
 
 #include "OtherScenes.h"
 #include "GameScene.h"
@@ -104,14 +105,15 @@ void UIManager::CreateD2DDevice() // d3d11on12디바이스를 활용해 d2ddevic
 
 ID2D1Bitmap1* UIManager::LoadPngFromFile(const wchar_t* filePath)
 {
-    ComPtr<IWICImagingFactory> factory;
+	const auto assetPath = GetAssetPath(filePath);
+	ComPtr<IWICImagingFactory> factory;
     ComPtr<IWICBitmapDecoder> decoder;
     ComPtr<IWICBitmapFrameDecode> frame;
     ComPtr<IWICFormatConverter> converter;
     ComPtr<ID2D1Bitmap1> bitmap;
 
     if (FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&factory))) ||
-        FAILED(factory->CreateDecoderFromFilename(filePath, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &decoder)) ||
+		FAILED(factory->CreateDecoderFromFilename(assetPath.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &decoder)) ||
         FAILED(decoder->GetFrame(0, &frame)) ||
         FAILED(factory->CreateFormatConverter(&converter)) ||
         FAILED(converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, nullptr, 0.0f, WICBitmapPaletteTypeCustom)) ||
@@ -772,7 +774,7 @@ void UIManager::InitializeDevice(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* 
     m_CharProfile[2].resource = LoadPngFromFile(L"UI/Char_UI_3.png"); // Mask
     m_CharProfile[3].resource = LoadPngFromFile(L"UI/Char_UI_5.png"); // Goggle
     for (int i = 0; i < PLAYERNUM; ++i)
-        m_CharProfile[i].d2dLayoutRect = MakeLayoutRectByCorner(FRAME_BUFFER_WIDTH * 0.01, FRAME_BUFFER_HEIGHT * 0.1f* i, FRAME_BUFFER_WIDTH * 0.1f, FRAME_BUFFER_HEIGHT * 0.1f);
+        m_CharProfile[i].d2dLayoutRect = MakeLayoutRectByCorner(FRAME_BUFFER_WIDTH * 0.01f, FRAME_BUFFER_HEIGHT * 0.1f* i, FRAME_BUFFER_WIDTH * 0.1f, FRAME_BUFFER_HEIGHT * 0.1f);
 
     // 상태 --> 동적으로 변하는 것이므로 그때 그때 위치를 업데이트하기로 한다. 일단 비트맵 리소스만 로드한다.
     m_CharStatusBitmaps[0] = LoadPngFromFile(L"UI/Normal.png");
@@ -866,7 +868,7 @@ void UIManager::Render2D(UINT nFrame, int32 curScene)
     DrawOtherSceneUITextBlock(curScene);
 
     DrawGameSceneUI(curScene);
-    m_pd2dDeviceContext->EndDraw();
+    ThrowIfFailed(m_pd2dDeviceContext->EndDraw());
     m_pd3d11On12Device->ReleaseWrappedResources(ppResources, _countof(ppResources));
     m_pd3d11DeviceContext->Flush();
 }

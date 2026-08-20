@@ -34,6 +34,24 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
 #if defined(_DEBUG)
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    std::set_terminate([]
+        {
+            try
+            {
+                if (const auto exception = std::current_exception()) std::rethrow_exception(exception);
+            }
+            catch (const std::exception& error)
+            {
+                ::OutputDebugStringA("[terminate] ");
+                ::OutputDebugStringA(error.what());
+                ::OutputDebugStringA("\n");
+            }
+            catch (...)
+            {
+                ::OutputDebugStringA("[terminate] unknown exception\n");
+            }
+            std::abort();
+        });
 #endif
     ::SetConsoleTitle(L"Client");
     ThreadManager threadManager;

@@ -33,6 +33,13 @@ CGameScene::~CGameScene()
 	delete m_jobQueue;
 }
 
+void CGameScene::ReleaseUploadBuffers()
+{
+	CScene::ReleaseUploadBuffers();
+	for (auto* player : m_players)
+		if (player) player->ReleaseUploadBuffers();
+}
+
 void CGameScene::ReleaseObjects()
 {
 	if (m_jobQueue) m_jobQueue->Clear();
@@ -48,6 +55,7 @@ void CGameScene::ReleaseObjects()
 	m_ppGenerator = nullptr;
 
 	CScene::ReleaseObjects();
+	CMaterial::ReleaseShaders();
 }
 
 void CGameScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
@@ -133,7 +141,7 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 	m_pLights[0].m_xmf4Ambient = fAmbientExist;
 	m_pLights[0].m_xmf4Diffuse = f4DiffuseExist;
 	m_pLights[0].m_xmf4Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.0f);
-	m_pLights[0].m_xmf3Position = XMFLOAT3(24.6359, 1.168867f, -21.98898f);
+	m_pLights[0].m_xmf3Position = XMFLOAT3(24.6359f, 1.168867f, -21.98898f);
 	m_pLights[0].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
 
 	m_pLights[10].m_bEnable = true;
@@ -142,7 +150,7 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 	m_pLights[10].m_xmf4Ambient = fAmbientExist;
 	m_pLights[10].m_xmf4Diffuse = f4DiffuseExist;
 	m_pLights[10].m_xmf4Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.0f);
-	m_pLights[10].m_xmf3Position = XMFLOAT3(-24.6359, 1.168867f, -21.98898f);
+	m_pLights[10].m_xmf3Position = XMFLOAT3(-24.6359f, 1.168867f, -21.98898f);
 	m_pLights[10].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
 
 	// 입구 문틈 햇빛 효과
@@ -326,11 +334,11 @@ void CGameScene::BuildObjects(ID3D12Device5* pd3dDevice,ID3D12GraphicsCommandLis
 		}
 		else
 		{
-			((CEmployee*)m_players[i])->m_pSwitches[0].position = XMFLOAT3(-23.12724, 1.146619, 1.814123);
+			((CEmployee*)m_players[i])->m_pSwitches[0].position = XMFLOAT3(-23.12724f, 1.146619f, 1.814123f);
 			((CEmployee*)m_players[i])->m_pSwitches[0].radius = 0.5f;
-			((CEmployee*)m_players[i])->m_pSwitches[1].position = XMFLOAT3(23.08867, 1.083242, 3.155997);
+			((CEmployee*)m_players[i])->m_pSwitches[1].position = XMFLOAT3(23.08867f, 1.083242f, 3.155997f);
 			((CEmployee*)m_players[i])->m_pSwitches[1].radius = 0.5f;
-			((CEmployee*)m_players[i])->m_pSwitches[2].position = XMFLOAT3(0.6774719, 1.083242, -23.05909);
+			((CEmployee*)m_players[i])->m_pSwitches[2].position = XMFLOAT3(0.6774719f, 1.083242f, -23.05909f);
 			((CEmployee*)m_players[i])->m_pSwitches[2].radius = 0.5f;
 		}
 	}
@@ -489,13 +497,13 @@ CPlayer* CGameScene::GetScenePlayerBySid(const int32 sid)
 
 CPlayer* CGameScene::GetScenePlayerByIdx(const int32 idx)
 {
-	if (idx < 0 || idx > 3) return nullptr;
+	if (idx < 0 || idx >= PLAYERNUM) return nullptr;
 	return m_players[idx];
 }
 
 CGenerator* CGameScene::GetSceneGenByIdx(const int32 idx)
 {
-	if (idx == -1) return nullptr;
+	if (!m_ppGenerator || idx < 0 || idx >= m_nGenerator) return nullptr;
 	return m_ppGenerator[idx];
 }
 

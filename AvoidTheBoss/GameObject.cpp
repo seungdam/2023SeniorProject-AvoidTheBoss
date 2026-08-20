@@ -7,6 +7,26 @@
 #include "Shader.h"
 #include "CSound.h"
 #include "CScene.h"
+#include "DXSampleHelper.h"
+
+namespace
+{
+	FILE* OpenUtf8BinaryFile(const char* fileName)
+	{
+		if (!fileName) return nullptr;
+
+		const int wideLength = ::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, fileName, -1, nullptr, 0);
+		if (wideLength <= 0) return nullptr;
+
+		std::wstring wideFileName(static_cast<std::size_t>(wideLength), L'\0');
+		if (::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, fileName, -1, wideFileName.data(), wideLength) <= 0)
+			return nullptr;
+
+		const auto assetPath = GetAssetPath(wideFileName.c_str());
+		FILE* file = nullptr;
+		return (_wfopen_s(&file, assetPath.c_str(), L"rb") == 0) ? file : nullptr;
+	}
+}
 
 std::vector<BoundingBox> bv;
 
@@ -96,7 +116,10 @@ void CTexture::ReleaseShaderVariables()
 void CTexture::LoadTextureFromFile(ID3D12Device5 *pd3dDevice, ID3D12GraphicsCommandList4   *pd3dCommandList, const wchar_t *pszFileName, UINT nIndex, bool bIsDDSFile)
 {
 	if (bIsDDSFile)
-		m_ppd3dTextures[nIndex] = ::CreateTextureResourceFromDDSFile(pd3dDevice, pd3dCommandList, pszFileName, &(m_ppd3dTextureUploadBuffers[nIndex]), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	{
+		const auto assetPath = GetAssetPath(pszFileName);
+		m_ppd3dTextures[nIndex] = ::CreateTextureResourceFromDDSFile(pd3dDevice, pd3dCommandList, assetPath.c_str(), &(m_ppd3dTextureUploadBuffers[nIndex]), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -157,12 +180,22 @@ CShader *CMaterial::m_pStandardShader = NULL;
 void CMaterial::PrepareShaders(ID3D12Device5 *pd3dDevice, ID3D12GraphicsCommandList4   *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature)
 {
 	m_pStandardShader = new CStandardShader();
+	m_pStandardShader->AddRef();
 	m_pStandardShader->CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
 	m_pStandardShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);
 
 	m_pSkinnedAnimationShader = new CSkinnedAnimationStandardShader();
+	m_pSkinnedAnimationShader->AddRef();
 	m_pSkinnedAnimationShader->CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
 	m_pSkinnedAnimationShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);
+}
+
+void CMaterial::ReleaseShaders()
+{
+	if (m_pStandardShader) m_pStandardShader->Release();
+	m_pStandardShader = nullptr;
+	if (m_pSkinnedAnimationShader) m_pSkinnedAnimationShader->Release();
+	m_pSkinnedAnimationShader = nullptr;
 }
 
 void CMaterial::UpdateShaderVariable(ID3D12GraphicsCommandList4   *pd3dCommandList)
@@ -485,8 +518,8 @@ void CAnimationController::SetTrackEnable(int nAnimationTrack, bool bEnable)
 
 bool CAnimationController::GetTrackEnable(int nAnimationTrack)
 {
-	if (m_pAnimationTracks)
-		return m_pAnimationTracks[nAnimationTrack].GetEnable();
+	return m_pAnimationTracks && nAnimationTrack >= 0 && nAnimationTrack < m_nAnimationTracks
+		&& m_pAnimationTracks[nAnimationTrack].GetEnable();
 }
 
 void CAnimationController::SetTrackPosition(int nAnimationTrack, float fPosition)
@@ -617,11 +650,9 @@ void CGameObject::Release()
 {
 	if (m_pChild) {
 		m_pChild->Release();
-		m_pChild = nullptr;
 	}
 	if (m_pSibling) {
 		m_pSibling->Release();
-		m_pSibling = nullptr;
 	}
 	if (--m_nReferences <= 0) delete this;
 }
@@ -1207,8 +1238,13 @@ void CGameObject::LoadAnimationFromFile(FILE *pInFile, CLoadedModelInfo *pLoaded
 
 CLoadedModelInfo *CGameObject::LoadGeometryAndAnimationFromFile(ID3D12Device5 *pd3dDevice, ID3D12GraphicsCommandList4   *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature, const char *pstrFileName, CShader *pShader, Layout objType)
 {
-	FILE *pInFile = NULL;
-	::fopen_s(&pInFile, pstrFileName, "rb");
+	FILE *pInFile = OpenUtf8BinaryFile(pstrFileName);
+	if (!pInFile)
+	{
+		const std::string message = std::string("Cannot open model file: ") + (pstrFileName ? pstrFileName : "<null>");
+		::OutputDebugStringA((message + "\n").c_str());
+		throw std::runtime_error(message);
+	}
 	::rewind(pInFile);
 
 	CLoadedModelInfo *pLoadedModel = new CLoadedModelInfo();
@@ -1254,8 +1290,13 @@ CLoadedModelInfo *CGameObject::LoadGeometryAndAnimationFromFile(ID3D12Device5 *p
 
 CGameObject* CGameObject::LoadGeometryFromFile(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4  * pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const char* pstrFileName, CShader* pShader, Layout objType)
 {
-	FILE* pInFile = NULL;
-	::fopen_s(&pInFile, pstrFileName, "rb");
+	FILE* pInFile = OpenUtf8BinaryFile(pstrFileName);
+	if (!pInFile)
+	{
+		const std::string message = std::string("Cannot open model file: ") + (pstrFileName ? pstrFileName : "<null>");
+		::OutputDebugStringA((message + "\n").c_str());
+		throw std::runtime_error(message);
+	}
 	::rewind(pInFile);
 
 	CGameObject* pGameObject = CGameObject::LoadFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, NULL, pInFile, pShader, NULL,objType);
