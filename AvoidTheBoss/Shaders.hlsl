@@ -1,4 +1,4 @@
-﻿struct MATERIAL
+struct MATERIAL
 {
 	float4					m_cAmbient;
 	float4					m_cDiffuse;
