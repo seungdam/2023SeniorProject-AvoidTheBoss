@@ -3,15 +3,7 @@
 #include <cmath>
 
 
-Timer::Timer()
-{
-	_nSampleCount = 0;
-	_curFrameRate = 0;
-	_nFramePerSec = 0;
-	_accumulateElapsedTime = 0.0f;
-
-
-}
+Timer::Timer() = default;
 
 Timer::~Timer()
 {
@@ -24,7 +16,7 @@ void Timer::Start()
 
 	if (_bStopped)
 	{
-		_fTimeDuringPaused += std::chrono::duration<double>(resumeTimePoint - _StopTimePoint).count();
+		_fTimeDuringPaused += static_cast<float>(std::chrono::duration<double>(resumeTimePoint - _StopTimePoint).count());
 		_lastTimePoint = resumeTimePoint;
 		_bStopped = false;
 	}
@@ -48,7 +40,7 @@ void Timer::Reset()
 
 void Timer::Tick(float fLockFPS)
 {
-	if (fLockFPS != 0.0f) _fTimeElapsedAvg = (int)((1.f / fLockFPS) * 1000.f); // 60 FPS 기준 16값이 나온다.
+	if (fLockFPS != 0.0f) _fTimeElapsedAvg = static_cast<float>(static_cast<int>((1.0f / fLockFPS) * 1000.0f)); // 60 FPS 기준 16값이 나온다.
 
 
 
@@ -99,7 +91,7 @@ void Timer::Tick(float fLockFPS)
 		{
 			(_fTimeElapsedAvg) /= _nSampleCount;
 		}
-		_curFrameRate = _fTimeElapsedAvg;
+		_curFrameRate = static_cast<unsigned long>(_fTimeElapsedAvg);
 	}
 	GetFrameRate();
 }

@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "CollisionDetector.h"
+#include <cstdlib>
 #include <string>
 
 OcTree* ClientBoxTree = nullptr;
@@ -32,9 +33,9 @@ void OcTree::ReadBoundingBoxInfoFromFile(const char* filename)
 
 			if (centerStart != std::string::npos && centerXend != std::string::npos && centerYend != std::string::npos && centerZend != std::string::npos)
 			{
-				cx = atof(line.substr(centerStart + 1, centerXend - centerStart - 1).c_str());
-				cy = atof(line.substr(centerXend + 1, centerYend - centerXend - 1).c_str());
-				cz = atof(line.substr(centerYend + 1, centerZend - centerYend - 1).c_str());
+				cx = std::strtof(line.substr(centerStart + 1, centerXend - centerStart - 1).c_str(), nullptr);
+				cy = std::strtof(line.substr(centerXend + 1, centerYend - centerXend - 1).c_str(), nullptr);
+				cz = std::strtof(line.substr(centerYend + 1, centerZend - centerYend - 1).c_str(), nullptr);
 
 			}
 		}
@@ -49,9 +50,9 @@ void OcTree::ReadBoundingBoxInfoFromFile(const char* filename)
 			size_t extentsZend = line.find(")", extentsYend);
 
 			if (extentsStart != std::string::npos && extentsXend != std::string::npos && extentsYend != std::string::npos && extentsZend != std::string::npos) {
-				ex = atof(line.substr(extentsStart + 1, extentsXend - extentsStart - 1).c_str());
-				ey = atof(line.substr(extentsXend + 1, extentsYend - extentsXend - 1).c_str());
-				ez = atof(line.substr(extentsYend + 1, extentsZend - extentsYend - 1).c_str());
+				ex = std::strtof(line.substr(extentsStart + 1, extentsXend - extentsStart - 1).c_str(), nullptr);
+				ey = std::strtof(line.substr(extentsXend + 1, extentsYend - extentsXend - 1).c_str(), nullptr);
+				ez = std::strtof(line.substr(extentsYend + 1, extentsZend - extentsYend - 1).c_str(), nullptr);
 			}
 		}
 		BoundingBox bv;
@@ -179,6 +180,7 @@ bool OcTree::CheckCollision(DirectX::BoundingSphere& playerBox, XMFLOAT3& player
 		}
 		return rVal;
 	}
+	return false;
 }
 
 

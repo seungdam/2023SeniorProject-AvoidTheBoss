@@ -10,19 +10,19 @@ class Timer
 private:
 	using Clock = std::chrono::high_resolution_clock;
 public:
-	float					_fTimeDuringPaused;
-	float					_fTimeElapsed;
-	bool					_bStopped;
+	float					_fTimeDuringPaused = 0.0f;
+	float					_fTimeElapsed = 0.0f;
+	bool					_bStopped = false;
 
-	float					_SampleFrameTime[MAX_SAMPLE_COUNT];
-	ULONG					_nSampleCount;
+	float					_SampleFrameTime[MAX_SAMPLE_COUNT] = {};
+	ULONG					_nSampleCount = 0;
 
-	unsigned long			_curFrameRate;
-	unsigned long			_nFramePerSec;
+	unsigned long			_curFrameRate = 0;
+	unsigned long			_nFramePerSec = 0;
 
-	Clock::time_point		_lastTimePoint; // 마지막 시점 시간
-	Clock::time_point		_StopTimePoint; // 멈춘 시점
-	Clock::time_point		_initTimePoint;
+	Clock::time_point		_lastTimePoint{}; // 마지막 시점 시간
+	Clock::time_point		_StopTimePoint{}; // 멈춘 시점
+	Clock::time_point		_initTimePoint{};
 
 	float					_fTimeElapsedAvg = 0.f; // 한 프레임 처리하는데 걸리는 평균 시간
 	float					_accumulateElapsedTime = 0.f; // 한 프레임 만큼 처리 됐는지 확인하는 용도

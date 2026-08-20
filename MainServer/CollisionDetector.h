@@ -55,9 +55,9 @@ public:
 	static int32 _idx;
 	int32 _curLevel = 0;
 	float _volume = 0;
-	OcTree* _parentTree;
-	std::array<OcTree*, 8> _childTree;
-	LeafNode* _node;
+	OcTree* _parentTree = nullptr;
+	std::array<OcTree*, 8> _childTree = {};
+	LeafNode* _node = nullptr;
 
 	DirectX::BoundingBox _area;
 	DirectX::XMFLOAT3 _center;
@@ -72,7 +72,7 @@ public:
 		if (_curLevel == 0) _parentTree = this;
 		if (_curLevel == _maxLevel) _node = new LeafNode();
 	};
-	OcTree(OcTree* parent, float level, XMFLOAT3 center, float volume) : _parentTree(parent), _curLevel(level), _volume(volume)
+	OcTree(OcTree* parent, int32 level, XMFLOAT3 center, float volume) : _parentTree(parent), _curLevel(level), _volume(volume)
 	{
 		_center = center;
 		_area.Center = center;

@@ -10,8 +10,7 @@ Scheduler::Scheduler()
 void Scheduler::PushTask(QueueEvent* task, float after)
 {
 	_CurrentTick = GetCurrentTick();
-	double dueTimeTick = _CurrentTick + after;
-	task->generateTime = dueTimeTick;
+	task->generateTime = _CurrentTick + static_cast<int64>(after);
 	_TaskQueue.push(task);
 }
 
