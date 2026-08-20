@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.26)
 
 project(AvoidTheBoss LANGUAGES CXX RC)
 
@@ -156,14 +156,12 @@ target_include_directories(GameClient PRIVATE
     AvoidTheBoss/DXRHelpers
     AvoidTheBoss/DXRHelpers/nv_helpers_dx12
 )
-target_include_directories(GameClient SYSTEM PRIVATE AvoidTheBoss/FMOD/inc)
 target_compile_definitions(GameClient PRIVATE _WINDOWS)
 target_precompile_headers(GameClient PRIVATE
     "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss/pch.h>"
 )
 target_link_libraries(GameClient PRIVATE
     CoreEngine
-    "${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss/FMOD/lib/fmod_vc.lib"
     d2d1
     d3d11
     d3d12
@@ -187,9 +185,23 @@ set_target_properties(GameClient PROPERTIES
     VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss"
 )
 
-add_custom_command(TARGET GameClient POST_BUILD
+set(client_asset_output "$<TARGET_FILE_DIR:GameClient>/Assets")
+# ponytail: scans assets on each GameClient build; add per-file dependencies only if this becomes measurable.
+add_custom_target(GameClientAssets
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${client_asset_output}"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss/FMOD/lib/fmod.dll"
-        "$<TARGET_FILE_DIR:GameClient>/fmod.dll"
+        "${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss/Shaders.hlsl"
+        "${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss/Light.hlsl"
+        "${client_asset_output}"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss/Model"
+        "${client_asset_output}/Model"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss/Skybox"
+        "${client_asset_output}/Skybox"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss/UI"
+        "${client_asset_output}/UI"
     VERBATIM
 )
+add_dependencies(GameClient GameClientAssets)
