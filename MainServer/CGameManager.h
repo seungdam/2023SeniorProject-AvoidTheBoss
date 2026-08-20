@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "SPlayer.h"
+#include <stdexcept>
 #include "SGenerator.h"
 #include "WorldRewinder.h"
 
@@ -34,7 +35,9 @@ public:
 	bool IsAvailablePlayer(int32 idx) { return (!_players[idx].m_hide && !Vector3::IsZero(_players[idx].GetVelocity())); }
 	SPlayer& GetPlayerBySid(int32 sid)
 	{
-		for (auto& i : _players) if (sid == i.m_sid) return _players[i.m_idx];
+		for (auto& player : _players)
+			if (sid == player.m_sid) return player;
+		throw std::out_of_range("Player SID not found");
 	}
 	SPlayer& GetPlayerByIdx(int32 idx) { return _players[idx]; }
 	SGenerator& GetGeneratorByIdx(int32 idx) { return _generators[idx]; }

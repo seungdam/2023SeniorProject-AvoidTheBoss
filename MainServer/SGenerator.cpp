@@ -12,7 +12,7 @@ bool SGenerator::CanInteraction(int32 rm, int32 sid)
 	tp = gm.GetPlayerBySid(sid);*/
 	XMFLOAT3 myPlayerpos = gm.GetPlayerBySid(sid).GetPosition();
 	XMFLOAT3 distance = Vector3::Subtract(myPlayerpos,_pos);
-	float range = 0.5 + _ActiveRadius;
+	float range = 0.5f + _ActiveRadius;
 	if (Vector3::Length(distance) <= range) return true;
 	return false;
 }

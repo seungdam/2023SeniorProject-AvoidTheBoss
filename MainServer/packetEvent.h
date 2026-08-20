@@ -8,7 +8,7 @@
 class QueueEvent
 {
 public:
-	int64 generateTime = 0.f;
+	int64 generateTime = 0;
 	int32 _sid = -1;
 public:
 	QueueEvent() {};

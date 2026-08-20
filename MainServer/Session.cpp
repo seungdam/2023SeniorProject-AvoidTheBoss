@@ -126,7 +126,7 @@ void ServerSession::DoSendLoginPacket(bool isSuccess)
 
 	if (isSuccess)
 	{
-		S2C_LOGIN_OK loginOkPacket;
+		S2C_LOGIN_OK loginOkPacket{};
 		loginOkPacket.size = sizeof(S2C_LOGIN_OK);
 		loginOkPacket.type = (uint8)S_TITLE_PACKET_TYPE::LOGIN_OK;
 		loginOkPacket.cid = _cid;
@@ -135,8 +135,8 @@ void ServerSession::DoSendLoginPacket(bool isSuccess)
 	}
 	else
 	{
-		S2C_LOGIN_OK loginFailPacket;
-		loginFailPacket.size = sizeof(S2C_LOGIN_OK);
+		S2C_LOGIN_FAIL loginFailPacket{};
+		loginFailPacket.size = sizeof(S2C_LOGIN_FAIL);
 		loginFailPacket.type = (uint8)S_TITLE_PACKET_TYPE::LOGIN_FAIL;
 		DoSend(&loginFailPacket);
 	}
@@ -202,9 +202,9 @@ void ServerSession::ProcessPacket(char* packet)
 		{
 			int32 idx = ServerIocpCore._rmgr->GetRoom(_myRm).GetSidIndexBySid(_sid);
 			ServerIocpCore._rmgr->GetRoom(_myRm).UpdateReady(idx, false);
-			S2C_ROOM_READY packet;
+			S2C_ROOM_READY packet{};
 
-			packet.size = sizeof(S2C_ROOM_EVENT);
+			packet.size = sizeof(S2C_ROOM_READY);
 			packet.type = (uint8)S_ROOM_PACKET_TYPE::REP_READY_CANCEL;
 			packet.sid = _sid;
 			ServerIocpCore._rmgr->GetRoom(_myRm).BroadCastingExcept(&packet, _sid);
