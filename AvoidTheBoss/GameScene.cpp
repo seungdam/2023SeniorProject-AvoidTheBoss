@@ -99,22 +99,8 @@ void CGameScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM 
 			//mainGame.ChangeSwapChainState();
 			break;
 		case VK_F1:
-			if (mainGame.m_activeDelay)
-			{
-				mainGame.dalock.lock();
-				mainGame.m_activeDelay = false;
-				{
-					std::unique_lock<std::shared_mutex> ql(m_jobQueueLock);
-					m_jobQueue->Clear();
-				}
-				mainGame.dalock.unlock();
-			}
-			else if (!mainGame.m_activeDelay)
-			{
-				mainGame.dalock.lock();
-				mainGame.m_activeDelay = true;
-				mainGame.dalock.unlock();
-			}
+			mainGame.m_activeDelay = !mainGame.m_activeDelay;
+			if (!mainGame.m_activeDelay) m_jobQueue->Clear();
 			break;
 		}
 		break;
@@ -396,10 +382,7 @@ void CGameScene::Update(HWND& hWnd)
 {
 	m_timer.Tick(0);
 
-	{
-		std::unique_lock<std::shared_mutex> wl(m_jobQueueLock);
-		m_jobQueue->DoTasks();
-	}
+	m_jobQueue->DoTasks();
 
 	for (int k = 0; k < PLAYERNUM; ++k)
 	{
@@ -534,7 +517,6 @@ void CGameScene::InitGame(void* packet, int32 sid)
 
 void CGameScene::AddEvent(queueEvent* ev, float after)
 {
-	std::unique_lock<std::shared_mutex> wl(m_jobQueueLock);
 	m_jobQueue->PushTask(ev, after);
 }
 
@@ -568,10 +550,7 @@ void CGameScene::ExitReady()
 void CGameScene::ResetGame()
 {
 
-	{
-		std::unique_lock<std::shared_mutex> wl(m_jobQueueLock);
-		m_jobQueue->Clear();
-	}
+	m_jobQueue->Clear();
 	// 플레이어 상태 초기화
 	for (auto& i : m_players) if(i) i->ResetState();
 

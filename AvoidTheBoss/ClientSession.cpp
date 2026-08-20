@@ -18,6 +18,61 @@
 #include "OtherScenes.h"
 #include "GameScene.h"
 
+namespace
+{
+	constexpr int32 PacketHeaderSize = 2;
+	// ponytail: fixed client bound; add packet coalescing only when queue telemetry proves it is needed.
+	constexpr std::size_t MaxPendingPackets = 4096;
+
+	std::size_t GetExpectedServerPacketSize(const uint8 type)
+	{
+		switch (type)
+		{
+		case static_cast<uint8>(S_TITLE_PACKET_TYPE::REG_FAIL):
+		case static_cast<uint8>(S_TITLE_PACKET_TYPE::REG_OK):
+			return sizeof(S2C_REG);
+		case static_cast<uint8>(S_TITLE_PACKET_TYPE::LOGIN_OK):
+			return sizeof(S2C_LOGIN_OK);
+		case static_cast<uint8>(S_TITLE_PACKET_TYPE::LOGIN_FAIL):
+			return sizeof(S2C_LOGIN_FAIL);
+
+		case static_cast<uint8>(S_ROOM_PACKET_TYPE::MK_RM_OK):
+		case static_cast<uint8>(S_ROOM_PACKET_TYPE::MK_RM_FAIL):
+		case static_cast<uint8>(S_ROOM_PACKET_TYPE::REP_EXIT_RM):
+			return sizeof(S2C_ROOM_EVENT);
+		case static_cast<uint8>(S_ROOM_PACKET_TYPE::REP_ENTER_FAIL):
+		case static_cast<uint8>(S_ROOM_PACKET_TYPE::REP_ENTER_OK):
+			return sizeof(S2C_ROOM_ENTER);
+		case static_cast<uint8>(S_ROOM_PACKET_TYPE::UPDATE_LIST):
+			return sizeof(S2C_ROOM_LIST);
+		case static_cast<uint8>(S_ROOM_PACKET_TYPE::ROOM_INFO):
+			return sizeof(S2C_ROOM_INFO);
+		case static_cast<uint8>(S_ROOM_PACKET_TYPE::REP_READY):
+		case static_cast<uint8>(S_ROOM_PACKET_TYPE::REP_READY_CANCEL):
+			return sizeof(S2C_ROOM_READY);
+		case static_cast<uint8>(S_ROOM_PACKET_TYPE::GAME_START):
+			return sizeof(S2C_GAMESTART);
+
+		case static_cast<uint8>(S_GAME_PACKET_TYPE::SCHAT):
+			return sizeof(_CHAT);
+		case static_cast<uint8>(S_GAME_PACKET_TYPE::SKEY):
+			return sizeof(S2C_KEY);
+		case static_cast<uint8>(S_GAME_PACKET_TYPE::SROT):
+			return sizeof(S2C_ROTATE);
+		case static_cast<uint8>(S_GAME_PACKET_TYPE::SPOS):
+			return sizeof(S2C_POS);
+		case static_cast<uint8>(S_GAME_PACKET_TYPE::ANIM):
+			return sizeof(S2C_ANIMPACKET);
+		case static_cast<uint8>(S_GAME_PACKET_TYPE::FRAME):
+			return sizeof(S2C_FRAMEPACKET);
+		case static_cast<uint8>(SC_GAME_PACKET_TYPE::GAMEEVENT):
+			return sizeof(SC_EVENTPACKET);
+		default:
+			return 0;
+		}
+	}
+}
+
 
 
 
@@ -28,6 +83,50 @@ CSession::CSession()
 CSession::~CSession()
 {
 	SocketUtil::Close(_sock);
+}
+
+void CSession::SetIdentity(const int32 cid, const int32 sid)
+{
+	std::unique_lock identityLock(_lock);
+	_cid = cid;
+	_sid = sid;
+}
+
+void CSession::SetSid(const int32 sid)
+{
+	std::unique_lock identityLock(_lock);
+	_sid = sid;
+}
+
+int32 CSession::GetSid()
+{
+	std::shared_lock identityLock(_lock);
+	return _sid;
+}
+
+std::pair<int32, int32> CSession::GetIdentity()
+{
+	std::shared_lock identityLock(_lock);
+	return { _cid, _sid };
+}
+
+bool CSession::QueuePacket(const char* packet, const std::size_t packetSize)
+{
+	std::lock_guard packetLock(_packetMutex);
+	if (_pendingPackets.size() >= MaxPendingPackets) return false;
+	_pendingPackets.emplace_back(packet, packet + packetSize);
+	return true;
+}
+
+void CSession::DispatchPackets()
+{
+	std::deque<std::vector<char>> packets;
+	{
+		std::lock_guard packetLock(_packetMutex);
+		packets.swap(_pendingPackets);
+	}
+
+	for (auto& packet : packets) ApplyPacket(packet.data());
 }
 
 void CSession::Stop()
@@ -50,7 +149,7 @@ void CSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 	{
 		ConnectEvent* connectEvent = static_cast<ConnectEvent*>(iocpEvent);
 		delete connectEvent;
-		_sid = 0;
+		SetSid(0);
 		if (!IsStopping()) DoRecv(); // Connect하고 Do recv 수행
 	}
 	break;
@@ -58,25 +157,72 @@ void CSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 	{
 		if (IsStopping()) break;
 		RecvEvent* rev = static_cast<RecvEvent*>(iocpEvent);
+		if (numOfBytes < 0 || _prev_remain < 0 || _prev_remain > BUFSIZE || numOfBytes > BUFSIZE - _prev_remain)
+		{
+			std::cerr << "Invalid receive buffer state\n";
+			_prev_remain = 0;
+			RequestStop();
+			return;
+		}
+
 		int remain_data = numOfBytes + _prev_remain;
 		char* p = rev->_rbuf;
-		while (remain_data > 0)
+		while (remain_data >= PacketHeaderSize)
 		{
-			uint8 packet_size = p[0];
-			if (packet_size <= remain_data)
+			const uint8 packet_size = static_cast<uint8>(p[0]);
+			const uint8 packet_type = static_cast<uint8>(p[1]);
+
+			if (packet_size < PacketHeaderSize)
 			{
-				ProcessPacket(p);
-				p = p + packet_size;
-				remain_data = remain_data - packet_size;
+				std::cerr << "Rejected packet: invalid size " << static_cast<int32>(packet_size) << "\n";
+				_prev_remain = 0;
+				RequestStop();
+				return;
 			}
-			else break;
+
+			if (packet_size > remain_data) break;
+
+			const std::size_t expected_size = GetExpectedServerPacketSize(packet_type);
+			if (expected_size == 0)
+			{
+				std::cerr << "Ignored unknown packet type " << static_cast<int32>(packet_type) << "\n";
+			}
+			else if (packet_size != expected_size)
+			{
+				std::cerr << "Rejected packet type " << static_cast<int32>(packet_type)
+					<< ": expected " << expected_size
+					<< " bytes, received " << static_cast<int32>(packet_size) << "\n";
+				_prev_remain = 0;
+				RequestStop();
+				return;
+			}
+			else
+			{
+				if (packet_type == static_cast<uint8>(S_TITLE_PACKET_TYPE::LOGIN_OK))
+				{
+					const auto* login = reinterpret_cast<const S2C_LOGIN_OK*>(p);
+					SetIdentity(login->cid, login->sid);
+				}
+
+				if (!QueuePacket(p, packet_size))
+				{
+					::OutputDebugStringA("[Network] Pending packet queue overflow\n");
+					std::cerr << "Pending packet queue overflow\n";
+					_prev_remain = 0;
+					RequestStop();
+					return;
+				}
+			}
+
+			p += packet_size;
+			remain_data -= packet_size;
 		}
 		_prev_remain = remain_data;
 		if (remain_data > 0)
 		{
-			memcpy(rev->_rbuf, p, remain_data);
+			memmove(rev->_rbuf, p, remain_data);
 		}
-		DoRecv();
+		if (!IsStopping()) DoRecv();
 	}
 	break;
 	case EventType::Send:
@@ -94,7 +240,7 @@ bool CSession::DoSend(void* packet)
 	DWORD sendLen(0);
 	DWORD flag(0);
 	SendEvent* sev = new SendEvent(reinterpret_cast<char*>(packet));
-	sev->_sid = _sid;
+	sev->_sid = GetSid();
 	BeginIo();
 	if (WSASend(_sock, &sev->_sWsaBuf, 1, &sendLen, flag, static_cast<LPWSAOVERLAPPED>(sev), NULL) == SOCKET_ERROR)
 	{
@@ -116,8 +262,9 @@ bool CSession::DoRecv()
 {
 	if (IsStopping() || _sock == INVALID_SOCKET) return false;
 	_rev.Init();
-	_rev._sid = _sid;
-	_rev._cid = _cid;
+	const auto [cid, sid] = GetIdentity();
+	_rev._sid = sid;
+	_rev._cid = cid;
 	DWORD recvBytes(0);
 	DWORD flag(0);
 	_rev._rWsaBuf.buf = _rev._rbuf + _prev_remain;
@@ -137,7 +284,7 @@ bool CSession::DoRecv()
 
 }
 
-void CSession::ProcessPacket(char* packet)
+void CSession::ApplyPacket(char* packet)
 {
 
 	CTitleScene* ts =
@@ -160,9 +307,6 @@ void CSession::ProcessPacket(char* packet)
 	case (uint8)S_TITLE_PACKET_TYPE::LOGIN_OK:
 	{
 		S2C_LOGIN_OK* lo = (S2C_LOGIN_OK*)packet;
-		_cid = lo->cid;
-		_sid = lo->sid;
-
 		CScene::m_sid = lo->sid;
 		CScene::m_cid = lo->cid;
 		ts->loginLock.lock();
@@ -261,15 +405,13 @@ void CSession::ProcessPacket(char* packet)
 		// ================= 플레이어 초기 위치 초기화 ==================
 
 
-		 gs->InitGame(packet, _sid);
+		 gs->InitGame(packet, GetSid());
 
 
 		// ================= 카메라 셋팅 ================================
 		mainGame.m_UIRenderer->InitGameSceneUI(gs);
 
-		mainGame.scLock.lock();
 		mainGame.ChangeScene(CGameFramework::SCENESTATE::INGAME);
-		mainGame.scLock.unlock();
 		gs->InitScene();
 		rs->m_memLock.lock();
 
@@ -297,10 +439,7 @@ void CSession::ProcessPacket(char* packet)
 		mev->_dir.z = movePacket->z;
 		mev->_key = movePacket->key;
 
-		mainGame.dalock.lock();
-		if(mainGame.m_activeDelay) gs->AddEvent(static_cast<queueEvent*>(mev), 320);
-		else if(!mainGame.m_activeDelay) gs->AddEvent(static_cast<queueEvent*>(mev), 0);
-		mainGame.dalock.unlock();
+		gs->AddEvent(static_cast<queueEvent*>(mev), mainGame.m_activeDelay ? 320.0f : 0.0f);
 	}
 	break;
 	case (uint8)S_GAME_PACKET_TYPE::SROT:
@@ -309,7 +448,7 @@ void CSession::ProcessPacket(char* packet)
 		CPlayer* player = gs->GetScenePlayerBySid(rotatePacket->sid);
 		if (player != nullptr)
 		{
-			player->Rotate(0, rotatePacket->angle, 0);
+			player->Rotate(0, static_cast<float>(rotatePacket->angle), 0);
 		}
 
 	}
@@ -325,10 +464,7 @@ void CSession::ProcessPacket(char* packet)
 		pe->player = player;
 		pe->_pos = newPos;
 
-		mainGame.dalock.lock();
-		if (mainGame.m_activeDelay) gs->AddEvent(static_cast<queueEvent*>(pe), 320);
-		else if (!mainGame.m_activeDelay) gs->AddEvent(static_cast<queueEvent*>(pe), 0);
-		mainGame.dalock.unlock();
+		gs->AddEvent(static_cast<queueEvent*>(pe), mainGame.m_activeDelay ? 320.0f : 0.0f);
 	}
 	break;
 	case (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT:
@@ -342,9 +478,7 @@ void CSession::ProcessPacket(char* packet)
 			if (ev->eventId == (uint8)EVENT_TYPE::EMP_WIN) rrs->m_case = 0;
 
 			rrs->m_timer.Reset();
-			mainGame.scLock.lock();
 			mainGame.ChangeScene(CGameFramework::SCENESTATE::RESULT);
-			mainGame.scLock.unlock();
 			mainGame.m_curFrame = 0;
 			gs->ResetGame();
 		}
@@ -352,10 +486,7 @@ void CSession::ProcessPacket(char* packet)
 		{
 			InteractionEvent* gev = new InteractionEvent();
 			gev->eventId = ev->eventId;
-			mainGame.dalock.lock();
-			if (mainGame.m_activeDelay) gs->AddEvent(static_cast<queueEvent*>(gev), 320);
-			else if (!mainGame.m_activeDelay) gs->AddEvent(static_cast<queueEvent*>(gev), 0);
-			mainGame.dalock.unlock();
+			gs->AddEvent(static_cast<queueEvent*>(gev), mainGame.m_activeDelay ? 320.0f : 0.0f);
 		}
 	}
 	break;
@@ -388,10 +519,7 @@ void CSession::ProcessPacket(char* packet)
 		S2C_FRAMEPACKET* fp = (S2C_FRAMEPACKET*)packet;
 		FrameEvent* fe = new FrameEvent(fp->wf);
 
-		mainGame.dalock.lock();
-		if (mainGame.m_activeDelay) gs->AddEvent(static_cast<queueEvent*>(fe), 320);
-		else if (!mainGame.m_activeDelay) gs->AddEvent(static_cast<queueEvent*>(fe), 0);
-		mainGame.dalock.unlock();
+		gs->AddEvent(static_cast<queueEvent*>(fe), mainGame.m_activeDelay ? 320.0f : 0.0f);
 
 	}
 	break;

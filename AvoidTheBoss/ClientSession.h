@@ -1,5 +1,10 @@
 ﻿#pragma once
 #include "Asession.h"
+#include <deque>
+#include <mutex>
+#include <shared_mutex>
+#include <utility>
+#include <vector>
 
 class IocpEvent;
 class Scheduler;
@@ -19,7 +24,11 @@ public:
 	SOCKET GetSock() { return _sock; }
 	bool DoSend(void* packet);
 	bool DoRecv();
-	void ProcessPacket(char*);
+	void DispatchPackets();
+	void SetIdentity(int32 cid, int32 sid);
+	void SetSid(int32 sid);
+	int32 GetSid();
+	std::pair<int32, int32> GetIdentity();
 	void BeginIo() { ++_pendingIo; }
 	int32 CompleteIo() { return --_pendingIo; }
 	int32 PendingIo() const { return _pendingIo.load(); }
@@ -31,6 +40,11 @@ public:
 	int32 _prev_remain = 0;
 	int16  _loginOk = -3;
 private:
+	bool QueuePacket(const char* packet, std::size_t packetSize);
+	void ApplyPacket(char* packet);
+
+	std::mutex _packetMutex;
+	std::deque<std::vector<char>> _pendingPackets;
 	std::atomic<int32> _pendingIo = 0;
 	std::atomic_bool _stopping = false;
 };

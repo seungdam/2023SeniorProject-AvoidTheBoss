@@ -458,23 +458,17 @@ void CGameFramework::AnimateObjects()
 void CGameFramework::FrameAdvance() // 여기서 업데이트랑 렌더링 동시에 진행하는 곳
 {
 	//타이머의 시간이 갱신되도록 하고 프레임 레이트를 계산한다.
+	clientCore.DispatchPackets();
 
-	scLock.lock();
 	//1 인풋 처리
 	ProcessInput();
 	//2 업데이트 처리
 	UpdateObject();
 	//3 애니메이트 처리
-
 	AnimateObjects();
 	//4 렌더링 처리
 	Render();
-
-	WaitForGpuComplete();
-	//GPU가 모든 명령 리스트를 실행할 때 까지 기다린다.
-
 	m_UIRenderer->Render2D(m_nSwapChainBufferIndex, m_curScene.load());
-	scLock.unlock();
 
 #ifdef _WITH_PRESENT_PARAMETERS
 	DXGI_PRESENT_PARAMETERS dxgiPresentParameters;

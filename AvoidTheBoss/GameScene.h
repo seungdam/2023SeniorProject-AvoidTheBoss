@@ -74,7 +74,6 @@ public:
 
 public:
 	Scheduler*					m_jobQueue;
-	std::shared_mutex			m_jobQueueLock;
 public:
 	XMFLOAT3					m_xmf3ClearPoint[3]; // 클리어 좌표
 public:

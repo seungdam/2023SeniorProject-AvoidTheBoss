@@ -27,7 +27,7 @@ void CCIocpCore::InitConnect(const char* address)
 {
 
 		_client->_sock = SocketUtil::CreateSocket();
-		_client->_sid = -1;
+		_client->SetIdentity(-1, -1);
 		ASSERT_CRASH(_client->_sock != INVALID_SOCKET);
 		_serveraddr.sin_family = AF_INET;
 		_serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -44,7 +44,7 @@ void CCIocpCore::DoConnect(void* loginInfo)
 {
 
 	if (!_client) return;
-		_client->_sid = 0;
+		_client->SetSid(0);
 		DWORD sendBytes(0);
 		DWORD sendLength = BUFSIZE / 2;
 		ConnectEvent* _connectEvent = new ConnectEvent();
@@ -104,16 +104,13 @@ bool CCIocpCore::Processing(uint32_t timelimit)
 			{
 			case ERROR_CONNECTION_REFUSED:
 			case WSAECONNREFUSED:
-				if (_client != nullptr)
-				{
-					if (iocpEvent && iocpEvent->_comp == EventType::Connect)
-						delete static_cast<ConnectEvent*>(iocpEvent);
-					std::cout << "Check The Server On... Retry Connecting\n";
-					if (!session->IsStopping()) DoConnect(nullptr);
-					return true;
-				}
-				else return false;
-				break;
+				if (iocpEvent && iocpEvent->_comp == EventType::Connect)
+					delete static_cast<ConnectEvent*>(iocpEvent);
+				if (session->IsStopping()) return session->PendingIo() > 0;
+
+				std::cout << "Check The Server On... Retry Connecting\n";
+				DoConnect(nullptr);
+				return true;
 			case WAIT_TIMEOUT: // time_limit이 INFINITE가 아닌 경우 ==> 나중에 다중 접속 시, 접속 시간에 따라 지정 가능
 				return false;
 			default:
