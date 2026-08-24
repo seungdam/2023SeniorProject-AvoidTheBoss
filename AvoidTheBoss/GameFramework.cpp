@@ -263,6 +263,16 @@ void CGameFramework::CreateDirect3DDevice()
 	{
 		pd3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
 		pd3dInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
+
+		// Preserve the legacy API's required state arguments. Current runtimes
+		// still report buffers as effectively COMMON, so filter only that noise.
+		D3D12_MESSAGE_ID deniedMessageIds[] = {
+			D3D12_MESSAGE_ID_CREATERESOURCE_STATE_IGNORED
+		};
+		D3D12_INFO_QUEUE_FILTER filter = {};
+		filter.DenyList.NumIDs = _countof(deniedMessageIds);
+		filter.DenyList.pIDList = deniedMessageIds;
+		ThrowIfFailed(pd3dInfoQueue->PushStorageFilter(&filter));
 	}
 #endif
 

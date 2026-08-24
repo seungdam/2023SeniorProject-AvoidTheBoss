@@ -29,14 +29,17 @@ class CStandardShader;
 struct SRVROOTARGUMENTINFO
 {
 	int								m_nRootParameterIndex = 0;
-	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dSrvGpuDescriptorHandle;
+	D3D12_GPU_DESCRIPTOR_HANDLE		m_d3dSrvGpuDescriptorHandle = {};
 };
 
 class CTexture
 {
 public:
 	CTexture(int nTextureResources = 1, UINT nResourceType = RESOURCE_TEXTURE2D, int nSamplers = 0);
-	virtual ~CTexture();
+	virtual ~CTexture() = default;
+
+	CTexture(const CTexture&) = delete;
+	CTexture& operator=(const CTexture&) = delete;
 
 private:
 	int								m_nReferences = 0;
@@ -44,14 +47,11 @@ private:
 	UINT							m_nTextureType = RESOURCE_TEXTURE2D;
 
 	int								m_nTextures = 0;
-	ID3D12Resource					**m_ppd3dTextures = NULL;
-	ID3D12Resource					**m_ppd3dTextureUploadBuffers;
+	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_textures;
+	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_textureUploadBuffers;
+	std::vector<SRVROOTARGUMENTINFO> m_rootArgumentInfos;
 
-	int								m_nSamplers = 0;
-	D3D12_GPU_DESCRIPTOR_HANDLE		*m_pd3dSamplerGpuDescriptorHandles = NULL;
-
-public:
-	SRVROOTARGUMENTINFO				*m_pRootArgumentInfos = NULL;
+	std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_samplerGpuDescriptorHandles;
 
 public:
 	void AddRef() { m_nReferences++; }
@@ -66,9 +66,9 @@ public:
 
 	void LoadTextureFromFile(ID3D12Device5 *pd3dDevice, ID3D12GraphicsCommandList4   *pd3dCommandList, const wchar_t *pszFileName, UINT nIndex, bool bIsDDSFile=true);
 
-	int GetTextures() { return(m_nTextures); }
-	ID3D12Resource *GetTexture(int nIndex) { return(m_ppd3dTextures[nIndex]); }
-	UINT GetTextureType() { return(m_nTextureType); }
+	int GetTextures() const noexcept { return(m_nTextures); }
+	ID3D12Resource *GetTexture(int nIndex) const { return(m_textures.at(static_cast<std::size_t>(nIndex)).Get()); }
+	UINT GetTextureType() const noexcept { return(m_nTextureType); }
 
 	void ReleaseUploadBuffers();
 };
