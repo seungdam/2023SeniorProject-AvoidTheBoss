@@ -18,6 +18,7 @@ struct ClientFrameSnapshot
 	bool sceneCameraMatches = false;
 	bool scenePlayerIndexMatches = false;
 	bool cameraResourcesValid = false;
+	std::uintptr_t cameraIdentity = 0;
 	std::uint64_t submittedFence = 0;
 	std::uint64_t completedFence = 0;
 };
@@ -86,6 +87,7 @@ private:
 	std::uint64_t m_ingamePresents = 0;
 	std::uint64_t m_completedFence = 0;
 	std::uint64_t m_submittedFence = 0;
+	std::uintptr_t m_cameraIdentity = 0;
 	std::uint64_t m_startedAtMs = 0;
 	std::uint64_t m_timeoutMs = 180'000;
 	std::uint64_t m_sequence = 0;

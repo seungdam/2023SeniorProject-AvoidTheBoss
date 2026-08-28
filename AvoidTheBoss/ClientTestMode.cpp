@@ -209,13 +209,19 @@ bool ClientTestMode::Pump(const ClientFrameSnapshot& snapshot)
 	const int lobby = static_cast<int>(CGameFramework::SCENESTATE::LOBBY);
 	if (m_stage >= Stage::AwaitInitialFirst && m_stage <= Stage::AwaitResult && snapshot.cameraMode >= 0)
 	{
-		if (!snapshot.cameraResourcesValid)
+		if (snapshot.cameraIdentity == 0)
+			FailLocked("DUT camera identity is unavailable");
+		else if (m_cameraIdentity != 0 && snapshot.cameraIdentity != m_cameraIdentity)
+			FailLocked("DUT camera object changed during a mode transition");
+		else if (!snapshot.cameraResourcesValid)
 			FailLocked("DUT camera shader variables are unavailable");
 		else if (snapshot.scene == inGame &&
 			(!snapshot.sceneCameraMatches || !snapshot.scenePlayerIndexMatches))
 			FailLocked("in-game scene camera is not bound to the DUT player camera");
 		else if (snapshot.scene == result && !snapshot.sceneCameraMatches)
-			FailLocked("ResetGame left the scene camera pointing at the deleted camera");
+			FailLocked("ResetGame left an active in-game render camera");
+
+		if (m_cameraIdentity == 0) m_cameraIdentity = snapshot.cameraIdentity;
 	}
 
 	switch (m_stage)

@@ -503,7 +503,9 @@ void CGameFramework::FrameAdvance() // 여기서 업데이트랑 렌더링 동�
 			snapshot.hp = player->m_hp;
 			snapshot.behavior = player->m_behavior;
 			snapshot.cameraMode = player->GetCamera() ? static_cast<int>(player->GetCamera()->GetMode()) : -1;
-			snapshot.sceneCameraMatches = gameScene->m_pCamera == player->GetCamera();
+			snapshot.cameraIdentity = reinterpret_cast<std::uintptr_t>(player->GetCamera());
+			snapshot.sceneCameraMatches = gameScene->GetRenderCamera() ==
+				(gameScene->m_playerIdx >= 0 ? player->GetCamera() : nullptr);
 			snapshot.scenePlayerIndexMatches = gameScene->m_playerIdx == playerIndex;
 			snapshot.cameraResourcesValid = player->GetCamera() && player->GetCamera()->HasShaderVariables();
 			if (playerIndex > 0) snapshot.rescuing = static_cast<CEmployee*>(player)->GetRescueOn();

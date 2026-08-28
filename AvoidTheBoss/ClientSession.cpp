@@ -4,6 +4,7 @@
 #include "ClientSession.h"
 // 프레임 워크 헤더
 #include "GameFramework.h"
+#include "ClientTestMode.h"
 #include "SceneManager.h"
 #include "UIManager.h"
 // 이벤트 처리관련 헤더
@@ -150,7 +151,11 @@ void CSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 		ConnectEvent* connectEvent = static_cast<ConnectEvent*>(iocpEvent);
 		delete connectEvent;
 		SetSid(0);
-		if (!IsStopping()) DoRecv(); // Connect하고 Do recv 수행
+		if (!IsStopping())
+		{
+			if (DoRecv()) g_clientTestMode.OnConnected(*this); // Connect하고 Do recv 수행
+			else g_clientTestMode.OnProtocolFailure("failed to start the first receive");
+		}
 	}
 	break;
 	case EventType::Recv:
@@ -315,6 +320,7 @@ void CSession::ApplyPacket(char* packet)
 		mainGame.m_UIRenderer->m_LoginResult[0].m_hide = false;
 		mainGame.m_UIRenderer->m_LoginResult[1].m_hide = true;
 		mainGame.m_UIRenderer->m_LoginResult[2].m_hide = true;
+		g_clientTestMode.OnLoginOk(*this);
 	}
 	break;
 	case (uint8)S_TITLE_PACKET_TYPE::LOGIN_FAIL:
@@ -322,6 +328,7 @@ void CSession::ApplyPacket(char* packet)
 		mainGame.m_UIRenderer->m_LoginResult[0].m_hide = true;
 		mainGame.m_UIRenderer->m_LoginResult[1].m_hide = false;
 		mainGame.m_UIRenderer->m_LoginResult[2].m_hide = true;
+		g_clientTestMode.OnProtocolFailure("login failed");
 	}
 	break;
 	case (uint8)S_TITLE_PACKET_TYPE::REG_OK:
@@ -341,11 +348,12 @@ void CSession::ApplyPacket(char* packet)
 		S2C_ROOM_ENTER* rep = (S2C_ROOM_ENTER*)packet;
 		rs->m_rmnum = rep->rmNum;
 		mainGame.ChangeScene(CGameFramework::SCENESTATE::ROOM);
+		g_clientTestMode.OnRoomEntered(*this, rep->rmNum);
 	}
 	break;
 	case (uint8)S_ROOM_PACKET_TYPE::REP_ENTER_FAIL:
 	{
-
+		g_clientTestMode.OnProtocolFailure("room enter failed");
 	}
 	break;
 	case (uint8)S_ROOM_PACKET_TYPE::MK_RM_FAIL:
@@ -403,9 +411,13 @@ void CSession::ApplyPacket(char* packet)
 	case (uint8)S_ROOM_PACKET_TYPE::GAME_START:
 	{
 		// ================= 플레이어 초기 위치 초기화 ==================
-
-
-		 gs->InitGame(packet, GetSid());
+		auto* gameStart = reinterpret_cast<S2C_GAMESTART*>(packet);
+		if (!g_clientTestMode.ValidateGameStart(gameStart->sids, GetSid())) break;
+		if (!gs->InitGame(gameStart, GetSid()))
+		{
+			g_clientTestMode.OnProtocolFailure("invalid or duplicate GAME_START");
+			break;
+		}
 
 
 		// ================= 카메라 셋팅 ================================
@@ -413,6 +425,7 @@ void CSession::ApplyPacket(char* packet)
 
 		mainGame.ChangeScene(CGameFramework::SCENESTATE::INGAME);
 		gs->InitScene();
+		g_clientTestMode.OnGameStarted();
 		rs->m_memLock.lock();
 
 		for (int i = 0; i < PLAYERNUM; ++i)
@@ -472,6 +485,12 @@ void CSession::ApplyPacket(char* packet)
 		SC_EVENTPACKET* ev = (SC_EVENTPACKET*)packet;
 		if (ev->eventId == (uint8)EVENT_TYPE::BOSS_WIN || ev->eventId == (uint8)EVENT_TYPE::EMP_WIN)
 		{
+			if (!gs->ResetGame())
+			{
+				g_clientTestMode.OnProtocolFailure("duplicate or out-of-order game result");
+				break;
+			}
+
 			std::cout << "Go to Result\n";
 
 			if (ev->eventId == (uint8)EVENT_TYPE::BOSS_WIN) rrs->m_case = 1;
@@ -480,7 +499,6 @@ void CSession::ApplyPacket(char* packet)
 			rrs->m_timer.Reset();
 			mainGame.ChangeScene(CGameFramework::SCENESTATE::RESULT);
 			mainGame.m_curFrame = 0;
-			gs->ResetGame();
 		}
 		else
 		{
