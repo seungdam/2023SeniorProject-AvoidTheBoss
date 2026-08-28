@@ -7,7 +7,7 @@
 CPlayer::CPlayer()
 {
 	m_type = 0;
-	m_pCamera = NULL;
+	m_camera.SetPlayer(this);
 	m_xmf3Position = XMFLOAT3(0.0f, 0.25f, 0.0f);
 
 	m_xmf3Right = XMFLOAT3(1.0f, 0.0f, 0.0f);
@@ -26,11 +26,7 @@ CPlayer::CPlayer()
 
 }
 
-CPlayer::~CPlayer()
-{
-	delete m_pCamera;
-	m_pCamera = nullptr;
-}
+CPlayer::~CPlayer() = default;
 
 /*플레이어의 위치를 변경하는 함수이다. 플레이어의 위치는 기본적으로 사용자가 플레이어를 이동하기 위한 키보드를
 누를 때 변경된다. 플레이어의 이동 방향(dwDirection)에 따라 플레이어를 fDistance 만큼 이동한다.*/
@@ -59,22 +55,15 @@ void CPlayer::Update(float fTimeElapsed, CLIENT_TYPE ptype)
 	m_xmf3Position = Vector3::Add(m_xmf3Position, vel);
 	m_playerBV.Center = GetPosition();
 
-	DWORD nCameraMode = m_pCamera->GetMode();
-	if (m_pCamera)
-	{
-		m_pCamera->Move(vel);
-		m_pCamera->Update(m_xmf3Position, fTimeElapsed);
-	}
-
-	if (nCameraMode == THIRD_PERSON_CAMERA) m_pCamera->SetLookAt(m_xmf3Position);
-
-	m_pCamera->RegenerateViewMatrix();
+	m_camera.Move(vel);
+	m_camera.Update(m_xmf3Position, fTimeElapsed);
+	m_camera.RegenerateViewMatrix();
 }
 
 //플레이어를 로컬 x-축, y-축, z-축을 중심으로 회전한다.
 void CPlayer::Rotate(float x, float y, float z)
 {
-	DWORD nCameraMode = m_pCamera->GetMode();
+	DWORD nCameraMode = m_camera.GetMode();
 
 	//1인칭 카메라 또는 3인칭 카메라의 경우 플레이어의 회전은 약간의 제약이 따른다.
 	if ((nCameraMode == FIRST_PERSON_CAMERA) || (nCameraMode == THIRD_PERSON_CAMERA))
@@ -101,7 +90,7 @@ void CPlayer::Rotate(float x, float y, float z)
 		}
 
 		//카메라를 x, y, z 만큼 회전한다. 플레이어를 회전하면 카메라가 회전하게 된다.
-		m_pCamera->Rotate(x, y, z);
+		m_camera.Rotate(x, y, z);
 
 		/*플레이어를 회전한다. 1인칭 카메라 또는 3인칭 카메라에서 플레이어의 회전은 로컬 y-축에서만 일어난다. 플레이어
 		의 로컬 y-축(Up 벡터)을 기준으로 로컬 z-축(Look 벡터)와 로컬 x-축(Right 벡터)을 회전시킨다. 기본적으로 Up 벡
@@ -123,15 +112,12 @@ void CPlayer::Rotate(float x, float y, float z)
 
 void CPlayer::CreateShaderVariables(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList)
 {
-	if (m_pCamera) m_pCamera->CreateShaderVariables(pd3dDevice, pd3dCommandList);
+	m_camera.CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
 void CPlayer::ReleaseShaderVariables()
 {
-	if (m_pCamera)
-	{
-		m_pCamera->ReleaseShaderVariables();
-	}
+	m_camera.ReleaseShaderVariables();
 }
 
 void CPlayer::UpdateShaderVariables(
@@ -139,32 +125,19 @@ void CPlayer::UpdateShaderVariables(
 {
 }
 
-CCamera* CPlayer::OnChangeCamera(DWORD nNewCameraMode, DWORD nCurrentCameraMode)
+CCamera* CPlayer::OnChangeCamera(DWORD nNewCameraMode, DWORD /*nCurrentCameraMode*/)
 {
-	//새로운 카메라의 모드에 따라 카메라를 새로 생성한다.
-
-	CCamera* pOldCamera = m_pCamera;
-	CCamera* pNewCamera = NULL;
 	switch (nNewCameraMode)
 	{
 	case FIRST_PERSON_CAMERA:
-		pNewCamera = new CFirstPersonCamera(pOldCamera);
-		break;
 	case THIRD_PERSON_CAMERA:
-		pNewCamera = new CThirdPersonCamera(pOldCamera);
+		m_camera.SetMode(nNewCameraMode);
 		break;
+	default:
+		return &m_camera;
 	}
 
-	if (pNewCamera)
-	{
-		pNewCamera->SetMode(nNewCameraMode);
-		//현재 카메라를 사용하는 플레이어 객체를 설정한다.
-		pNewCamera->SetPlayer(this);
-		m_pCamera = pNewCamera;
-		delete pOldCamera;
-	}
-
-	return(m_pCamera);
+	return &m_camera;
 }
 
 void CPlayer::OnPrepareRender()
@@ -187,13 +160,13 @@ void CPlayer::Render(ID3D12GraphicsCommandList4 * pd3dCommandList, CCamera* pCam
 
 CVirtualPlayer::CVirtualPlayer()
 {
-	m_pCamera = ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
+	ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
 	SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f));
 }
 
 CVirtualPlayer::CVirtualPlayer(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
 {
-	m_pCamera = ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
+	ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
 
 	//CGameObject* pVirtualModel = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, /*"Model/Boss_Run.bin"*/"Model///Plane.bin", NULL);
 	//SetChild(pVirtualModel, true);
@@ -211,38 +184,38 @@ void CVirtualPlayer::Animate(float fTimeElapsed)
 }
 CCamera* CVirtualPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 {
-	DWORD nCurrentCameraMode = (m_pCamera) ? m_pCamera->GetMode() : 0x00;
+	DWORD nCurrentCameraMode = m_camera.GetMode();
 	if (nCurrentCameraMode == nNewCameraMode)
-		return(m_pCamera);
+		return GetCamera();
 
 
 	float MaxDepthofMap = 5000.0f;//sqrt(2) * 50 * UNIT + 2 * UNIT;
 	switch (nNewCameraMode)
 	{
 	case FIRST_PERSON_CAMERA:
-		m_pCamera = OnChangeCamera(FIRST_PERSON_CAMERA, nCurrentCameraMode);
-		m_pCamera->SetTimeLag(0.0f);
-		m_pCamera->SetOffset(XMFLOAT3(0.0f, 0.0f, 0.0f));
-		m_pCamera->GenerateProjectionMatrix(1.01f, MaxDepthofMap, ASPECT_RATIO, 60.0f); //5000.f
-		m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
-		m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
+		OnChangeCamera(FIRST_PERSON_CAMERA, nCurrentCameraMode);
+		m_camera.SetTimeLag(0.0f);
+		m_camera.SetOffset(XMFLOAT3(0.0f, 0.0f, 0.0f));
+		m_camera.GenerateProjectionMatrix(1.01f, MaxDepthofMap, ASPECT_RATIO, 60.0f); //5000.f
+		m_camera.SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
+		m_camera.SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
 		break;
 	case THIRD_PERSON_CAMERA:
-		m_pCamera = OnChangeCamera(THIRD_PERSON_CAMERA, nCurrentCameraMode);
-		m_pCamera->SetTimeLag(0.0f);
-		m_pCamera->SetOffset(XMFLOAT3(0.0f, 1.7f * UNIT, -5 * UNIT));
-		m_pCamera->GenerateProjectionMatrix(1.01f, MaxDepthofMap, ASPECT_RATIO, 60.0f);
-		m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
-		m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
+		OnChangeCamera(THIRD_PERSON_CAMERA, nCurrentCameraMode);
+		m_camera.SetTimeLag(0.0f);
+		m_camera.SetOffset(XMFLOAT3(0.0f, 1.7f * UNIT, -5 * UNIT));
+		m_camera.GenerateProjectionMatrix(1.01f, MaxDepthofMap, ASPECT_RATIO, 60.0f);
+		m_camera.SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
+		m_camera.SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
 		break;
 	default:
 		break;
 	}
-	m_pCamera->SetPosition(Vector3::Add(m_xmf3Position, m_pCamera->GetOffset()));
+	m_camera.SetPosition(Vector3::Add(m_xmf3Position, m_camera.GetOffset()));
 
 	Update(fTimeElapsed);
 
-	return(m_pCamera);
+	return GetCamera();
 }
 
 void CVirtualPlayer::Move(DWORD dwDirection, float fDistance)

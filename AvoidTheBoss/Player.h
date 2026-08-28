@@ -60,11 +60,12 @@ protected:
 	XMFLOAT3 m_xmf3Gravity;  // 중력
 	float m_fFriction;       // 마찰력
 
-
+	// 플레이어와 수명이 같은 영구 카메라. 모드 전환 시 객체를 교체하지 않는다.
+	CCamera m_camera;
+	// 기존 파생 플레이어 구현을 위한 읽기 전용 별칭이다. 소유권은 m_camera에만 있다.
+	CCamera* const m_pCamera = &m_camera;
 
 public:
-	// 플레이어 카메라
-	CCamera* m_pCamera = nullptr;
 
 	uint8 m_ctype = -1; // 자신의 캐릭터 타입을 구현
 
@@ -121,8 +122,8 @@ public:
 	float GetPitch() { return(m_fPitch); }
 	float GetRoll() { return(m_fRoll); }
 
-	void SetCamera(CCamera* pCamera) { m_pCamera = pCamera; }
-	CCamera* GetCamera() { return(m_pCamera); }
+	CCamera* GetCamera() noexcept { return &m_camera; }
+	const CCamera* GetCamera() const noexcept { return &m_camera; }
 
 	//플레이어를 회전하는 함수이다.
 	virtual void Rotate(float x, float y, float z);

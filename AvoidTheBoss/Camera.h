@@ -71,7 +71,8 @@ public:
 
 public:
 	CCamera();
-	CCamera(CCamera* pCamera);
+	CCamera(const CCamera&) = delete;
+	CCamera& operator=(const CCamera&) = delete;
 	virtual ~CCamera();
 
 	//카메라의 정보를 셰이더 프로그램에게 전달하기 위한 상수 버퍼를 생성하고 갱신한다.
@@ -102,6 +103,7 @@ public:
 
 	void SetMode(DWORD nMode) { m_nMode = nMode; }
 	DWORD GetMode() { return(m_nMode); }
+	bool HasShaderVariables() const { return m_pd3dcbCamera && m_pcbMappedCamera; }
 
 	void SetPosition(XMFLOAT3 xmf3Position) { m_xmf3Position = xmf3Position; }
 	XMFLOAT3& GetPosition() { return(m_xmf3Position); }
@@ -135,32 +137,12 @@ public:
 		m_xmf3Position.z += xmf3Shift.z;
 	}
 
-	//카메라를 x-축, y-축, z-축으로 회전하는 가상함수이다.
-	virtual void Rotate(float fPitch = 0.0f, float fYaw = 0.0f, float fRoll = 0.0f) { }
+	//1인칭 모드에서 카메라를 x-축, y-축, z-축으로 회전한다.
+	void Rotate(float fPitch = 0.0f, float fYaw = 0.0f, float fRoll = 0.0f);
 
-	//카메라의 이동, 회전에 따라 카메라의 정보를 갱신하는 가상함수이다.
-	virtual void Update(XMFLOAT3& xmf3LookAt, float fTimeElapsed) {}
+	//현재 모드에 맞춰 같은 카메라 객체의 위치와 방향을 갱신한다.
+	void Update(const XMFLOAT3& xmf3LookAt, float fTimeElapsed);
 
 	//3인칭 카메라에서 카메라가 바라보는 지점을 설정한다. 일반적으로 플레이어를 바라보도록 설정한다.
-	virtual void SetLookAt(XMFLOAT3& xmf3LookAt) { }
-};
-
-class CFirstPersonCamera : public CCamera
-{
-public:
-	CFirstPersonCamera(CCamera* pCamera);
-	virtual ~CFirstPersonCamera() { }
-	virtual void Update(XMFLOAT3& xmf3LookAt, float fTimeElapsed);
-	virtual void Rotate(float x = 0.0f, float y = 0.0f, float z = 0.0f);
-	void RayCasting(BoundingSphere& targetBox);
-};
-
-class CThirdPersonCamera : public CCamera
-{
-public:
-	CThirdPersonCamera(CCamera* pCamera);
-	virtual ~CThirdPersonCamera() { }
-
-	virtual void Update(XMFLOAT3& xmf3LookAt, float fTimeElapsed);
-	virtual void SetLookAt(const XMFLOAT3& xmf3LookAt);
+	void SetLookAt(const XMFLOAT3& xmf3LookAt);
 };

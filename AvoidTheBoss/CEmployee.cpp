@@ -18,7 +18,7 @@ CEmployee::CEmployee(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3d
 {
 	m_ctype = (uint8)PLAYER_TYPE::EMPLOYEE;
 	m_nCharacterType = nType;
-	m_pCamera = ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
+	ChangeCamera(FIRST_PERSON_CAMERA, 0.0f);
 
 	// 1 인칭 애니메이션 로드
 		//달리기, 버튼, 느리게 걷기, 대기
@@ -101,7 +101,7 @@ CCamera* CEmployee::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 	switch (nNewCameraMode)
 	{
 	case FIRST_PERSON_CAMERA:
-		m_pCamera = OnChangeCamera(FIRST_PERSON_CAMERA, nCurrentCameraMode);
+		OnChangeCamera(FIRST_PERSON_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.0f);
 		m_pCamera->SetOffset(XMFLOAT3(0.0f, 1.25f, 0.0f));
 		m_pCamera->GenerateProjectionMatrix(0.01f, MaxDepthofMap, ASPECT_RATIO, 60.0f); //5000.f
@@ -109,7 +109,7 @@ CCamera* CEmployee::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
 		break;
 	case THIRD_PERSON_CAMERA:
-		m_pCamera = OnChangeCamera(THIRD_PERSON_CAMERA, nCurrentCameraMode);
+		OnChangeCamera(THIRD_PERSON_CAMERA, nCurrentCameraMode);
 		m_pCamera->SetTimeLag(0.0f);
 		m_pCamera->SetOffset(XMFLOAT3(0.0f, 1.7f * UNIT, -5 * UNIT));
 		m_pCamera->GenerateProjectionMatrix(1.01f, MaxDepthofMap, ASPECT_RATIO, 60.0f);
@@ -256,8 +256,6 @@ void CEmployee::LateUpdate(float fTimeElapsed, CLIENT_TYPE ptype)
 		static_cast<CResultScene*>(mainGame.m_SceneManager->GetSceneByIdx(4))->m_deadCnt = m_deadCnt;
 \
 		ChangeCamera(FIRST_PERSON_CAMERA, 0);
-		mainGame.m_SceneManager->GetSceneByIdx(3)->m_pCamera = m_pCamera;
-		mainGame.m_SceneManager->GetSceneByIdx(3)->m_pCamera->CreateShaderVariables(mainGame.m_pd3dDevice, mainGame.m_pd3dCommandList);
 
 		if (GetPosition().x < -28 || GetPosition().x > 28 || GetPosition().z > 28 || GetPosition().z < -28)
 		{
@@ -888,11 +886,6 @@ void CEmployee::AnimTrackUpdate()
 				if (CLIENT_TYPE::OWNER == m_clientType)
 				{
 					ChangeCamera(FIRST_PERSON_CAMERA, 0);
-
-					mainGame.m_SceneManager->GetSceneByIdx(3)->m_pCamera = m_pCamera;
-					m_pCamera->ReleaseShaderVariables();
-					mainGame.m_SceneManager->GetSceneByIdx(3)->m_pCamera->CreateShaderVariables(mainGame.m_pd3dDevice, mainGame.m_pd3dCommandList);
-					mainGame.m_SceneManager->GetSceneByIdx(3)->m_pCamera->m_playerIdx = m_idx;
 					if (m_pCamera)
 					{
 						if (!m_pCamera->m_fogOn)m_pCamera->m_fogOn = true;
@@ -988,10 +981,6 @@ void CEmployee::PlayerDown()
 	if (CLIENT_TYPE::OWNER == m_clientType)
 	{
 		ChangeCamera(THIRD_PERSON_CAMERA, 0);
-		m_pCamera->ReleaseShaderVariables();
-		m_pCamera->CreateShaderVariables(mainGame.m_pd3dDevice, mainGame.m_pd3dCommandList);
-		mainGame.m_SceneManager->GetSceneByIdx(3)->m_pCamera = m_pCamera;
-		mainGame.m_SceneManager->GetSceneByIdx(3)->m_pCamera->m_playerIdx = m_idx;
 	}
 
 	SetBehavior(PLAYER_BEHAVIOR::DOWN);
