@@ -467,6 +467,9 @@ void CGameFramework::AnimateObjects()
 
 void CGameFramework::FrameAdvance() // 여기서 업데이트랑 렌더링 동시에 진행하는 곳
 {
+	// 프레임 로직에서 GPU 자원을 교체하거나 해제하기 전에 이전 프레임 완료를 보장한다.
+	WaitForFenceValue(m_nLastSubmittedFenceValue);
+
 	//타이머의 시간이 갱신되도록 하고 프레임 레이트를 계산한다.
 	clientCore.DispatchPackets();
 
@@ -522,8 +525,6 @@ void CGameFramework::WaitForFenceValue(UINT64 fenceValue)
 
 void CGameFramework::Render()
 {
-	//이전 프레임의 명령과 동적 상수 버퍼 사용이 끝난 뒤 같은 메모리를 다시 쓴다.
-	WaitForFenceValue(m_nLastSubmittedFenceValue);
 	ThrowIfFailed(m_pd3dCommandAllocator->Reset());
 	ThrowIfFailed(m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL));
 	//명령 할당자와 명령 리스트를 리셋한다.
