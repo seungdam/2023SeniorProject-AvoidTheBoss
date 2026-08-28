@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "GameFramework.h"
+#include "ClientTestMode.h"
 #include "clientIocpCore.h"
 
 // 매니저 관련 헤더파일
@@ -108,13 +109,14 @@ void CGameFramework::OnDestroy()
 	if (m_pd3dCommandAllocator) m_pd3dCommandAllocator->Release();
 	if (m_pd3dCommandQueue) m_pd3dCommandQueue->Release();
 
-	if (m_pd3dFence) m_pd3dFence->Release();
-
 	if (m_pdxgiSwapChain)
 	{
 		m_pdxgiSwapChain->SetFullscreenState(FALSE, NULL);
 		m_pdxgiSwapChain->Release();
 	}
+
+	FinalizeClientTest();
+	if (m_pd3dFence) m_pd3dFence->Release();
 	if (m_pd3dDevice) m_pd3dDevice->Release();
 	if (m_pdxgiFactory) m_pdxgiFactory->Release();
 
@@ -269,9 +271,15 @@ void CGameFramework::CreateDirect3DDevice()
 		D3D12_MESSAGE_ID deniedMessageIds[] = {
 			D3D12_MESSAGE_ID_CREATERESOURCE_STATE_IGNORED
 		};
+		D3D12_MESSAGE_SEVERITY deniedSeverities[] = {
+			D3D12_MESSAGE_SEVERITY_INFO,
+			D3D12_MESSAGE_SEVERITY_MESSAGE
+		};
 		D3D12_INFO_QUEUE_FILTER filter = {};
 		filter.DenyList.NumIDs = _countof(deniedMessageIds);
 		filter.DenyList.pIDList = deniedMessageIds;
+		filter.DenyList.NumSeverities = _countof(deniedSeverities);
+		filter.DenyList.pSeverityList = deniedSeverities;
 		ThrowIfFailed(pd3dInfoQueue->PushStorageFilter(&filter));
 	}
 #endif
@@ -479,32 +487,119 @@ void CGameFramework::FrameAdvance() // 여기서 업데이트랑 렌더링 동�
 	UpdateObject();
 	//3 애니메이트 처리
 	AnimateObjects();
+
+	if (g_clientTestMode.Enabled())
+	{
+		ClientFrameSnapshot snapshot;
+		snapshot.scene = m_curScene.load();
+		snapshot.submittedFence = m_nLastSubmittedFenceValue;
+		snapshot.completedFence = m_pd3dFence->GetCompletedValue();
+		const int playerIndex = g_clientTestMode.DutPlayerIndex();
+		auto* gameScene = static_cast<CGameScene*>(m_SceneManager->GetSceneByIdx(
+			static_cast<int>(SCENESTATE::INGAME)));
+		CPlayer* player = gameScene ? gameScene->GetScenePlayerByIdx(playerIndex) : nullptr;
+		if (player)
+		{
+			snapshot.hp = player->m_hp;
+			snapshot.behavior = player->m_behavior;
+			snapshot.cameraMode = player->GetCamera() ? static_cast<int>(player->GetCamera()->GetMode()) : -1;
+			snapshot.sceneCameraMatches = gameScene->m_pCamera == player->GetCamera();
+			snapshot.scenePlayerIndexMatches = gameScene->m_playerIdx == playerIndex;
+			snapshot.cameraResourcesValid = player->GetCamera() && player->GetCamera()->HasShaderVariables();
+			if (playerIndex > 0) snapshot.rescuing = static_cast<CEmployee*>(player)->GetRescueOn();
+		}
+		if (g_clientTestMode.Pump(snapshot))
+		{
+			::PostQuitMessage(0);
+			return;
+		}
+	}
+
 	//4 렌더링 처리
 	Render();
 	m_UIRenderer->Render2D(m_nSwapChainBufferIndex, m_curScene.load());
 
+	HRESULT presentResult = S_OK;
 #ifdef _WITH_PRESENT_PARAMETERS
 	DXGI_PRESENT_PARAMETERS dxgiPresentParameters;
 	dxgiPresentParameters.DirtyRectsCount = 0;
 	dxgiPresentParameters.pDirtyRects = NULL;
 	dxgiPresentParameters.pScrollRect = NULL;
 	dxgiPresentParameters.pScrollOffset = NULL;
-	m_pdxgiSwapChain->Present1(1, 0, &dxgiPresentParameters);
+	presentResult = m_pdxgiSwapChain->Present1(1, 0, &dxgiPresentParameters);
 	/*스왑체인을 프리젠트한다. 프리젠트를 하면 현재 렌더 타겟(후면버퍼)의 내용이 전면버퍼로 옮겨지고 렌더 타겟 인
 	덱스가 바뀔 것이다.*/
 #else
 #ifdef _WITH_SYNCH_SWAPCHAIN
-	m_pdxgiSwapChain->Present(1, 0);
+	presentResult = m_pdxgiSwapChain->Present(1, 0);
 #else
-	m_pdxgiSwapChain->Present(0, 0);
+	presentResult = m_pdxgiSwapChain->Present(0, 0);
 	#endif
 	#endif
+	if (g_clientTestMode.Enabled()) g_clientTestMode.OnPresent(presentResult);
 	//	/*현재의 프레임 레이트를 문자열로 가져와서 주 윈도우의 타이틀로 출력한다. m_pszBuffer 문자열이
 	//	"LapProject ("으로 초기화되었으므로 (m_pszFrameRate+12)에서부터 프레임 레이트를 문자열로 출력
 	//	하여 “ FPS)” 문자열과 합친다.
 
 	MoveToNextFrame();
 
+}
+
+void CGameFramework::FinalizeClientTest()
+{
+	if (!g_clientTestMode.Enabled()) return;
+
+	std::uint32_t errorCount = 0;
+	bool infoQueueAvailable = false;
+
+#if defined(_DEBUG)
+	ComPtr<ID3D12InfoQueue> infoQueue;
+	if (!m_pd3dDevice || FAILED(m_pd3dDevice->QueryInterface(IID_PPV_ARGS(infoQueue.GetAddressOf()))))
+	{
+		++errorCount;
+		g_clientTestMode.OnD3DMessage("ID3D12InfoQueue is unavailable");
+	}
+	else
+	{
+		infoQueueAvailable = true;
+		if (infoQueue->GetNumMessagesDiscardedByMessageCountLimit() != 0)
+		{
+			++errorCount;
+			g_clientTestMode.OnD3DMessage("D3D12 InfoQueue discarded messages at its storage limit");
+		}
+		const UINT64 messageCount = infoQueue->GetNumStoredMessagesAllowedByRetrievalFilter();
+		for (UINT64 index = 0; index < messageCount; ++index)
+		{
+			SIZE_T messageSize = 0;
+			if (FAILED(infoQueue->GetMessage(index, nullptr, &messageSize)) || messageSize == 0)
+			{
+				++errorCount;
+				g_clientTestMode.OnD3DMessage("failed to query a D3D12 InfoQueue message size");
+				continue;
+			}
+
+			std::vector<std::byte> storage(messageSize);
+			auto* message = reinterpret_cast<D3D12_MESSAGE*>(storage.data());
+			if (FAILED(infoQueue->GetMessage(index, message, &messageSize)))
+			{
+				++errorCount;
+				g_clientTestMode.OnD3DMessage("failed to retrieve a D3D12 InfoQueue message");
+				continue;
+			}
+			if (message->Severity == D3D12_MESSAGE_SEVERITY_ERROR ||
+				message->Severity == D3D12_MESSAGE_SEVERITY_CORRUPTION)
+			{
+				++errorCount;
+				g_clientTestMode.OnD3DMessage(message->pDescription);
+			}
+		}
+	}
+#endif
+
+	const HRESULT deviceRemovedReason = m_pd3dDevice ? m_pd3dDevice->GetDeviceRemovedReason() : E_POINTER;
+	const UINT64 completedFence = m_pd3dFence ? m_pd3dFence->GetCompletedValue() : 0;
+	g_clientTestMode.FinalizeGraphics(infoQueueAvailable, errorCount, deviceRemovedReason,
+		completedFence, m_nLastSubmittedFenceValue);
 }
 
 void CGameFramework::WaitForGpuComplete()
