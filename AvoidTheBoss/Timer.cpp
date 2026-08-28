@@ -3,100 +3,104 @@
 
 CTimer::CTimer()
 {
-	::QueryPerformanceFrequency((LARGE_INTEGER*)&m_nPerformanceFrequencyPerSec);
-	::QueryPerformanceCounter((LARGE_INTEGER*)&m_nLastPerformanceCounter);
-	m_fTimeScale = 1.0 / (double)m_nPerformanceFrequencyPerSec;
+	::QueryPerformanceFrequency((LARGE_INTEGER*)&_nPerformanceFrequencyPerSec);
+	::QueryPerformanceCounter((LARGE_INTEGER*)&_nLastPerformanceCounter);
+	_fTimeScale = 1.0 / (double)_nPerformanceFrequencyPerSec;
 
-	m_nBasePerformanceCounter = m_nLastPerformanceCounter;
-	m_nPausedPerformanceCounter = 0;
-	m_nStopPerformanceCounter = 0;
+	_nBasePerformanceCounter = _nLastPerformanceCounter;
+	_nPausedPerformanceCounter = 0;
+	_nStopPerformanceCounter = 0;
 
-	m_nSampleCount = 0;
-	m_nCurrentFrameRate = 0;
-	m_nFramesPerSecond = 0;
-	m_fFPSTimeElapsed = 0.0f;
+	_nSampleCount = 0;
+	_nCurrentFrameRate = 0;
+	_nFramesPerSecond = 0;
+	_fFPSTimeElapsed = 0.0f;
 }
 
-CTimer::~CTimer()
-{
-}
+
 
 void CTimer::Start()
 {
 	__int64 nPerformanceCounter;
 	::QueryPerformanceCounter((LARGE_INTEGER*)&nPerformanceCounter);
-	if (m_bStopped)
+	if (_bStopped)
 	{
-		m_nPausedPerformanceCounter += (nPerformanceCounter - m_nStopPerformanceCounter);
-		m_nLastPerformanceCounter = nPerformanceCounter;
-		m_nStopPerformanceCounter = 0;
-		m_bStopped = false;
+		_nPausedPerformanceCounter += (nPerformanceCounter - _nStopPerformanceCounter);
+		_nLastPerformanceCounter = nPerformanceCounter;
+		_nStopPerformanceCounter = 0;
+		_bStopped = false;
 	}
 }
 
 void CTimer::Stop()
 {
-	if (!m_bStopped)
+	if (!_bStopped)
 	{
-		::QueryPerformanceCounter((LARGE_INTEGER*)&m_nStopPerformanceCounter);
-		m_bStopped = true;
+		::QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&_nStopPerformanceCounter));
+		_bStopped = true;
 	}
 }
 
 void CTimer::Reset()
 {
-	__int64 nPerformanceCounter;
+	auto nPerformanceCounter = (__int64)0;
 	::QueryPerformanceCounter((LARGE_INTEGER*)&nPerformanceCounter);
 
-	m_nBasePerformanceCounter = nPerformanceCounter;
-	m_nLastPerformanceCounter = nPerformanceCounter;
-	m_nStopPerformanceCounter = 0;
+	_nBasePerformanceCounter = nPerformanceCounter;
+	_nLastPerformanceCounter = nPerformanceCounter;
+	_nStopPerformanceCounter = 0;
 
-	m_bStopped = false;
+	_bStopped = false;
 }
 
 void CTimer::Tick(float fLockFPS)
 {
-	if (m_bStopped)
+	if (_bStopped)
 	{
-		m_fTimeElapsed = 0.0f;
+		_fTimeElapsed = 0.0f;
 		return;
 	}
 
 	//마지막으로 이 함수를 호출한 이후 경과한 시간을 계산한다.
-	::QueryPerformanceCounter((LARGE_INTEGER*)&m_nCurrentPerformanceCounter);
-	float fTimeElapsed = float((m_nCurrentPerformanceCounter - m_nLastPerformanceCounter) * m_fTimeScale);
+	::QueryPerformanceCounter((LARGE_INTEGER*)&_nCurrentPerformanceCounter);
+	auto fTimeElapsed = static_cast<float>((_nCurrentPerformanceCounter - _nLastPerformanceCounter) * _fTimeScale);
 
 	//현재 시간을 m_nLastTime에 저장한다.
-	m_nLastPerformanceCounter = m_nCurrentPerformanceCounter;
+	_nLastPerformanceCounter = _nCurrentPerformanceCounter;
 
 	/* 마지막 프레임 처리 시간과 현재 프레임 처리 시간의 차이가 1초보다 작으면 현재 프레임 처리 시간
 을 m_fFrameTime[0]에 저장한다. */
-	if (fabsf(fTimeElapsed - m_fTimeElapsed) < 1.0f) // 오차가 적다면
+	if (fabsf(fTimeElapsed - _fTimeElapsed) < 1.0f) // 오차가 적다면
 	{
 		// 배열 값들을 한칸 씩 미룬다.
-		::memmove(&m_fFrameTime[1], m_fFrameTime, (MAX_SAMPLE_COUNT - 1) * sizeof(float));
-		m_fFrameTime[0] = fTimeElapsed;
-		if (m_nSampleCount < MAX_SAMPLE_COUNT) m_nSampleCount++;
+		::memmove(&_fFrameTime[1], _fFrameTime, (MAX_SAMPLE_COUNT - 1) * sizeof(float));
+		_fFrameTime[0] = fTimeElapsed;
+		if (_nSampleCount < MAX_SAMPLE_COUNT) _nSampleCount++;
 	}
 
-	//초당 프레임 수를 1 증가시키고 현재 프레임 처리 시간을 누적하여	저장한다.
-	m_nFramesPerSecond++;
-	m_nWorldFrame++;
-	m_fFPSTimeElapsed += fTimeElapsed;
-	if (m_fFPSTimeElapsed > 1.0f) // 1초가 넘어가면 프레임 카운트 0
+	//초당 프레임 수를 1 증가시키고 현재 프레임 처리 시간을 누적하여 저장한다.
+	_nFramesPerSecond++;
+	_nWorldFrame++;
+	_fFPSTimeElapsed += fTimeElapsed;
+	if (_fFPSTimeElapsed > 1.0f) // 1초가 넘어가면 프레임 카운트 0
 	{
 
-		m_nCurrentFrameRate = m_nFramesPerSecond; // 60fps 대비 얼마나 나오는가?
-		m_nFramesPerSecond = 0; //월드 프레임은 계속 유지하도록 한다.
-		m_fFPSTimeElapsed = 0.0f;
+		_nCurrentFrameRate = _nFramesPerSecond; // 60fps 대비 얼마나 나오는가?
+		_nFramesPerSecond = 0; //월드 프레임은 계속 유지하도록 한다.
+		_fFPSTimeElapsed = 0.0f;
 	}
 
 
 	//누적된 프레임 처리 시간의 평균을 구하여 프레임 처리 시간을 구한다.
-	m_fTimeElapsed = 0.0f;
-	for (ULONG i = 0; i < m_nSampleCount; i++) m_fTimeElapsed += m_fFrameTime[i];
-	if (m_nSampleCount > 0) m_fTimeElapsed /= m_nSampleCount;
+	_fTimeElapsed = 0.0f;
+	for (auto i = 0; i < _nSampleCount; i++)
+	{
+		_fTimeElapsed += _fFrameTime[i];
+	}
+	if (_nSampleCount > 0)
+	{
+		_fTimeElapsed /= _nSampleCount;
+	}
 }
 
 unsigned long  CTimer::GetFrameRate(LPTSTR lpszString, int nCharacters)
@@ -104,19 +108,23 @@ unsigned long  CTimer::GetFrameRate(LPTSTR lpszString, int nCharacters)
 	//현재 프레임 레이트를 문자열로 변환하여 lpszString 버퍼에 쓰고 “ FPS”와 결합한다.
 	if (lpszString)
 	{
-		_itow_s(m_nCurrentFrameRate, lpszString, nCharacters, 10);
+		_itow_s(_nCurrentFrameRate, lpszString, nCharacters, 10);
 		wcscat_s(lpszString, nCharacters, _T(" FPS)"));
 	}
-	return(m_nCurrentFrameRate);
+	return(_nCurrentFrameRate);
 }
 
 float CTimer::GetTimeElapsed()
 {
-	return(m_fTimeElapsed);
+	return(_fTimeElapsed);
 }
 
 float CTimer::GetTotalTime()
 {
-	if (m_bStopped) return(float(((m_nStopPerformanceCounter - m_nPausedPerformanceCounter) - m_nBasePerformanceCounter) * m_fTimeScale));
-	return(float(((m_nCurrentPerformanceCounter - m_nPausedPerformanceCounter) - m_nBasePerformanceCounter) * m_fTimeScale));
+	if (_bStopped)
+	{
+		return(float(((_nStopPerformanceCounter - _nPausedPerformanceCounter) - _nBasePerformanceCounter) * _fTimeScale));
+	}
+
+	return(float(((_nCurrentPerformanceCounter - _nPausedPerformanceCounter) - _nBasePerformanceCounter) * _fTimeScale));
 }

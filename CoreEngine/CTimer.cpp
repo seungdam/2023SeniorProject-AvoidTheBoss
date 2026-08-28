@@ -3,12 +3,6 @@
 #include <cmath>
 
 
-Timer::Timer() = default;
-
-Timer::~Timer()
-{
-}
-
 void Timer::Start()
 {
 	std::chrono::time_point resumeTimePoint = Clock::now();
@@ -16,7 +10,7 @@ void Timer::Start()
 
 	if (_bStopped)
 	{
-		_fTimeDuringPaused += static_cast<float>(std::chrono::duration<double>(resumeTimePoint - _StopTimePoint).count());
+		_fTimeDuringPaused += static_cast<float>(std::chrono::duration<double>(resumeTimePoint - _stopTimePoint).count());
 		_lastTimePoint = resumeTimePoint;
 		_bStopped = false;
 	}
@@ -26,7 +20,7 @@ void Timer::Stop()
 {
 	if (!_bStopped)
 	{
-		_StopTimePoint = Clock::now();
+		_stopTimePoint = Clock::now();
 		_bStopped = true;
 	}
 }
@@ -40,8 +34,10 @@ void Timer::Reset()
 
 void Timer::Tick(float fLockFPS)
 {
-	if (fLockFPS != 0.0f) _fTimeElapsedAvg = static_cast<float>(static_cast<int>((1.0f / fLockFPS) * 1000.0f)); // 60 FPS 기준 16값이 나온다.
-
+	if (fLockFPS != 0.0f)
+	{
+		_fTimeElapsedAvg = static_cast<float>(static_cast<int>((1.0f / fLockFPS) * 1000.0f)); // 60 FPS 기준 16값이 나온다.
+	}
 
 
 	if (_bStopped)
@@ -58,8 +54,8 @@ void Timer::Tick(float fLockFPS)
 	// 평균 프레임을 샘플링 하기 위한 코드
 	if (fabsf(_fTimeElapsed - _fTimeElapsedAvg) < 1000.f) // 오차가 0.1초 미만이라면 샘플링을 허용해준다.
 	{
-		::memmove(&_SampleFrameTime[1], _SampleFrameTime, ((MAX_SAMPLE_COUNT) - 1) * sizeof(float));
-		_SampleFrameTime[0] = _fTimeElapsed;
+		::memmove(&_sampleFrameTime[1], _sampleFrameTime, ((MAX_SAMPLE_COUNT) - 1) * sizeof(float));
+		_sampleFrameTime[0] = _fTimeElapsed;
 
 		if (_nSampleCount < MAX_SAMPLE_COUNT) _nSampleCount++;
 
@@ -86,7 +82,7 @@ void Timer::Tick(float fLockFPS)
 	if (fLockFPS == 0.f) // 고정 fps 아니면 평균 출력
 	{
 		_fTimeElapsedAvg = 0.0f;
-		for (ULONG i = 0; i < _nSampleCount; i++) _fTimeElapsedAvg += _SampleFrameTime[i];
+		for (ULONG i = 0; i < _nSampleCount; i++) _fTimeElapsedAvg += _sampleFrameTime[i];
 		if (_nSampleCount > 0)
 		{
 			(_fTimeElapsedAvg) /= _nSampleCount;

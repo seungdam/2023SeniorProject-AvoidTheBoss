@@ -30,8 +30,8 @@ public:
 	float					_accumulateFPSLockTime = 0.f; // 월드 프레임 증감을 위한 누적 시간.
 	float					_accumulateTimeForHistory = 0.f;
 public:
-	Timer();
-	virtual ~Timer();
+	Timer() = default;
+	~Timer() = default;
 
 	void Tick(float fLockFPS); // 타이머 시간 갱신
 	void Start();
