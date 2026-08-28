@@ -2,3 +2,12 @@
 /cmake-build-*/
 /out/
 /CMakeUserPresets.json
+DirectX12Tutorial
+
+/.codex/session-inbox/
+/.codex/session-state.json
+/docs/learning/.work/
+docs
+.vs
+.codex
+tools
