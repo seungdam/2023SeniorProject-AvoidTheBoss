@@ -113,3 +113,30 @@ float Timer::GetDeltaTime(float fpsLock)
 {
 	return (1.f / fpsLock);
 }
+
+bool Timer::IsAfterTick(float fpsLock)
+{
+	if (_accumulateFPSLockTime > static_cast<int>((1 / fpsLock) * 1000.f))
+	{
+		_accumulateFPSLockTime = 0.f;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+
+bool Timer::IsTimeToAddHistory()
+{
+	if (_accumulateTimeForHistory >= 16)
+	{
+		_accumulateTimeForHistory = 0.f;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}

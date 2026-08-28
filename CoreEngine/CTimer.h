@@ -14,14 +14,14 @@ public:
 	float					_fTimeElapsed = 0.0f;
 	bool					_bStopped = false;
 
-	float					_SampleFrameTime[MAX_SAMPLE_COUNT] = {};
+	float					_sampleFrameTime[MAX_SAMPLE_COUNT] = {};
 	ULONG					_nSampleCount = 0;
 
 	unsigned long			_curFrameRate = 0;
 	unsigned long			_nFramePerSec = 0;
 
 	Clock::time_point		_lastTimePoint{}; // 마지막 시점 시간
-	Clock::time_point		_StopTimePoint{}; // 멈춘 시점
+	Clock::time_point		_stopTimePoint{}; // 멈춘 시점
 	Clock::time_point		_initTimePoint{};
 
 	float					_fTimeElapsedAvg = 0.f; // 한 프레임 처리하는데 걸리는 평균 시간
@@ -40,24 +40,7 @@ public:
 	unsigned long GetFrameRate(LPTSTR lpszString = NULL, int nCharacters = 0); // 프레임 레이트 반환
 	float GetTimeElapsed(); // 프레임 평균 경과 시간 반환
 	float GetDeltaTime(float fpsLock);
-	bool IsAfterTick(float fpsLock)
-	{
-		if (_accumulateFPSLockTime > (int)(1 / fpsLock) * 1000.f)
-		{
-			//std::cout << _accumulateElapsedTime << "\n";
-			_accumulateFPSLockTime = 0.f;
-			return true;
-		}
-		else return false;
-	}
-	bool IsTimeToAddHistory()
-	{
-		if (_accumulateTimeForHistory >= 16)
-		{
-			_accumulateTimeForHistory = 0.f;
-			return true;
-		}
-		else return false;
-	}
+	bool IsAfterTick(float fpsLock);
+	bool IsTimeToAddHistory();
 };
 
