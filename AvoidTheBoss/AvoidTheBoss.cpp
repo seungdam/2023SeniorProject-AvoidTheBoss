@@ -3,6 +3,7 @@
 #include "pch.h"
 #include "AvoidTheBoss.h"
 #include "clientIocpCore.h"
+#include "ClientTestMode.h"
 #include "SocketUtil.h"
 #include "ThreadManager.h"
 
@@ -54,8 +55,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         });
 #endif
     ::SetConsoleTitle(L"Client");
+    if (!g_clientTestMode.Configure())
+    {
+        ::OutputDebugStringA("[E2E] Invalid camera test arguments\n");
+        return 2;
+    }
+    const bool isClientTest = g_clientTestMode.Enabled();
     ThreadManager threadManager;
-    MSG msg;
+    MSG msg{};
 
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
@@ -118,7 +125,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     SocketUtil::Clear();
     CoUninitialize();
 
-    return (int)msg.wParam;
+    return isClientTest ? g_clientTestMode.FinalizeProcess() : static_cast<int>(msg.wParam);
 }
 
 
@@ -168,7 +175,28 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     if (!hMainWnd)return (FALSE);
 
     //----프레임워크 객체 초기화
-    mainGame.OnCreate(hInst, hMainWnd);
+    try
+    {
+        mainGame.OnCreate(hInst, hMainWnd);
+    }
+    catch (const std::exception& error)
+    {
+        ::OutputDebugStringA("[initialization] ");
+        ::OutputDebugStringA(error.what());
+        ::OutputDebugStringA("\n");
+        mainGame.OnDestroy();
+        ::DestroyWindow(hMainWnd);
+        g_hWnd = nullptr;
+        return FALSE;
+    }
+    catch (...)
+    {
+        ::OutputDebugStringA("[initialization] unknown exception\n");
+        mainGame.OnDestroy();
+        ::DestroyWindow(hMainWnd);
+        g_hWnd = nullptr;
+        return FALSE;
+    }
     ShowWindow(hMainWnd, nCmdShow);
     UpdateWindow(hMainWnd);
 

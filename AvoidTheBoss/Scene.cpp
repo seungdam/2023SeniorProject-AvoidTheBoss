@@ -697,7 +697,6 @@ void CLobbyScene::BuildObjects(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandL
 		_players[i] = new CVirtualPlayer(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
 		//_players[i]->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
 	}
-	m_pCamera = _players[0]->GetCamera();
 
 	m_pSound->MyPlaySound(0, 0);
 }

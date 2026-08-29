@@ -33,7 +33,7 @@ bool ClientTestMode::Configure()
 	for (int i = 1; i < argumentCount; ++i)
 	{
 		const std::wstring argument = arguments[i];
-		if (argument == L"--e2e-camera") m_enabled = true;
+		if (argument == L"--e2e-camera") _enabled = true;
 		else if (argument.starts_with(L"--room="))
 		{
 			long room = -1;
@@ -42,9 +42,9 @@ bool ClientTestMode::Configure()
 				::LocalFree(arguments);
 				return false;
 			}
-			m_roomNumber = static_cast<int>(room);
+			_roomNumber = static_cast<int>(room);
 		}
-		else if (argument.starts_with(L"--telemetry=")) m_telemetryPath = argument.substr(12);
+		else if (argument.starts_with(L"--telemetry=")) _telemetryPath = argument.substr(12);
 		else if (argument.starts_with(L"--timeout-seconds="))
 		{
 			long seconds = 0;
@@ -53,32 +53,36 @@ bool ClientTestMode::Configure()
 				::LocalFree(arguments);
 				return false;
 			}
-			m_timeoutMs = static_cast<std::uint64_t>(seconds) * 1'000;
+			_timeoutMs = static_cast<std::uint64_t>(seconds) * 1'000;
 		}
 	}
 	::LocalFree(arguments);
 
-	if (!m_enabled) return true;
-	if (m_roomNumber < 0 || m_telemetryPath.empty()) return false;
+	if (!_enabled) return true;
+	if (_roomNumber < 0 || _telemetryPath.empty()) return false;
 
 	std::error_code error;
-	if (const auto parent = m_telemetryPath.parent_path(); !parent.empty())
+	if (const auto parent = _telemetryPath.parent_path(); !parent.empty())
 		std::filesystem::create_directories(parent, error);
 	if (error) return false;
 
-	m_log.open(m_telemetryPath, std::ios::out | std::ios::trunc);
-	if (!m_log) return false;
+	_log.open(_telemetryPath, std::ios::out | std::ios::trunc);
+	if (!_log) return false;
 
-	m_startedAtMs = ::GetTickCount64();
-	std::lock_guard lock(m_mutex);
-	LogLocked("configured", "room=" + std::to_string(m_roomNumber));
+	_startedAtMs = ::GetTickCount64();
+	std::lock_guard lock(_mutex);
+	LogLocked("configured", "room=" + std::to_string(_roomNumber));
 	return true;
 #endif
 }
 
 void ClientTestMode::OnConnected(CSession& session)
 {
-	if (!m_enabled) return;
+	if (!_enabled) return;
+	{
+		std::lock_guard lock(_mutex);
+		_session = &session;
+	}
 
 	C2S_LOGIN packet{};
 	packet.size = sizeof(packet);
@@ -90,34 +94,51 @@ void ClientTestMode::OnConnected(CSession& session)
 
 void ClientTestMode::OnLoginOk(CSession& session)
 {
-	if (!m_enabled) return;
+	if (!_enabled) return;
 	{
-		std::lock_guard lock(m_mutex);
-		if (m_roomRequested) return;
-		m_roomRequested = true;
-		LogLocked("login_ok", "requesting room=" + std::to_string(m_roomNumber));
+		std::lock_guard lock(_mutex);
+		if (_roomRequested) return;
+		_roomRequested = true;
+		LogLocked("login_ok", "requesting room=" + std::to_string(_roomNumber));
 	}
 
 	C2S_ROOM_ENTER packet{};
 	packet.size = sizeof(packet);
 	packet.type = static_cast<uint8>(C_ROOM_PACKET_TYPE::ACQ_ENTER_RM);
-	packet.rmNum = m_roomNumber;
+	packet.rmNum = _roomNumber;
 	if (!session.DoSend(&packet)) Fail("failed to send room enter");
 }
 
 void ClientTestMode::OnRoomEntered(CSession& session, const int roomNumber)
 {
-	if (!m_enabled) return;
+	if (!_enabled) return;
+	int match = 0;
 	{
-		std::lock_guard lock(m_mutex);
-		if (roomNumber != m_roomNumber)
+		std::lock_guard lock(_mutex);
+		if (roomNumber != _roomNumber)
 		{
 			FailLocked("entered unexpected room=" + std::to_string(roomNumber));
 			return;
 		}
-		if (m_readySent) return;
-		m_readySent = true;
-		LogLocked("room_entered", "room=" + std::to_string(roomNumber));
+		if (_stage == Stage::AwaitGame)
+		{
+			if (_readySent) return;
+			_readySent = true;
+			match = 1;
+		}
+		else if (_stage == Stage::AwaitSecondRoom)
+		{
+			if (_secondReadySent) return;
+			_secondReadySent = true;
+			_stage = Stage::AwaitSecondGame;
+			match = 2;
+		}
+		else
+		{
+			FailLocked("room entry arrived outside an expected match setup");
+			return;
+		}
+		LogLocked("room_entered", "match=" + std::to_string(match) + " room=" + std::to_string(roomNumber));
 	}
 
 	C2S_ROOM_EVENT packet{};
@@ -128,12 +149,12 @@ void ClientTestMode::OnRoomEntered(CSession& session, const int roomNumber)
 
 void ClientTestMode::OnProtocolFailure(const char* reason)
 {
-	if (m_enabled) Fail(reason);
+	if (_enabled) Fail(reason);
 }
 
 bool ClientTestMode::ValidateGameStart(const std::int16_t* sids, const std::int32_t ownSid)
 {
-	if (!m_enabled) return true;
+	if (!_enabled) return true;
 	if (!sids)
 	{
 		Fail("GAME_START has no roster");
@@ -159,47 +180,59 @@ bool ClientTestMode::ValidateGameStart(const std::int16_t* sids, const std::int3
 		if (sids[i] == ownSid) ownIndex = i;
 	}
 
-	if (ownIndex != 1)
+	std::lock_guard lock(_mutex);
+	if (_stage != Stage::AwaitGame && _stage != Stage::AwaitSecondGame)
 	{
-		Fail("DUT did not receive employee slot 1");
+		FailLocked("GAME_START arrived outside an expected match setup");
 		return false;
 	}
-
-	std::lock_guard lock(m_mutex);
-	m_dutPlayerIndex = ownIndex;
-	m_rosterCount = PLAYERNUM;
-	m_ownSidPresent = true;
+	if (ownIndex != 1)
+	{
+		FailLocked("DUT did not receive employee slot 1");
+		return false;
+	}
+	_dutPlayerIndex = ownIndex;
+	_rosterCount = PLAYERNUM;
+	_ownSidPresent = true;
 	return true;
 }
 
 void ClientTestMode::OnGameStarted()
 {
-	if (!m_enabled) return;
-	std::lock_guard lock(m_mutex);
-	if (m_stage != Stage::AwaitGame)
+	if (!_enabled) return;
+	std::lock_guard lock(_mutex);
+	if (_stage == Stage::AwaitGame)
+	{
+		_stage = Stage::AwaitInitialFirst;
+	}
+	else if (_stage == Stage::AwaitSecondGame)
+	{
+		_stage = Stage::AwaitSecondInitialFirst;
+	}
+	else
 	{
 		FailLocked("duplicate or out-of-order GAME_START");
 		return;
 	}
-	m_stage = Stage::AwaitInitialFirst;
-	m_gameStarted = true;
-	LogLocked("game_start", "dut_slot=1");
+	++_gameStartCount;
+	_gameStarted = true;
+	LogLocked("game_start", "match=" + std::to_string(_gameStartCount) + " dut_slot=1");
 }
 
 int ClientTestMode::DutPlayerIndex() const
 {
-	std::lock_guard lock(m_mutex);
-	return m_dutPlayerIndex;
+	std::lock_guard lock(_mutex);
+	return _dutPlayerIndex;
 }
 
 bool ClientTestMode::Pump(const ClientFrameSnapshot& snapshot)
 {
-	if (!m_enabled) return false;
-	std::lock_guard lock(m_mutex);
-	m_lastScene = snapshot.scene;
+	if (!_enabled) return false;
+	std::lock_guard lock(_mutex);
+	_lastScene = snapshot._scene;
 
-	if (m_stage != Stage::CandidatePass && m_stage != Stage::Failed &&
-		::GetTickCount64() - m_startedAtMs > m_timeoutMs)
+	if (_stage != Stage::CandidatePass && _stage != Stage::Failed &&
+		::GetTickCount64() - _startedAtMs > _timeoutMs)
 		FailLocked("client scenario timeout");
 
 	const int firstPerson = static_cast<int>(FIRST_PERSON_CAMERA);
@@ -207,66 +240,99 @@ bool ClientTestMode::Pump(const ClientFrameSnapshot& snapshot)
 	const int inGame = static_cast<int>(CGameFramework::SCENESTATE::INGAME);
 	const int result = static_cast<int>(CGameFramework::SCENESTATE::RESULT);
 	const int lobby = static_cast<int>(CGameFramework::SCENESTATE::LOBBY);
-	if (m_stage >= Stage::AwaitInitialFirst && m_stage <= Stage::AwaitResult && snapshot.cameraMode >= 0)
+	const bool validatingFirstMatch = _stage >= Stage::AwaitInitialFirst && _stage <= Stage::AwaitResult;
+	const bool validatingSecondMatch = _stage == Stage::AwaitSecondInitialFirst ||
+		_stage == Stage::AwaitSecondPresent;
+	if (validatingFirstMatch || validatingSecondMatch)
 	{
-		if (snapshot.cameraIdentity == 0)
-			FailLocked("DUT camera identity is unavailable");
-		else if (m_cameraIdentity != 0 && snapshot.cameraIdentity != m_cameraIdentity)
-			FailLocked("DUT camera object changed during a mode transition");
-		else if (!snapshot.cameraResourcesValid)
-			FailLocked("DUT camera shader variables are unavailable");
-		else if (snapshot.scene == inGame &&
-			(!snapshot.sceneCameraMatches || !snapshot.scenePlayerIndexMatches))
-			FailLocked("in-game scene camera is not bound to the DUT player camera");
-		else if (snapshot.scene == result && !snapshot.sceneCameraMatches)
-			FailLocked("ResetGame left an active in-game render camera");
+		if (snapshot._cameraIdentity == 0)
+			FailLocked("game scene camera identity is unavailable");
+		else if (_cameraIdentity != 0 && snapshot._cameraIdentity != _cameraIdentity)
+			FailLocked("game scene camera object changed during a mode transition");
+		else if (snapshot._cameraBufferAddress == 0)
+			FailLocked("game scene camera buffer is unavailable");
+		else if (_cameraBufferAddress != 0 && snapshot._cameraBufferAddress != _cameraBufferAddress)
+			FailLocked("game scene camera buffer changed during a mode transition");
+		else if (snapshot._cameraBufferCreateCount != 1)
+			FailLocked("game scene camera buffer was not created exactly once");
+		else if (!snapshot._cameraResourcesValid)
+			FailLocked("game scene camera shader variables are unavailable");
+		else if (snapshot._scene == inGame &&
+			(!snapshot._renderCameraStateValid || !snapshot._localPlayerMatchesDut ||
+				!snapshot._cameraViewerMatchesLocal))
+			FailLocked("in-game scene camera is not bound to the DUT player");
+		else if (snapshot._scene == result &&
+			(!snapshot._renderCameraStateValid || !snapshot._cameraViewerMatchesLocal))
+			FailLocked("ResetGame left invalid scene camera state");
 
-		if (m_cameraIdentity == 0) m_cameraIdentity = snapshot.cameraIdentity;
+		if (snapshot._cameraMode != firstPerson && snapshot._cameraMode != thirdPerson)
+			FailLocked("game scene camera mode is invalid");
+		else if (_lastCameraMode < 0)
+			_lastCameraMode = snapshot._cameraMode;
+		else if (snapshot._cameraMode != _lastCameraMode)
+		{
+			++_cameraModeTransitions;
+			_lastCameraMode = snapshot._cameraMode;
+		}
+
+		if (_cameraIdentity == 0) _cameraIdentity = snapshot._cameraIdentity;
+		if (_cameraBufferAddress == 0) _cameraBufferAddress = snapshot._cameraBufferAddress;
+		_cameraBufferCreateCount = snapshot._cameraBufferCreateCount;
 	}
 
-	switch (m_stage)
+	switch (_stage)
 	{
 	case Stage::AwaitInitialFirst:
-		if (snapshot.scene == inGame && snapshot.hp == 3 && snapshot.cameraMode == firstPerson)
+		if (snapshot._scene == inGame && snapshot._health == 3 && snapshot._cameraMode == firstPerson)
 		{
-			m_stage = Stage::AwaitFirstDown;
+			_stage = Stage::AwaitFirstDown;
 			LogLocked("state", "camera=first scene=ingame hp=3");
 		}
 		break;
 	case Stage::AwaitFirstDown:
-		if (snapshot.hp == 0 && snapshot.cameraMode == thirdPerson)
+		if (snapshot._scene == inGame && snapshot._health == 0 && snapshot._cameraMode == thirdPerson)
 		{
-			m_stage = Stage::AwaitRevive;
+			_stage = Stage::AwaitRevive;
 			LogLocked("state", "camera=third scene=ingame hp=0");
 		}
 		break;
 	case Stage::AwaitRevive:
-		if (snapshot.hp == 3 && snapshot.cameraMode == firstPerson &&
-			snapshot.behavior == static_cast<int>(PLAYER_BEHAVIOR::IDLE))
+		if (snapshot._scene == inGame && snapshot._health == 3 && snapshot._cameraMode == firstPerson &&
+			snapshot._behavior == static_cast<int>(PLAYER_BEHAVIOR::IDLE))
 		{
-			m_stage = Stage::AwaitSecondDown;
+			_stage = Stage::AwaitSecondDown;
 			LogLocked("state", "camera=first scene=ingame hp=3 behavior=0");
 		}
 		break;
 	case Stage::AwaitSecondDown:
-		if (snapshot.hp == 0 && snapshot.cameraMode == thirdPerson)
+		if (snapshot._scene == inGame && snapshot._health == 0 && snapshot._cameraMode == thirdPerson)
 		{
-			m_stage = Stage::AwaitResult;
+			_stage = Stage::AwaitResult;
 			LogLocked("state", "camera=third scene=ingame hp=0");
 		}
 		break;
 	case Stage::AwaitResult:
-		if (snapshot.scene == result && snapshot.cameraMode == firstPerson)
+		if (snapshot._scene == result && snapshot._health == 3 &&
+			snapshot._behavior == static_cast<int>(PLAYER_BEHAVIOR::IDLE) && !snapshot._hidden &&
+			snapshot._cameraMode == firstPerson)
 		{
-			m_stage = Stage::AwaitLobby;
+			_stage = Stage::AwaitLobby;
 			LogLocked("scene", "scene=result");
 			LogLocked("state", "camera=first hp=3");
 		}
 		break;
-	case Stage::AwaitLobby:
-		if (snapshot.scene == lobby)
+	case Stage::AwaitSecondInitialFirst:
+		if (snapshot._scene == inGame && snapshot._health == 3 &&
+			snapshot._behavior == static_cast<int>(PLAYER_BEHAVIOR::IDLE) && !snapshot._hidden &&
+			snapshot._cameraMode == firstPerson)
 		{
-			m_stage = Stage::AwaitLobbyPresent;
+			_stage = Stage::AwaitSecondPresent;
+		}
+		break;
+	case Stage::AwaitLobby:
+		if (snapshot._scene == lobby)
+		{
+			_stage = Stage::AwaitLobbyPresent;
 		}
 		break;
 	default:
@@ -275,32 +341,50 @@ bool ClientTestMode::Pump(const ClientFrameSnapshot& snapshot)
 
 	// The supervisor closes a successful DUT after the harness records its result.
 	// Only failures self-terminate, always from this main-thread pump.
-	return m_stage == Stage::Failed;
+	return _stage == Stage::Failed;
 }
 
 void ClientTestMode::OnPresent(const long result)
 {
-	if (!m_enabled) return;
-	std::lock_guard lock(m_mutex);
-	if (m_lastScene == static_cast<int>(CGameFramework::SCENESTATE::INGAME)) ++m_ingamePresents;
-	m_presentResult = result;
+	if (!_enabled) return;
+	std::lock_guard lock(_mutex);
+	if (_lastScene == static_cast<int>(CGameFramework::SCENESTATE::INGAME)) ++_ingamePresents;
+	_presentResult = result;
 	if (result < 0)
 	{
 		FailLocked("swap-chain Present failed");
 		return;
 	}
-	if (m_stage == Stage::AwaitLobbyPresent)
+	if (_stage == Stage::AwaitLobbyPresent)
 	{
-		m_cameraValid = true;
-		m_stage = Stage::CandidatePass;
+		if (_cameraModeTransitions != 4)
+		{
+			FailLocked("unexpected camera mode transition count");
+			return;
+		}
+		_cameraValid = true;
+		_stage = Stage::AwaitSecondRoom;
 		LogLocked("scene", "scene=lobby");
+
+		C2S_ROOM_ENTER packet{};
+		packet.size = sizeof(packet);
+		packet.type = static_cast<uint8>(C_ROOM_PACKET_TYPE::ACQ_ENTER_RM);
+		packet.rmNum = _roomNumber;
+		if (!_session || !_session->DoSend(&packet))
+			FailLocked("failed to request the second match room");
+	}
+	else if (_stage == Stage::AwaitSecondPresent)
+	{
+		_secondMatchValidated = true;
+		_stage = Stage::CandidatePass;
+		LogLocked("second_match_validated", "match=2 camera=first scene=ingame hp=3 behavior=0 hidden=0");
 	}
 }
 
 void ClientTestMode::OnD3DMessage(const char* message)
 {
-	if (!m_enabled) return;
-	std::lock_guard lock(m_mutex);
+	if (!_enabled) return;
+	std::lock_guard lock(_mutex);
 	LogLocked("d3d12_error", message ? message : "unknown D3D12 message");
 }
 
@@ -308,86 +392,104 @@ void ClientTestMode::FinalizeGraphics(const bool infoQueueAvailable, const std::
 	const long deviceRemovedReason,
 	const std::uint64_t completedFence, const std::uint64_t submittedFence)
 {
-	if (!m_enabled) return;
-	std::lock_guard lock(m_mutex);
-	m_graphicsFinalized = true;
-	m_infoQueueAvailable = infoQueueAvailable;
-	m_d3dErrorCount = errorCount;
-	m_deviceRemovedReason = deviceRemovedReason;
-	m_completedFence = completedFence;
-	m_submittedFence = submittedFence;
-	m_graphicsPassed = infoQueueAvailable && errorCount == 0 && deviceRemovedReason == 0 &&
+	if (!_enabled) return;
+	std::lock_guard lock(_mutex);
+	_graphicsFinalized = true;
+	_infoQueueAvailable = infoQueueAvailable;
+	_d3dErrorCount = errorCount;
+	_deviceRemovedReason = deviceRemovedReason;
+	_completedFence = completedFence;
+	_submittedFence = submittedFence;
+	_graphicsPassed = infoQueueAvailable && errorCount == 0 && deviceRemovedReason == 0 &&
 		completedFence >= submittedFence;
 	LogLocked("graphics_final",
 		"errors=" + std::to_string(errorCount) +
 		" device_removed=" + std::to_string(deviceRemovedReason) +
 		" completed_fence=" + std::to_string(completedFence) +
 		" submitted_fence=" + std::to_string(submittedFence));
-	if (!m_graphicsPassed) FailLocked("graphics validation failed");
+	if (!_graphicsPassed) FailLocked("graphics validation failed");
+}
+
+void ClientTestMode::OnCleanupSequenceCompleted()
+{
+	if (!_enabled) return;
+	std::lock_guard lock(_mutex);
+	_cleanupSequenceCompleted = true;
 }
 
 int ClientTestMode::FinalizeProcess()
 {
-	if (!m_enabled) return 0;
-	std::lock_guard lock(m_mutex);
-	if (m_stage != Stage::CandidatePass)
-		FailLocked(m_failureReason.empty() ? "client exited before completing the scenario" : m_failureReason);
-	else if (!m_graphicsFinalized || !m_graphicsPassed)
+	if (!_enabled) return 0;
+	std::lock_guard lock(_mutex);
+	if (_stage != Stage::CandidatePass)
+		FailLocked(_failureReason.empty() ? "client exited before completing the scenario" : _failureReason);
+	else if (!_graphicsFinalized || !_graphicsPassed)
 		FailLocked("graphics validation did not complete successfully");
-	else if (!m_gameStarted || m_rosterCount != PLAYERNUM || !m_ownSidPresent)
+	else if (!_cleanupSequenceCompleted)
+		FailLocked("client cleanup sequence did not complete");
+	else if (!_gameStarted || _rosterCount != PLAYERNUM || !_ownSidPresent)
 		FailLocked("GAME_START roster validation is incomplete");
-	else if (!m_cameraValid)
+	else if (_gameStartCount != 2 || !_secondMatchValidated)
+		FailLocked("the second match lifecycle was not validated");
+	else if (!_cameraValid)
 		FailLocked("camera lifecycle validation is incomplete");
-	else if (m_ingamePresents < 60)
+	else if (_ingamePresents < 60)
 		FailLocked("fewer than 60 in-game frames were presented");
-	else if (m_presentResult < 0)
+	else if (_presentResult < 0)
 		FailLocked("the final Present result is a failed HRESULT");
 
-	const bool passed = m_stage == Stage::CandidatePass && m_graphicsFinalized && m_graphicsPassed &&
-		m_gameStarted && m_rosterCount == PLAYERNUM && m_ownSidPresent && m_cameraValid &&
-		m_ingamePresents >= 60 && m_presentResult >= 0;
-	m_log << "{\"schema\":\"atb.dut.v1\",\"event\":\"summary\""
+	const bool passed = _stage == Stage::CandidatePass && _graphicsFinalized && _graphicsPassed &&
+		_cleanupSequenceCompleted && _gameStarted && _gameStartCount == 2 && _secondMatchValidated &&
+		_rosterCount == PLAYERNUM && _ownSidPresent && _cameraValid &&
+		_ingamePresents >= 60 && _presentResult >= 0;
+	_log << "{\"schema\":\"atb.dut.v1\",\"event\":\"summary\""
 		<< ",\"status\":\"" << (passed ? "pass" : "fail") << "\""
-		<< ",\"reason\":\"" << EscapeJson(passed ? "ok" : m_failureReason) << "\""
+		<< ",\"reason\":\"" << EscapeJson(passed ? "ok" : _failureReason) << "\""
 		<< ",\"exit_code\":" << (passed ? 0 : 1)
-		<< ",\"game_start\":" << (m_gameStarted ? "true" : "false")
-		<< ",\"roster_count\":" << m_rosterCount
-		<< ",\"own_sid_present\":" << (m_ownSidPresent ? "true" : "false")
-		<< ",\"camera_valid\":" << (m_cameraValid ? "true" : "false")
-		<< ",\"ingame_presents\":" << m_ingamePresents
-		<< ",\"present_hr\":" << m_presentResult
-		<< ",\"device_removed_hr\":" << m_deviceRemovedReason
-		<< ",\"d3d12_info_queue_available\":" << (m_infoQueueAvailable ? "true" : "false")
-		<< ",\"d3d12_error_count\":" << m_d3dErrorCount
-		<< ",\"cleanup_completed\":true"
-		<< ",\"fence_submitted\":" << m_submittedFence
-		<< ",\"fence_completed\":" << m_completedFence << "}\n";
-	m_log.flush();
+		<< ",\"game_start\":" << (_gameStarted ? "true" : "false")
+		<< ",\"game_start_count\":" << _gameStartCount
+		<< ",\"second_match_validated\":" << (_secondMatchValidated ? "true" : "false")
+		<< ",\"roster_count\":" << _rosterCount
+		<< ",\"own_sid_present\":" << (_ownSidPresent ? "true" : "false")
+		<< ",\"camera_valid\":" << (_cameraValid ? "true" : "false")
+		<< ",\"camera_identity_stable\":" << (_cameraIdentity != 0 ? "true" : "false")
+		<< ",\"camera_buffer_stable\":" << (_cameraBufferAddress != 0 ? "true" : "false")
+		<< ",\"camera_buffer_create_count\":" << _cameraBufferCreateCount
+		<< ",\"camera_mode_transitions\":" << _cameraModeTransitions
+		<< ",\"ingame_presents\":" << _ingamePresents
+		<< ",\"present_hr\":" << _presentResult
+		<< ",\"device_removed_hr\":" << _deviceRemovedReason
+		<< ",\"d3d12_info_queue_available\":" << (_infoQueueAvailable ? "true" : "false")
+		<< ",\"d3d12_error_count\":" << _d3dErrorCount
+		<< ",\"cleanup_sequence_completed\":" << (_cleanupSequenceCompleted ? "true" : "false")
+		<< ",\"fence_submitted\":" << _submittedFence
+		<< ",\"fence_completed\":" << _completedFence << "}\n";
+	_log.flush();
 	return passed ? 0 : 1;
 }
 
 void ClientTestMode::Fail(const std::string& reason)
 {
-	std::lock_guard lock(m_mutex);
+	std::lock_guard lock(_mutex);
 	FailLocked(reason);
 }
 
 void ClientTestMode::FailLocked(const std::string& reason)
 {
-	if (m_stage == Stage::Failed) return;
-	m_stage = Stage::Failed;
-	m_failureReason = reason;
+	if (_stage == Stage::Failed) return;
+	_stage = Stage::Failed;
+	_failureReason = reason;
 	LogLocked("failure", reason);
 }
 
 void ClientTestMode::LogLocked(const char* event, const std::string& detail)
 {
-	if (!m_log) return;
-	m_log << "{\"seq\":" << ++m_sequence
-		<< ",\"ms\":" << (::GetTickCount64() - m_startedAtMs)
+	if (!_log) return;
+	_log << "{\"seq\":" << ++_sequence
+		<< ",\"ms\":" << (::GetTickCount64() - _startedAtMs)
 		<< ",\"event\":\"" << EscapeJson(event ? event : "")
 		<< "\",\"detail\":\"" << EscapeJson(detail) << "\"}\n";
-	m_log.flush();
+	_log.flush();
 }
 
 std::string ClientTestMode::EscapeJson(const std::string& text)

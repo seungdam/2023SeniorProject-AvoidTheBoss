@@ -9,12 +9,9 @@ public:
 	static constexpr int32 SceneCount = 5;
 protected:
 
-	CScene* m_pScenes[SceneCount];
+	CScene* m_pScenes[SceneCount]{};
 public:
-	SceneManager()
-	{
-		for (int i = 0; i < SceneCount; ++i) m_pScenes[i] = nullptr;
-	}
+	SceneManager() = default;
 	~SceneManager();
 
 	void Render(ID3D12GraphicsCommandList4* pd3dCommandList, int32, bool);

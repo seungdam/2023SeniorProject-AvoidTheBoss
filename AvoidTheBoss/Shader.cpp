@@ -365,6 +365,8 @@ void CStandardObjectsShader::ReleaseObjects()
 				m_ppObjects[j] = nullptr;
 			}
 		delete[] m_ppObjects;
+		m_ppObjects = nullptr;
+		m_nObjects = 0;
 	}
 }
 
@@ -432,6 +434,8 @@ void CSkinnedAnimationObjectsShader::ReleaseObjects()
 			if (m_ppObjects[j]) m_ppObjects[j]->Release();
 		}
 		delete[] m_ppObjects;
+		m_ppObjects = nullptr;
+		m_nObjects = 0;
 	}
 }
 
@@ -472,7 +476,7 @@ CMapObjectsShader::~CMapObjectsShader()
 void CMapObjectsShader::BuildObjects(ID3D12Device5 * pd3dDevice,ID3D12GraphicsCommandList4     * pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CLoadedModelInfo* pModel, void* pContext)
 {
 	m_nObjects = 3;
-	m_ppObjects = new CGameObject * [m_nObjects];
+	m_ppObjects = new CGameObject * [m_nObjects]{};
 
 	CGameObject* pMap = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Map/Industry_Map.bin", this,Layout::MAP);
 	m_ppObjects[0] = new CGameObject();
@@ -518,7 +522,7 @@ CBoundsObjectsShader::~CBoundsObjectsShader()
 void CBoundsObjectsShader::BuildObjects(ID3D12Device5* pd3dDevice,ID3D12GraphicsCommandList4     * pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CLoadedModelInfo* pModel, void* pContext)
 {
 	m_nObjects = 1;
-	m_ppObjects = new CGameObject * [m_nObjects];
+	m_ppObjects = new CGameObject * [m_nObjects]{};
 
 	CGameObject* pMap = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Map_Bounding_Box_(5).bin", this, Layout::BOUDS);
 	pMap->m_type = 1;
@@ -542,7 +546,7 @@ CBulletObjectsShader::~CBulletObjectsShader()
 void CBulletObjectsShader::BuildObjects(ID3D12Device5* pd3dDevice,ID3D12GraphicsCommandList4* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CLoadedModelInfo* pModel, void* pContext)
 {
 	m_nObjects = BULLET_NUMBER;
-	m_ppObjects = new CGameObject * [m_nObjects];
+	m_ppObjects = new CGameObject * [m_nObjects]{};
 
 	CGameObject* pBullet = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/총알/green_bullet.bin", this, Layout::BULLET);
 	for (int i = 0; i < m_nObjects; i++)
@@ -583,7 +587,7 @@ CDoorObjectsShader::~CDoorObjectsShader()
 void CDoorObjectsShader::BuildObjects(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4  * pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CLoadedModelInfo* pModel, void* pContext)
 {
 	m_nObjects = 5;
-	m_ppObjects = new CGameObject * [m_nObjects];
+	m_ppObjects = new CGameObject * [m_nObjects]{};
 
 	CGameObject* pFrontDoor = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Map/Front_Hanger_Door_Open.bin", this, Layout::DOOR);
 	CGameObject* pEmergencyDoor = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Map/Emergency_Door_Open.bin", this, Layout::DOOR);
@@ -641,7 +645,7 @@ CSirenObjectsShader::~CSirenObjectsShader()
 void CSirenObjectsShader::BuildObjects(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4  * pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CLoadedModelInfo* pModel, void* pContext)
 {
 	m_nObjects = 16;
-	m_ppObjects = new CGameObject * [m_nObjects];
+	m_ppObjects = new CGameObject * [m_nObjects]{};
 
 	CGameObject* pSiren = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Map/Siren_Alarm_One.bin", this, Layout::SIREN);
 
@@ -772,7 +776,7 @@ CGeneratorObjectsShader::~CGeneratorObjectsShader()
 void CGeneratorObjectsShader::BuildObjects(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4  * pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CLoadedModelInfo* pModel, void* pContext)
 {
 	m_nObjects = 3;
-	m_ppObjects = new CGameObject * [m_nObjects];
+	m_ppObjects = new CGameObject * [m_nObjects]{};
 
 	CGameObject* pGenerator1 = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Map/Generator.bin", this, Layout::GENERATOR);
 
@@ -837,7 +841,7 @@ CHitEffectObjectsShader::~CHitEffectObjectsShader()
 void CHitEffectObjectsShader::BuildObjects(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CLoadedModelInfo* pModel, void* pContext)
 {
 	m_nObjects = 1;
-	m_ppObjects = new CGameObject * [m_nObjects];
+	m_ppObjects = new CGameObject * [m_nObjects]{};
 
 	CGameObject* pHit = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/hit.bin", this, Layout::EFFECT);
 	pHit->m_type = 1;

@@ -43,8 +43,6 @@ public:
 protected:
 	ID3D12RootSignature* m_pd3dGraphicsRootSignature = NULL;
 public:
-	CCamera*			m_pCamera = nullptr;
-public:
 	LIGHT*								m_pLights = NULL;
 	LIGHTS*								m_pcbMappedLights = NULL;
 
@@ -96,6 +94,7 @@ public:
 
 	virtual void ProcessInput(HWND& hWnd) {}
 	virtual void Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pCamera,bool Raster) {};
+	virtual CCamera* GetRenderCamera() { return nullptr; }
 	virtual void Update(HWND& hWnd) {}
 	virtual void AnimateObjects() {}
 	virtual void BuildObjects(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList) {}

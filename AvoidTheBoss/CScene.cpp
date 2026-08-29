@@ -341,6 +341,7 @@ void CScene::ReleaseObjects()
 	{
 		for (int i = 0; i < m_nShaders; i++)
 		{
+			if (!m_ppShaders[i]) continue;
 			m_ppShaders[i]->ReleaseShaderVariables();
 			std::cout << "Shader Index: " << i << std::endl;
 
@@ -352,7 +353,7 @@ void CScene::ReleaseObjects()
 		m_ppShaders = nullptr;
 	}
 
-	delete m_pSkyBox;
+	if (m_pSkyBox) m_pSkyBox->Release();
 	m_pSkyBox = nullptr;
 
 	if (m_ppHierarchicalGameObjects)

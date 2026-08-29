@@ -12,7 +12,7 @@ SceneManager::~SceneManager()
 
 void SceneManager::Render(ID3D12GraphicsCommandList4* pd3dCommandList, int32 idx, bool Raster)
 {
-	m_pScenes[idx]->Render(pd3dCommandList, m_pScenes[idx]->m_pCamera, Raster);
+	m_pScenes[idx]->Render(pd3dCommandList, m_pScenes[idx]->GetRenderCamera(), Raster);
 }
 
 void SceneManager::Update(HWND& hWnd,int32 idx)
@@ -57,6 +57,10 @@ void SceneManager::Animate(int32 idx)
 
 void SceneManager::BuildScene(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList)
 {
+	// Register each scene before BuildObjects(). If a later build step throws,
+	// CGameFramework::OnDestroy() can still reclaim the partially built scene.
+	// Known ceiling: objects created inside a recursive loader but never attached
+	// to a registered scene still require a future asset-instance ownership split.
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] TITLE scene build\n");
 #endif
