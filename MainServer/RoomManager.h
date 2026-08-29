@@ -1,23 +1,22 @@
 ﻿#pragma once
-#define MAX_ROOM_USER 4 // 한 방당 최대 인원수
-#include "WorldRewinder.h"
 #include "CGameManager.h"
 #include "RoomCommand.h"
+
+#include <array>
 #include <deque>
 #include <mutex>
 
 
-class ClientEventScheduler;
 class QueueEvent;
-class SPlayer;
+class RoomManager;
 
 // 방은 호스트가 요청하는 순간 생성한다.
 class Room
 {
-	struct Member
+	struct RoomMember
 	{
 		int16 sid = -1;
-		bool isReady;
+		bool isReady = false;
 	};
 public:
 	Room();
@@ -39,6 +38,8 @@ public:
 
 	void SendRoomListPacket();
 	void SendRoomInfoPacket();
+	CGameManager& GameLogic() noexcept { return _gameLogic; }
+	int32 GetMemberCount() const noexcept { return _memCnt.load(); }
 
 	int32 GetSidIndexBySid(int32 sid)
 	{
@@ -54,13 +55,11 @@ public:
 	void UpdateReady(int32 idx, bool val);
 	bool IsGameStartAvailable();
 private:
-	Rewinder<30> _history;
-public:
+	friend class RoomManager;
+
 	CGameManager _gameLogic;
 	std::shared_mutex _listLock;
-	std::vector<int32> _clientLists; // 방에 속해있는 클라이언트 리스트
-	Member _roomMembers[4];
-	Atomic<bool> _bReadys[4];
+	std::array<RoomMember, PLAYERNUM> _roomMembers{};
 	uint8 _status = (int8)ROOM_STATUS::EMPTY; // 방 상태
 	int32 _rmNum = 0; // 방번호
 	Atomic<int32> _memCnt = 0;

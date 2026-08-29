@@ -367,7 +367,6 @@ void RoomManager::Init()
 {
 	for (int i = 0; i < _maxRoomCapacity; ++i)
 	{
-		_rooms[i]._clientLists.clear();
 		_rooms[i]._rmNum = i;
 	}
 }
