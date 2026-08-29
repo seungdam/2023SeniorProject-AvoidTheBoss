@@ -304,7 +304,19 @@ void CSession::ApplyPacket(char* packet)
 	if (!rs) return;
 	if (!rrs) return;
 
-	switch ((uint8)packet[1])
+	const auto packetType = static_cast<uint8>(packet[1]);
+	const bool requiresInGameScene =
+		packetType == static_cast<uint8>(S_GAME_PACKET_TYPE::SKEY) ||
+		packetType == static_cast<uint8>(S_GAME_PACKET_TYPE::SROT) ||
+		packetType == static_cast<uint8>(S_GAME_PACKET_TYPE::SPOS) ||
+		packetType == static_cast<uint8>(SC_GAME_PACKET_TYPE::GAMEEVENT) ||
+		packetType == static_cast<uint8>(S_GAME_PACKET_TYPE::ANIM) ||
+		packetType == static_cast<uint8>(S_GAME_PACKET_TYPE::FRAME);
+	if (requiresInGameScene &&
+		mainGame.m_curScene != static_cast<int32>(CGameFramework::SCENESTATE::INGAME))
+		return;
+
+	switch (packetType)
 	{
 
 	// ================ 로그인 관련 처리 ================
@@ -421,7 +433,7 @@ void CSession::ApplyPacket(char* packet)
 
 
 		// ================= 카메라 셋팅 ================================
-		mainGame.m_UIRenderer->InitGameSceneUI(gs);
+		mainGame.m_UIRenderer->InitGameSceneUI(gs->CreateUiSnapshot());
 
 		mainGame.ChangeScene(CGameFramework::SCENESTATE::INGAME);
 		gs->InitScene();
@@ -431,7 +443,7 @@ void CSession::ApplyPacket(char* packet)
 		for (int i = 0; i < PLAYERNUM; ++i)
 		{
 			rs->m_members[i].m_sid = -1;
-			rs->m_members->isReady = false;
+			rs->m_members[i].isReady = false;
 		}
 		rs->m_memLock.unlock();
 	}
@@ -445,25 +457,20 @@ void CSession::ApplyPacket(char* packet)
 		CPlayer* player = gs ->GetScenePlayerBySid(movePacket->sid);
 		if (player == nullptr) break;
 
-		moveEvent* mev = new moveEvent();
-		mev->player = player;
-		mev->_dir.x = movePacket->x;
-		mev->_dir.y = 0;
-		mev->_dir.z = movePacket->z;
-		mev->_key = movePacket->key;
-
-		gs->AddEvent(static_cast<queueEvent*>(mev), mainGame.m_activeDelay ? 320.0f : 0.0f);
+		gs->AddEvent(moveEvent{
+			player->GetPlayerIndex(),
+			movePacket->key,
+			XMFLOAT3(movePacket->x, 0.0f, movePacket->z) },
+			mainGame.m_activeDelay ? 320.0f : 0.0f);
 	}
 	break;
 	case (uint8)S_GAME_PACKET_TYPE::SROT:
 	{
 		S2C_ROTATE* rotatePacket = reinterpret_cast<S2C_ROTATE*>(packet);
 		CPlayer* player = gs->GetScenePlayerBySid(rotatePacket->sid);
-		if (player != nullptr)
-		{
-			player->Rotate(0, static_cast<float>(rotatePacket->angle), 0);
-		}
-
+		if (!player) break;
+		gs->AddEvent(rotateEvent{ player->GetPlayerIndex(), static_cast<float>(rotatePacket->angle) },
+			mainGame.m_activeDelay ? 320.0f : 0.0f);
 	}
 	break;
 	case (uint8)S_GAME_PACKET_TYPE::SPOS: // 미리 계산한 좌표값을 보내준다.
@@ -473,11 +480,8 @@ void CSession::ApplyPacket(char* packet)
 		if (player == nullptr) break;
 
 		XMFLOAT3 newPos = XMFLOAT3(posPacket->x, player->GetPosition().y, posPacket->z);
-		posEvent* pe = new posEvent();
-		pe->player = player;
-		pe->_pos = newPos;
-
-		gs->AddEvent(static_cast<queueEvent*>(pe), mainGame.m_activeDelay ? 320.0f : 0.0f);
+		gs->AddEvent(posEvent{ player->GetPlayerIndex(), newPos },
+			mainGame.m_activeDelay ? 320.0f : 0.0f);
 	}
 	break;
 	case (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT:
@@ -498,13 +502,11 @@ void CSession::ApplyPacket(char* packet)
 
 			rrs->m_timer.Reset();
 			mainGame.ChangeScene(CGameFramework::SCENESTATE::RESULT);
-			mainGame.m_curFrame = 0;
 		}
 		else
 		{
-			InteractionEvent* gev = new InteractionEvent();
-			gev->eventId = ev->eventId;
-			gs->AddEvent(static_cast<queueEvent*>(gev), mainGame.m_activeDelay ? 320.0f : 0.0f);
+			gs->AddEvent(InteractionEvent{ ev->eventId },
+				mainGame.m_activeDelay ? 320.0f : 0.0f);
 		}
 	}
 	break;
@@ -512,32 +514,15 @@ void CSession::ApplyPacket(char* packet)
 	case (uint8)S_GAME_PACKET_TYPE::ANIM:
 	{
 		S2C_ANIMPACKET* sw = (S2C_ANIMPACKET*)packet;
-		uint8 idx = sw->idx;
-		CPlayer* myPlayer = nullptr;
-		myPlayer = gs->GetScenePlayerByIdx(idx);
-		if (myPlayer != nullptr)
-		{
-			if (idx != 0)
-			{
-				if (sw->track == (uint8)ANIMTRACK::GEN_ANIM) myPlayer->SetBehavior(PLAYER_BEHAVIOR::SWITCH_INTER);
-				else if (sw->track == (uint8)ANIMTRACK::RESCUE) myPlayer->SetBehavior(PLAYER_BEHAVIOR::RESCUE);
-				else myPlayer->SetBehavior(PLAYER_BEHAVIOR::IDLE);
-			}
-			else if (sw->track == (uint8)ANIMTRACK::ATTACK_ANIM)
-			{
-				std::cout << "Attack Anim\n";
-				static_cast<CBoss*>(myPlayer)->SetAttackAnimOtherClient();
-			}
-
-		}
+		if (!gs->GetScenePlayerByIdx(sw->idx)) break;
+		gs->AddEvent(animationEvent{ sw->idx, sw->track },
+			mainGame.m_activeDelay ? 320.0f : 0.0f);
 	}
 	break;
 	case (uint8)S_GAME_PACKET_TYPE::FRAME:
 	{
 		S2C_FRAMEPACKET* fp = (S2C_FRAMEPACKET*)packet;
-		FrameEvent* fe = new FrameEvent(fp->wf);
-
-		gs->AddEvent(static_cast<queueEvent*>(fe), mainGame.m_activeDelay ? 320.0f : 0.0f);
+		gs->AddEvent(FrameEvent{ fp->wf }, mainGame.m_activeDelay ? 320.0f : 0.0f);
 
 	}
 	break;

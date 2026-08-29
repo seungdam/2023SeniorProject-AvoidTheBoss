@@ -1,80 +1,68 @@
-﻿#pragma once
-// 0 1 2
+#pragma once
+
 #include "clientIocpCore.h"
-class CPlayer;
 
-class queueEvent
+#include <variant>
+
+struct moveEvent
 {
-public:
-	int64 generateTime = 0;
-
-public:
-	queueEvent() {};
-	virtual ~queueEvent() {};
-	virtual void Task() {};
-};
-
-class moveEvent : public queueEvent // 33 ms 마다 전송한다.
-{
-public:
-	moveEvent() { };
-	virtual ~moveEvent() {};
-	CPlayer* player = nullptr;
+	int32 _playerIndex = -1;
 	uint8 _key = 0;
-	XMFLOAT3 _dir{ 0,0,0 };
-public:
-	virtual void Task();
+	XMFLOAT3 _direction{ 0.0f, 0.0f, 0.0f };
+
+	void Task();
 };
 
-class posEvent : public queueEvent // 33 ms 마다 전송한다.
+struct posEvent
 {
-public:
-	posEvent() { };
-	virtual ~posEvent() {};
-	XMFLOAT3 _pos {0,0,0};
-	CPlayer* player = nullptr;
-public:
-	virtual void Task();
+	int32 _playerIndex = -1;
+	XMFLOAT3 _position{ 0.0f, 0.0f, 0.0f };
+
+	void Task();
 };
-class InteractionEvent : public queueEvent
+
+struct rotateEvent
 {
-public:
-	InteractionEvent() {};
-	virtual ~InteractionEvent() {};
-	uint8 eventId = -1;
-public:
-	virtual void Task();
+	int32 _playerIndex = -1;
+	float _angle = 0.0f;
 
+	void Task();
 };
 
-class FrameEvent : public queueEvent
+struct animationEvent
 {
-public:
-	FrameEvent() {};
-	FrameEvent(int32 wf) : _wf(wf) {}
-	virtual ~FrameEvent() {};
-	int32 _wf = -1;
-public:
-	virtual void Task();
+	int32 _playerIndex = -1;
+	uint8 _track = 0;
+
+	void Task();
 };
 
-
-class DelayEvent : public queueEvent
+struct InteractionEvent
 {
-	C2S_ATTACK _packet;
+	uint8 _eventId = static_cast<uint8>(-1);
 
-public:
-	~DelayEvent() {};
-	DelayEvent(C2S_ATTACK packet)
-	{
-		_packet = packet;
-	}
-public:
-	virtual void Task()
-	{
-
-		clientCore.DoSend(&_packet);
-		std::cout << "SendAttack";
-	}
+	void Task();
 };
 
+struct FrameEvent
+{
+	int32 _worldFrame = -1;
+
+	void Task();
+};
+
+struct DelayEvent
+{
+	C2S_ATTACK _packet{};
+
+	void Task();
+};
+
+using ClientEvent = std::variant<
+	moveEvent,
+	posEvent,
+	rotateEvent,
+	animationEvent,
+	InteractionEvent,
+	FrameEvent,
+	DelayEvent>;

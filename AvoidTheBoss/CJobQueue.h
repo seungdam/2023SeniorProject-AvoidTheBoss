@@ -1,42 +1,61 @@
-﻿#pragma once
+#pragma once
+
 #include "ClientPacketEvent.h"
 
-struct JobComparator // 우선 순위 큐에서 비교연산 수행
+#include <chrono>
+#include <cstdint>
+#include <queue>
+#include <vector>
+
+struct ScheduledClientEvent
 {
-	bool operator()(const queueEvent* lhs, const queueEvent* rhs)
+	int64 _executeAt = 0;
+	std::uint64_t _sequence = 0;
+	ClientEvent _event;
+};
+
+struct JobComparator
+{
+	[[nodiscard]] static constexpr bool RunsAfter(
+		const int64 lhsTime, const std::uint64_t lhsSequence,
+		const int64 rhsTime, const std::uint64_t rhsSequence) noexcept
 	{
-		return lhs->generateTime > rhs->generateTime;
+		return lhsTime != rhsTime ? lhsTime > rhsTime : lhsSequence > rhsSequence;
+	}
+
+	bool operator()(const ScheduledClientEvent& lhs, const ScheduledClientEvent& rhs) const noexcept
+	{
+		return RunsAfter(lhs._executeAt, lhs._sequence, rhs._executeAt, rhs._sequence);
 	}
 };
 
+static_assert(JobComparator::RunsAfter(10, 2, 10, 1));
+static_assert(!JobComparator::RunsAfter(10, 1, 10, 2));
 
-typedef std::priority_queue<queueEvent*, std::vector<queueEvent*>, JobComparator> JobPriorityQueue;
+using JobPriorityQueue = std::priority_queue<
+	ScheduledClientEvent,
+	std::vector<ScheduledClientEvent>,
+	JobComparator>;
 
 class Scheduler
 {
 public:
-	using Clock = std::chrono::high_resolution_clock;
+	using Clock = std::chrono::steady_clock;
+
 	Scheduler();
-	~Scheduler();
-	void Reset()
-	{
-		_BeginTickPoint = Clock::now(); // 시작 시점은 지금
-		_CurrentTick = GetCurrentTick(); // 현재 틱 값 초기화
-	}
-	void PushTask(queueEvent*, float after); // after 시간 후에 해당 임무를 수행한다.
-	void PushTask(queueEvent*);
-	void DoNormalTasks();
+	void Reset() noexcept;
+	void PushTask(ClientEvent event, float afterMilliseconds);
 	void DoTasks();
-	int64 GetCurrentTick() const
+	void Clear() noexcept;
+
+	[[nodiscard]] int64 GetCurrentTick() const noexcept
 	{
-		return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - _BeginTickPoint).count();
+		return std::chrono::duration_cast<std::chrono::milliseconds>(
+			Clock::now() - _beginTickPoint).count();
 	}
-	void Clear();
+
 private:
-
-	std::queue<queueEvent*> _normalQueue;
-	JobPriorityQueue _TaskQueue; // Job의 발생 틱에 따라 우선순위를 부여한다. --> 틱값이 클 수록 오래된 일이라는 것
-	Clock::time_point _BeginTickPoint; // 최초 시작 시간 스탬프
-	int64 _CurrentTick;  // 현재 틱
+	JobPriorityQueue _taskQueue;
+	Clock::time_point _beginTickPoint;
+	std::uint64_t _nextSequence = 0;
 };
-
