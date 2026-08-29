@@ -430,10 +430,13 @@ namespace
         uint64_t lastResetFirstSequence = 0;
         uint64_t lastResultSequence = 0;
         uint64_t lastLobbySequence = 0;
+		uint64_t lastSecondMatchSequence = 0;
+		int gameStartCount = 0;
         int cameraMode = -1;
         int scene = -1;
         std::optional<int> hp;
         std::optional<int> behavior;
+		std::optional<bool> hidden;
         std::optional<bool> invincible;
     };
 
@@ -532,6 +535,9 @@ namespace
             const std::string lower = LowerAscii(line);
             const bool semanticResultFirstReset = lower.find("result_first_reset") != std::string::npos;
             const bool lineMentionsLobby = lower.find("lobby") != std::string::npos;
+			if (lower.find("\"event\":\"game_start\"") != std::string::npos) ++state_.gameStartCount;
+			if (lower.find("\"event\":\"second_match_validated\"") != std::string::npos)
+				state_.lastSecondMatchSequence = state_.lineSequence;
 
             const auto camera = ExtractFlatValue(lower, { "cameramode", "camera_mode", "camera", "mode" });
             int cameraMode = -1;
@@ -601,8 +607,14 @@ namespace
                 else if (scene == 1) state_.lastLobbySequence = state_.lineSequence;
             }
 
-            state_.hp = ParseInt(ExtractFlatValue(lower, { "hp" }));
-            state_.behavior = ParseInt(ExtractFlatValue(lower, { "behavior" }));
+			if (const auto hp = ParseInt(ExtractFlatValue(lower, { "hp" }))) state_.hp = hp;
+			if (const auto behavior = ParseInt(ExtractFlatValue(lower, { "behavior" })))
+				state_.behavior = behavior;
+			if (const auto value = ExtractFlatValue(lower, { "hidden" }))
+			{
+				if (*value == "true" || *value == "1") state_.hidden = true;
+				else if (*value == "false" || *value == "0") state_.hidden = false;
+			}
             if (const auto value = ExtractFlatValue(lower, { "invincible", "invincibility" }))
             {
                 if (*value == "true" || *value == "1") state_.invincible = true;
@@ -677,10 +689,15 @@ namespace
         bool loginOk = false;
         int16 sid = -1;
         bool createOk = false;
+		int createCount = 0;
         int16 enteredRoom = -1;
+		int roomEntryCount = 0;
         bool roomInfoSeen = false;
         std::array<int16, kRosterSize> roomSids{ -1, -1, -1, -1 };
         bool gameStarted = false;
+		int gameStartCount = 0;
+		int roomListNumber = -1;
+		int roomMembers = -1;
         std::array<int16, kRosterSize> roster{ -1, -1, -1, -1 };
         int32 latestFrame = -1;
         std::map<int16, Vec2> positions;
@@ -704,6 +721,9 @@ namespace
         bool resultScene = false;
         bool resetFirst = false;
         bool lobby = false;
+		bool secondMatchStarted = false;
+		bool secondMatchFrame = false;
+		bool secondMatchAttack = false;
         std::uint64_t packets = 0;
     };
 
@@ -771,6 +791,15 @@ namespace
 
             PumpUntil([&]
             {
+                const auto& telemetry = telemetry_.State();
+                return telemetry.lastFirstSequence != 0
+                    && telemetry.scene == 3
+                    && telemetry.cameraMode == 1
+                    && telemetry.hp == 3;
+            }, "DUT initial FIRST camera and full health", 15s);
+
+            PumpUntil([&]
+            {
                 return LatestFrame() >= 1 && HasPosition(result_.roster[0]) && HasPosition(result_.roster[1])
                     && HasPosition(result_.roster[2]) && HasPosition(result_.roster[3]);
             }, "initial authoritative FRAME/SPOS", 15s);
@@ -823,6 +852,22 @@ namespace
             PumpUntil([&] { return states_[0].bossWinEvents > 0; }, "normal server BOSS_WIN", 15s);
             result_.bossWin = true;
 
+			PumpUntil([&]
+			{
+				return states_[0].roomListNumber == result_.room && states_[0].roomMembers == 0;
+			}, "server emptied the first match room", 10s);
+
+			const int createCountBefore = states_[0].createCount;
+			const int hostEntryCountBefore = states_[0].roomEntryCount;
+			SendRoomEvent(0, C_ROOM_PACKET_TYPE::ACQ_MK_RM);
+			PumpUntil([&]
+			{
+				return states_[0].createCount > createCountBefore &&
+					states_[0].roomEntryCount > hostEntryCountBefore;
+			}, "host recreated the room for match two", 10s);
+			if (states_[0].enteredRoom != result_.room)
+				throw std::runtime_error("second match room number differs from the isolated first room");
+
             PumpUntil([&]
             {
                 const auto& telemetry = telemetry_.State();
@@ -835,6 +880,61 @@ namespace
             result_.resultScene = true;
             result_.resetFirst = true;
             result_.lobby = true;
+
+			PumpUntil([&]
+			{
+				return OccupiedRoomSlots(0) == 2 && states_[0].roomSids[0] == result_.hostSid &&
+					states_[0].roomSids[1] == result_.dutSid;
+			}, "same GUI DUT entered match two as slot1", 15s);
+
+			const int bot1EntriesBefore = states_[1].roomEntryCount;
+			const int bot2EntriesBefore = states_[2].roomEntryCount;
+			SendRoomEnter(1, result_.room);
+			PumpUntil([&]
+			{
+				return states_[1].roomEntryCount > bot1EntriesBefore && OccupiedRoomSlots(0) >= 3;
+			}, "bot1 entered match two as slot2", 10s);
+			SendRoomEnter(2, result_.room);
+			PumpUntil([&]
+			{
+				return states_[2].roomEntryCount > bot2EntriesBefore && OccupiedRoomSlots(0) == 4;
+			}, "bot2 entered match two as slot3", 10s);
+
+			for (int i = 0; i < kBotCount; ++i) SendRoomEvent(i, C_ROOM_PACKET_TYPE::ACQ_READY);
+			PumpUntil([&]
+			{
+				return std::all_of(states_.begin(), states_.end(),
+					[](const BotState& state) { return state.gameStartCount >= 2; });
+			}, "second GAME_START on all protocol bots", 15s);
+			ValidateRoster();
+			PumpUntil([&]
+			{
+				return LatestFrame() >= 1 && HasPosition(result_.roster[0]) && HasPosition(result_.roster[1]) &&
+					HasPosition(result_.roster[2]) && HasPosition(result_.roster[3]);
+			}, "match two authoritative FRAME/SPOS", 10s);
+			result_.secondMatchFrame = true;
+
+			PumpUntil([&]
+			{
+				const auto& telemetry = telemetry_.State();
+				return telemetry.gameStartCount >= 2 && telemetry.lastSecondMatchSequence != 0 &&
+					telemetry.scene == 3 && telemetry.cameraMode == 1 && telemetry.hp == 3 &&
+					telemetry.behavior == 0 && telemetry.hidden == false;
+			}, "same GUI DUT completed a reset match start", 15s);
+			result_.secondMatchStarted = true;
+
+			PositionBossFor(result_.roster[1]);
+			const int secondMatchAckBefore = states_[0].attackedEvents[1];
+			const int secondMatchAnimationBefore =
+				states_[1].attackAnimationPackets + states_[2].attackAnimationPackets;
+			SendAttack(1);
+			PumpUntil([&]
+			{
+				return states_[0].attackedEvents[1] > secondMatchAckBefore &&
+					states_[1].attackAnimationPackets + states_[2].attackAnimationPackets >
+					secondMatchAnimationBefore;
+			}, "match two authoritative attack ack/animation", 8s);
+			result_.secondMatchAttack = true;
             Log("scenario passed");
         }
 
@@ -989,6 +1089,7 @@ namespace
                 throw std::runtime_error("bot" + std::to_string(event.bot) + " login failed");
             case static_cast<uint8>(S_ROOM_PACKET_TYPE::MK_RM_OK):
                 state.createOk = true;
+				++state.createCount;
                 break;
             case static_cast<uint8>(S_ROOM_PACKET_TYPE::MK_RM_FAIL):
                 throw std::runtime_error("room creation failed");
@@ -996,6 +1097,7 @@ namespace
             {
                 const auto packet = Decode<S2C_ROOM_ENTER>(event.packet);
                 state.enteredRoom = packet.rmNum;
+				++state.roomEntryCount;
                 break;
             }
             case static_cast<uint8>(S_ROOM_PACKET_TYPE::REP_ENTER_FAIL):
@@ -1007,11 +1109,24 @@ namespace
                 state.roomInfoSeen = true;
                 break;
             }
+			case static_cast<uint8>(S_ROOM_PACKET_TYPE::UPDATE_LIST):
+			{
+				const auto packet = Decode<S2C_ROOM_LIST>(event.packet);
+				state.roomListNumber = packet.rmNum;
+				state.roomMembers = packet.member;
+				break;
+			}
             case static_cast<uint8>(S_ROOM_PACKET_TYPE::GAME_START):
             {
                 const auto packet = Decode<S2C_GAMESTART>(event.packet);
                 std::copy(std::begin(packet.sids), std::end(packet.sids), state.roster.begin());
                 state.gameStarted = true;
+				++state.gameStartCount;
+				if (event.bot == 0 && state.gameStartCount == 2)
+				{
+					latestFrame_ = -1;
+					positions_.clear();
+				}
                 break;
             }
             case static_cast<uint8>(S_GAME_PACKET_TYPE::SPOS):
@@ -1260,6 +1375,9 @@ namespace
             << "  \"result_scene\": " << (result.resultScene ? "true" : "false") << ",\n"
             << "  \"reset_first\": " << (result.resetFirst ? "true" : "false") << ",\n"
             << "  \"lobby\": " << (result.lobby ? "true" : "false") << ",\n"
+			<< "  \"second_match_started\": " << (result.secondMatchStarted ? "true" : "false") << ",\n"
+			<< "  \"second_match_frame\": " << (result.secondMatchFrame ? "true" : "false") << ",\n"
+			<< "  \"second_match_attack\": " << (result.secondMatchAttack ? "true" : "false") << ",\n"
             << "  \"packets\": " << result.packets << "\n"
             << "}\n";
     }
