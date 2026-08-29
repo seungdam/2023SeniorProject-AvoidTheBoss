@@ -2,15 +2,10 @@
 #include "GameFramework.h"
 #include "UIManager.h"
 
-#include "CBoss.h"
-#include "CEmployee.h"
-#include "CGenerator.h"
-
 #include "SceneManager.h"
 #include "DXSampleHelper.h"
 
 #include "OtherScenes.h"
-#include "GameScene.h"
 
 #include <d2d1_1.h>
 #include <wincodec.h>
@@ -336,13 +331,18 @@ void UIManager::DrawOtherSceneUITextBlock(int32 Scene)
     }
 }
 
-void UIManager::InitGameSceneUI(CGameScene* gc)
+void UIManager::InitGameSceneUI(const GameUiSnapshot& snapshot)
 {
-    m_CharProfile[gc->m_playerIdx].m_hide = true;
+    if (!snapshot.localPlayerIndex || *snapshot.localPlayerIndex >= kGameUiPlayerCount) return;
+    const int32 playerIndex = static_cast<int32>(*snapshot.localPlayerIndex);
+
+    for (auto& profile : m_CharProfile) profile.m_hide = false;
+    for (auto& status : m_CharStatus) status.m_hide = false;
+    m_CharProfile[playerIndex].m_hide = true;
+    if (playerIndex != 0) m_CharProfile[0].m_hide = true;
     for (auto& i : m_GenerateUIButtons) i.m_hide = true;
-    m_playerIdx = gc->m_playerIdx;
     // 플레이어 상태 UI 출력
-    switch (m_playerIdx)
+    switch (playerIndex)
     {
         case 0:
         {
@@ -423,159 +423,103 @@ void UIManager::InitGameSceneUI(CGameScene* gc)
 
 }
 
-void UIManager::UpdateGameSceneUI(CGameScene* gc)
+void UIManager::UpdateGameSceneUI(const GameUiSnapshot& snapshot)
 {
-    if (!gc) return;
+    if (!snapshot.localPlayerIndex || *snapshot.localPlayerIndex >= kGameUiPlayerCount) return;
+    const std::size_t playerIndex = *snapshot.localPlayerIndex;
 
-  // 직원에 해당하는 동적 UI들 hp, status
-    for (int i = 0; i < PLAYERNUM; ++i)
+    for (std::size_t index = 1; index < snapshot.players.size(); ++index)
     {
-        if (!gc->GetScenePlayerByIdx(i)) continue;
-        if (i == 0) continue;
+        if (!snapshot.players[index] || index == playerIndex) continue;
 
-        if (i != m_playerIdx) // 상태 갱신
-        {
-            if (MAX_HP == gc->GetScenePlayerByIdx(i)->m_hp)
-            {
-                m_CharStatus[gc->GetScenePlayerByIdx(i)->m_idx - 1].resource = m_CharStatusBitmaps[0]; // normal
-            }
-            else if (0 == gc->GetScenePlayerByIdx(i)->m_hp)
-            {
-                m_CharStatus[gc->GetScenePlayerByIdx(i)->m_idx - 1].resource = m_CharStatusBitmaps[2]; // death
-            }
-            else m_CharStatus[gc->GetScenePlayerByIdx(i)->m_idx - 1].resource = m_CharStatusBitmaps[1]; // death
-        }
-        else if (i == m_playerIdx) // HP , 피격 이펙트
-        {
-            CEmployee* mp = static_cast<CEmployee*>(gc->GetScenePlayerByIdx(i));
+        const int health = snapshot.players[index]->health;
+        m_CharStatus[index - 1].resource = health == MAX_HP
+            ? m_CharStatusBitmaps[0]
+            : health == 0 ? m_CharStatusBitmaps[2] : m_CharStatusBitmaps[1];
+    }
 
-            for (int i = 0; i < m_nAttackedUI; i++)
+    if (!snapshot.localEmployee || !snapshot.players[playerIndex]) return;
+    const EmployeeUiSnapshot& employee = *snapshot.localEmployee;
+
+    for (int index = 0; index < m_nAttackedUI; ++index)
+    {
+        if (employee.invincible)
+        {
+            constexpr float maxOpacity = 0.5f;
+            constexpr float bulletHoleOpacityExtra = 1.7f;
+            constexpr float baseOpacityExtra = 0.5f;
+            constexpr float outlineOpacityExtra = 1.0f;
+            if (index == 4)
             {
-                if (mp->m_bIsInvincibility)
+                m_AttackedEffect[index].m_hide = false;
+                m_AttackedOpacity[index] = employee.uiCooldown <= 0.5f
+                    ? (employee.uiCooldown / 0.5f) * maxOpacity * bulletHoleOpacityExtra
+                    : ((1.0f - employee.uiCooldown) / 0.5f) * maxOpacity * bulletHoleOpacityExtra;
+            }
+            else if (index == 3)
+            {
+                if (employee.uiCooldown > 0.65f)
                 {
-                    float maxOpacity = 0.5f;
-                    float bulletHoleOpacityExtra = 1.7f; //1.9f
-                    float baseOpacityExtra = 0.5f;
-                    float outlineOpacityExtra = 1.0f; //2.0f
-                    if (i == 4)
-                    {
-                        if (mp->m_UICoolTime <= 0.5f)
-                        {
-                            m_AttackedEffect[i].m_hide = false;
-                            m_AttackedOpacity[i] = ((mp->m_UICoolTime) / 0.5f) * maxOpacity * bulletHoleOpacityExtra;
-                        }
-                        else
-                        {
-                            m_AttackedEffect[i].m_hide = false;
-                            m_AttackedOpacity[i] = ((1.0f-mp->m_UICoolTime) / 0.5f) * maxOpacity * bulletHoleOpacityExtra;
-                        }
-                    }
-                    else if (i == 3)
-                    {
-                        if (mp->m_UICoolTime > 0.65f)
-                        {
-                            m_AttackedEffect[i].m_hide = false;
-                            m_AttackedOpacity[i] = (mp->m_UICoolTime/ 0.35f) * maxOpacity* bulletHoleOpacityExtra;
-                        }
-                        else if (mp->m_UICoolTime >= 0.3f)
-                        {
-                            m_AttackedEffect[i].m_hide = false;
-                            m_AttackedOpacity[i] = (1.0f-mp->m_UICoolTime / 0.35f) * maxOpacity * bulletHoleOpacityExtra;
-                        }
-                    }
-                    else
-                        m_AttackedEffect[i].m_hide = false;
-
-                    if (mp->m_UICoolTime >= 0.0f && i < 3) m_AttackedOpacity[i] = mp->m_UICoolTime * maxOpacity;
-
-                    if (i == 0)
-                        m_AttackedOpacity[i] *= baseOpacityExtra;
-                    else if (i == 1)
-                        m_AttackedOpacity[i] *= outlineOpacityExtra;
+                    m_AttackedEffect[index].m_hide = false;
+                    m_AttackedOpacity[index] = (employee.uiCooldown / 0.35f) * maxOpacity * bulletHoleOpacityExtra;
                 }
-                else m_AttackedEffect[i].m_hide = true;
+                else if (employee.uiCooldown >= 0.3f)
+                {
+                    m_AttackedEffect[index].m_hide = false;
+                    m_AttackedOpacity[index] = (1.0f - employee.uiCooldown / 0.35f) * maxOpacity * bulletHoleOpacityExtra;
+                }
+            }
+            else
+            {
+                m_AttackedEffect[index].m_hide = false;
             }
 
-            for (auto& i : m_HPUi) i.m_hide = true;
-            for (int k = 0; k < gc->GetScenePlayerByIdx(i)->m_hp; ++k)
-            {
-                m_HPUi[k].m_hide = false;
-            }
+            if (employee.uiCooldown >= 0.0f && index < 3) m_AttackedOpacity[index] = employee.uiCooldown * maxOpacity;
+            if (index == 0) m_AttackedOpacity[index] *= baseOpacityExtra;
+            else if (index == 1) m_AttackedOpacity[index] *= outlineOpacityExtra;
+        }
+        else
+        {
+            m_AttackedEffect[index].m_hide = true;
         }
     }
 
-    // 발전기 && 구하기
+    for (auto& hp : m_HPUi) hp.m_hide = true;
+    for (int index = 0; index < snapshot.players[playerIndex]->health; ++index) m_HPUi[index].m_hide = false;
 
-    if (gc->GetScenePlayerByIdx(m_playerIdx))
+    m_GenerateUIButtons[21].m_hide = !employee.inGeneratorArea;
+    if (!employee.inGeneratorArea)
+        for (int index = 0; index < 21; ++index) m_GenerateUIButtons[index].m_hide = true;
+
+    if (employee.generatorInteractionActive && employee.generatorGauge)
     {
-        if (m_playerIdx != 0)
-        {
-            CEmployee* myPlayer = static_cast<CEmployee*>(gc->GetScenePlayerByIdx(m_playerIdx));
+        const int gauge = static_cast<int>(*employee.generatorGauge);
+        if (gauge < 1) m_GenerateUIButtons[0].m_hide = false;
+        else if (((gauge % 100) / 5) <= 19) m_GenerateUIButtons[((gauge % 100) / 5) + 1].m_hide = false;
+    }
+    else
+    {
+        for (int index = 0; index < 21; ++index) m_GenerateUIButtons[index].m_hide = true;
+    }
 
-            if (myPlayer->GetIsInGenArea())
-            {
-                m_GenerateUIButtons[21].m_hide = false;
-            }
-            else
-            {
-                m_GenerateUIButtons[21].m_hide = true;
-                for (int i = 0; i < 21; ++i)  m_GenerateUIButtons[i].m_hide = true;
-            }
-
-            // 발전기
-            CGenerator* targetGen = myPlayer->GetAvailGen();
-            if (myPlayer->GetIsPlayerOnGenInter())
-            {
-                if (targetGen && ((int32)targetGen->m_curGuage) < 0.5f)
-                    m_GenerateUIButtons[0].m_hide = false;
-                else if (targetGen && (int32)((((int32)targetGen->m_curGuage) % 100) / 5) <= 19)
-                    m_GenerateUIButtons[(int32)((((int32)targetGen->m_curGuage) % 100) / 5) + 1].m_hide = false;
-            }
-            else
-            {
-                for (int i = 0; i < 21; ++i)  m_GenerateUIButtons[i].m_hide = true;
-            }
-            // 구하기
-            CEmployee* targetEmp = static_cast<CEmployee*>(gc->GetScenePlayerByIdx(myPlayer->m_curRescuingEmpIdx));
-            if (myPlayer->GetIsPlayerOnRescueInter())
-            {
-                if (targetEmp)
-                {
-                    if (targetEmp->m_curGuage <= 100 && targetEmp->m_curGuage >= 0)
-                    {
-                        float dx = (targetEmp->m_curGuage * 5.8f / MAX_RESCUE_GUAGE) * 100;
-                        m_RescueGuage.m_hide = false;
-                        m_RescueGuage.d2dLayoutRect[1] = MakeLayoutRect(CENTER_X + (-MAX_RESCUE_GUAGE + dx) / 2, CENTER_Y, dx, 50);
-                    }
-                    else
-                    {
-                        m_RescueGuage.m_hide = true;
-                        m_RescueGuage.d2dLayoutRect[1] = m_RescueGuage.d2dLayoutRect[0];
-                    }
-                }
-            }
-            else if (myPlayer->m_bIsRescuing)
-            {
-                if (targetEmp->m_curGuage <= 100 && targetEmp->m_curGuage >= 0)
-                {
-                    float dx = (targetEmp->m_curGuage * 5.8f / MAX_RESCUE_GUAGE) * 100;
-                    m_RescueGuage.m_hide = false;
-                    m_RescueGuage.d2dLayoutRect[1] = MakeLayoutRect(CENTER_X + (-MAX_RESCUE_GUAGE + dx) / 2, CENTER_Y, dx, 50);
-                }
-                else
-                {
-                    m_RescueGuage.m_hide = true;
-                    m_RescueGuage.d2dLayoutRect[1] = m_RescueGuage.d2dLayoutRect[0];
-                }
-            }
-            else if (!myPlayer->m_bIsRescuing || !myPlayer->GetIsPlayerOnRescueInter()) m_RescueGuage.m_hide = true;
-        }
+	m_RescueIcon.m_hide = !employee.rescueTargetAvailable;
+    m_RescueGuage.m_hide = true;
+    if (employee.rescueGauge && *employee.rescueGauge >= 0.0f && *employee.rescueGauge <= 100.0f)
+    {
+        const float dx = (*employee.rescueGauge * 5.8f / MAX_RESCUE_GUAGE) * 100.0f;
+        m_RescueGuage.m_hide = false;
+        m_RescueGuage.d2dLayoutRect[1] = MakeLayoutRect(
+            CENTER_X + (-MAX_RESCUE_GUAGE + dx) / 2.0f, CENTER_Y, dx, 50.0f);
+    }
+    else
+    {
+        m_RescueGuage.d2dLayoutRect[1] = m_RescueGuage.d2dLayoutRect[0];
     }
 }
 
-void UIManager::DrawGameSceneUI(int32 Scene)
+void UIManager::DrawGameSceneUI(int32 Scene, int32 localPlayerIndex)
 {
-    if (3 != Scene) return;
+    if (3 != Scene || localPlayerIndex < 0 || localPlayerIndex >= PLAYERNUM) return;
     // 고정 렌더링
     // 다른 캐릭터 초상화 , 내 캐릭터 초상화
     for (auto i : m_CharProfile)
@@ -590,9 +534,9 @@ void UIManager::DrawGameSceneUI(int32 Scene)
         if(!i.m_hide) m_pd2dDeviceContext->DrawBitmap(i.resource, i.d2dLayoutRect, FULL_UI_OPACITY_VALUE);
 
     // 큰 초상화 그리기
-    m_pd2dDeviceContext->DrawBitmap(m_CharProfile[m_playerIdx].resource, m_myProfileLayout, FULL_UI_OPACITY_VALUE);
+    m_pd2dDeviceContext->DrawBitmap(m_CharProfile[localPlayerIndex].resource, m_myProfileLayout, FULL_UI_OPACITY_VALUE);
     // HP 그리기
-    if (m_playerIdx != 0)
+    if (localPlayerIndex != 0)
     {
         for(auto i : m_HPUi)  if (!i.m_hide) m_pd2dDeviceContext->DrawBitmap(i.resource, i.d2dLayoutRect, FULL_UI_OPACITY_VALUE);
         for (int i = 0; i < m_nAttackedUI; i++)
@@ -609,7 +553,7 @@ void UIManager::DrawGameSceneUI(int32 Scene)
         }
     }
 
-    if (m_playerIdx == 0) m_pd2dDeviceContext->DrawBitmap(m_CharCrossHead.resource, m_CharCrossHead.d2dLayoutRect,m_CrossHeadOpacity* FULL_UI_OPACITY_VALUE);
+    if (localPlayerIndex == 0) m_pd2dDeviceContext->DrawBitmap(m_CharCrossHead.resource, m_CharCrossHead.d2dLayoutRect,m_CrossHeadOpacity* FULL_UI_OPACITY_VALUE);
 
 }
 
@@ -851,7 +795,7 @@ void UIManager::InitializeDevice(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* 
     //
 }
 
-void UIManager::Render2D(UINT nFrame, int32 curScene)
+void UIManager::Render2D(UINT nFrame, int32 curScene, int32 localPlayerIndex)
 {
 
     ID3D11Resource* ppResources[] = { m_ppd3d11WrappedRenderTargets[nFrame] };
@@ -867,7 +811,7 @@ void UIManager::Render2D(UINT nFrame, int32 curScene)
     DrawOtherSceneUI(curScene, 1);
     DrawOtherSceneUITextBlock(curScene);
 
-    DrawGameSceneUI(curScene);
+    DrawGameSceneUI(curScene, localPlayerIndex);
     ThrowIfFailed(m_pd2dDeviceContext->EndDraw());
     m_pd3d11On12Device->ReleaseWrappedResources(ppResources, _countof(ppResources));
     m_pd3d11DeviceContext->Flush();

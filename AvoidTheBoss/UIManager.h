@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "GameUiSnapshot.h"
+
 // UI매니저 개요
 // 게임 프레임워크 시작 시, 각 화면에 필요한 모든 UI 이미지를 로드한다. WCI 컨버터를 활용
 // D2D를 활용해서 이미지를 그린다.
@@ -48,7 +50,6 @@ struct InGameUI
     bool                            m_hide = false;
 };
 
-class CGameScene;
 #define FULL_UI_OPACITY_VALUE 0.8f
 class UIManager
 {
@@ -68,15 +69,15 @@ public:
 
 
 
-    void Render2D(UINT nFrame,int32 curScene);
+    void Render2D(UINT nFrame, int32 curScene, int32 localPlayerIndex);
     void ReleaseResources();
 
     void DrawOtherSceneBackGround(int32 Scene);
     void DrawOtherSceneUI(int32 Scene, int32 idx);
     void DrawOtherSceneUITextBlock(int32 Scene);
-    void InitGameSceneUI(CGameScene*);
-    void UpdateGameSceneUI(CGameScene*);
-    void DrawGameSceneUI(int32 Scene);
+    void InitGameSceneUI(const GameUiSnapshot& snapshot);
+    void UpdateGameSceneUI(const GameUiSnapshot& snapshot);
+    void DrawGameSceneUI(int32 Scene, int32 localPlayerIndex);
 
     D2D1_RECT_F GetButtonRect(int32, int32);
 
@@ -147,7 +148,6 @@ public:
 
 
     // 인 게임 전용
-    int32                      m_playerIdx = -1;
     UIButton                   m_GenerateUIButtons[23];
     UIButton                   m_CharProfile[4]; // 다른 캐릭터 초상화 표시
 
