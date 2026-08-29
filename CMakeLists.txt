@@ -57,11 +57,11 @@ add_library(CoreEngine STATIC
     MainServer/AcceptManager.cpp
     MainServer/CGameManager.cpp
     MainServer/CollisionDetector.cpp
-    MainServer/CSIocpCore.cpp
+        MainServer/ServerIocpCore.cpp
     MainServer/JobQueue.cpp
     MainServer/packetEvent.cpp
     MainServer/RoomManager.cpp
-    MainServer/Session.cpp
+		MainServer/ServerSession.cpp
     MainServer/SGenerator.cpp
     MainServer/SPlayer.cpp
     MainServer/WorldRewinder.cpp
@@ -78,7 +78,7 @@ set_target_properties(CoreEngine PROPERTIES
 )
 
 add_executable(GameServer
-    MainServer/newMain.cpp
+		MainServer/main.cpp
 )
 
 target_include_directories(GameServer PRIVATE MainServer)
@@ -126,6 +126,7 @@ add_executable(GameClient WIN32
     AvoidTheBoss/CScene.cpp
     AvoidTheBoss/CSound.cpp
     AvoidTheBoss/DDSTextureLoader12.cpp
+    AvoidTheBoss/D3D12Renderer.cpp
     AvoidTheBoss/DXSampleHelper.cpp
     AvoidTheBoss/GameFramework.cpp
     AvoidTheBoss/GameObject.cpp

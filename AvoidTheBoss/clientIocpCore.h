@@ -22,7 +22,7 @@ public:
 	void DoSend(void* packet) { _client->DoSend(packet); }
 	void DispatchPackets() { if (_client) _client->DispatchPackets(); }
 	virtual bool Processing(uint32_t timelimit = INFINITE);
-	virtual void Disconnect(int32 sid) override;
+	void Disconnect(int32 sid);
 private:
 	ClientSession* _client;
 	SOCKADDR_IN _serveraddr;
