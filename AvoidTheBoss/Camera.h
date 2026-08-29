@@ -11,74 +11,64 @@
 //---카메라 상수 버퍼를 위한 구조체
 struct VS_CB_CAMERA_INFO
 {
-	XMFLOAT4X4						m_xmf4x4View;
-	XMFLOAT4X4						m_xmf4x4Projection;
-	XMFLOAT4						m_xmf4FogOption;
-	XMFLOAT3						m_xmf3Position;
+	XMFLOAT4X4 _view;
+	XMFLOAT4X4 _projection;
+	XMFLOAT4 _fogOptions;
+	XMFLOAT3 _position;
 
 };
 
 class CPlayer;
 
 #define FOG_RENDER_CYCLE_TIME 60
-class CCamera
+class CCamera final
 {
-public:
+private:
 	//카메라의 종류(1인칭 카메라, 스페이스-쉽 카메라, 3인칭 카메라)를 나타낸다.
-	DWORD m_nMode;
-protected:
+	DWORD _mode = 0x00;
+
 	//카메라의 위치(월드좌표계) 벡터이다.
-	XMFLOAT3 m_xmf3Position;
+	XMFLOAT3 _position;
 
 	//카메라의 로컬 x-축(Right), y-축(Up), z-축(Look)을 나타내는 벡터이다.*/
-	XMFLOAT3 m_xmf3Right;
-	XMFLOAT3 m_xmf3Up;
-	XMFLOAT3 m_xmf3Look;
-
-	//카메라가 x-축, z-축, y-축으로 얼마만큼 회전했는 가를 나타내는 각도이다.
-	float m_fPitch;
-	float m_fRoll;
-	float m_fYaw;
+	XMFLOAT3 _right;
+	XMFLOAT3 _up;
+	XMFLOAT3 _look;
 
 	//플레이어가 바라볼 위치 벡터이다. 주로 3인칭 카메라에서 사용된다.
-	XMFLOAT3 m_xmf3LookAtWorld;
+	XMFLOAT3 _lookAtWorld;
 
 	//플레이어와 카메라의 오프셋을 나타내는 벡터이다. 주로 3인칭 카메라에서 사용된다.
-	XMFLOAT3 m_xmf3Offset;
+	XMFLOAT3 _offset;
 
 	//플레이어가 회전할 때 얼마만큼의 시간을 지연시킨 후 카메라를 회전시킬 것인가를 나타낸다.
-	float m_fTimeLag;
+	float _timeLag = 0.0f;
 
 	//카메라 변환 행렬
-	XMFLOAT4X4 m_xmf4x4View;
+	XMFLOAT4X4 _view;
 	//투영 변환 행렬
-	XMFLOAT4X4 m_xmf4x4Projection;
+	XMFLOAT4X4 _projection;
 
 	//뷰포트와 씨저 사각형
-	D3D12_VIEWPORT m_d3dViewport; // 렌더링 할 렌더타겟(후면버퍼) 영역 나타내는 구조체
-	D3D12_RECT m_d3dScissorRect; // 렌더링에서 제거하지 않을 영역 설정
+	D3D12_VIEWPORT _viewport; // 렌더링 할 렌더타겟(후면버퍼) 영역 나타내는 구조체
+	D3D12_RECT _scissorRect; // 렌더링에서 제거하지 않을 영역 설정
 
-	//카메라를 가지고 있는 플레이어에 대한 포인터이다.
-	CPlayer* m_pPlayer = NULL;
-
-	ID3D12Resource* m_pd3dcbCamera = NULL;
-	VS_CB_CAMERA_INFO* m_pcbMappedCamera = NULL;
-
-	int m_fFogRenderCountTime = 0;
-public:
-	int32		m_playerIdx = -1;
-	bool		m_fogOn = false;
+	ComPtr<ID3D12Resource> _constantBuffer;
+	VS_CB_CAMERA_INFO* _mappedConstants = nullptr;
+	uint32 _bufferCreateCount = 0;
+	int32 _viewerIndex = -1;
+	bool _fogEnabled = false;
 
 public:
 	CCamera();
 	CCamera(const CCamera&) = delete;
 	CCamera& operator=(const CCamera&) = delete;
-	virtual ~CCamera();
+	~CCamera();
 
 	//카메라의 정보를 셰이더 프로그램에게 전달하기 위한 상수 버퍼를 생성하고 갱신한다.
-	virtual void CreateShaderVariables(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList);
-	virtual void ReleaseShaderVariables();
-	virtual void UpdateShaderVariables(
+	void CreateShaderVariables(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList);
+	void ReleaseShaderVariables();
+	void UpdateShaderVariables(
 		ID3D12GraphicsCommandList4* pd3dCommandList);
 
 	//카메라 변환 행렬을 생성한다.
@@ -96,53 +86,32 @@ public:
 		0.0f, float fMaxZ = 1.0f);
 	void SetScissorRect(LONG xLeft, LONG yTop, LONG xRight, LONG yBottom);
 
-	virtual void SetViewportsAndScissorRects(ID3D12GraphicsCommandList4 * pd3dCommandList);
+	void SetViewportsAndScissorRects(ID3D12GraphicsCommandList4* pd3dCommandList);
 
-	void SetPlayer(CPlayer* pPlayer) { m_pPlayer = pPlayer; }
-	CPlayer* GetPlayer() { return(m_pPlayer); }
-
-	void SetMode(DWORD nMode) { m_nMode = nMode; }
-	DWORD GetMode() { return(m_nMode); }
-	bool HasShaderVariables() const { return m_pd3dcbCamera && m_pcbMappedCamera; }
-
-	void SetPosition(XMFLOAT3 xmf3Position) { m_xmf3Position = xmf3Position; }
-	XMFLOAT3& GetPosition() { return(m_xmf3Position); }
-
-	void SetLookAtPosition(XMFLOAT3 xmf3LookAtWorld) { m_xmf3LookAtWorld = xmf3LookAtWorld; }
-	XMFLOAT3& GetLookAtPosition() { return(m_xmf3LookAtWorld); }
-
-	XMFLOAT3& GetRightVector() { return(m_xmf3Right); }
-	XMFLOAT3& GetUpVector() { return(m_xmf3Up); }
-	XMFLOAT3& GetLookVector() { return(m_xmf3Look); }
-
-	float& GetPitch() { return(m_fPitch); }
-	float& GetRoll() { return(m_fRoll); }
-	float& GetYaw() { return(m_fYaw); }
-
-	void SetOffset(XMFLOAT3 xmf3Offset) { m_xmf3Offset = xmf3Offset; } // 플레이어XZ로컬좌표~카메라까지 거리 ( 플레이어 높이 )
-	XMFLOAT3& GetOffset() { return(m_xmf3Offset); }
-
-	void SetTimeLag(float fTimeLag) { m_fTimeLag = fTimeLag; }
-	float GetTimeLag() { return(m_fTimeLag); }
-
-	XMFLOAT4X4 GetViewMatrix() { return(m_xmf4x4View); }
-	XMFLOAT4X4 GetProjectionMatrix() { return(m_xmf4x4Projection); }
-	D3D12_VIEWPORT GetViewport() { return(m_d3dViewport); }
-	D3D12_RECT GetScissorRect() { return(m_d3dScissorRect); }
-
-	//카메라를 xmf3Shift 만큼 이동한다.
-	virtual void Move(const XMFLOAT3& xmf3Shift) {
-		m_xmf3Position.x += xmf3Shift.x;
-		m_xmf3Position.y += xmf3Shift.y;
-		m_xmf3Position.z += xmf3Shift.z;
+	bool SetMode(DWORD mode);
+	void ResetPose(const CPlayer& target);
+	DWORD GetMode() const noexcept { return _mode; }
+	bool HasShaderVariables() const noexcept { return _constantBuffer && _mappedConstants; }
+	uint32 GetBufferCreateCount() const noexcept { return _bufferCreateCount; }
+	D3D12_GPU_VIRTUAL_ADDRESS GetBufferAddress() const noexcept
+	{
+		return _constantBuffer ? _constantBuffer->GetGPUVirtualAddress() : 0;
 	}
 
+	void SetViewerIndex(int32 playerIndex) noexcept { _viewerIndex = playerIndex; }
+	int32 GetViewerIndex() const noexcept { return _viewerIndex; }
+	void SetFogEnabled(bool enabled) noexcept { _fogEnabled = enabled; }
+	void ToggleFog() noexcept { _fogEnabled = !_fogEnabled; }
+	bool IsFogEnabled() const noexcept { return _fogEnabled; }
+
+	XMFLOAT3 GetPosition() const noexcept { return _position; }
+
 	//1인칭 모드에서 카메라를 x-축, y-축, z-축으로 회전한다.
-	void Rotate(float fPitch = 0.0f, float fYaw = 0.0f, float fRoll = 0.0f);
+	void Rotate(const CPlayer& target, float pitch = 0.0f, float yaw = 0.0f, float roll = 0.0f);
 
 	//현재 모드에 맞춰 같은 카메라 객체의 위치와 방향을 갱신한다.
-	void Update(const XMFLOAT3& xmf3LookAt, float fTimeElapsed);
+	void Update(const CPlayer& target, float fTimeElapsed);
 
 	//3인칭 카메라에서 카메라가 바라보는 지점을 설정한다. 일반적으로 플레이어를 바라보도록 설정한다.
-	void SetLookAt(const XMFLOAT3& xmf3LookAt);
+	void SetLookAt(const XMFLOAT3& lookAt, const XMFLOAT3& up);
 };
