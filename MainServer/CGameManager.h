@@ -4,7 +4,7 @@
 #include "SGenerator.h"
 #include "WorldRewinder.h"
 
-class Scheduler;
+class ClientEventScheduler;
 class QueueEvent;
 
 enum class GAMESTATE { NONE, IN_GAME, BOSS_WIN, EMP_WIN };
@@ -23,7 +23,7 @@ protected:
 	std::shared_mutex _jobQueueLock; // eventQueue 관리용 Lock
 protected:
 	Rewinder<30> _history;
-	Scheduler* _jobQueue; // 방에 속해 있는 클라이언트가 야기한 이벤트 큐
+	ClientEventScheduler* _jobQueue; // 방에 속해 있는 클라이언트가 야기한 이벤트 큐
 public:
 	CGameManager();
 	~CGameManager();

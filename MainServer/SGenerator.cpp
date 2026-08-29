@@ -7,7 +7,7 @@
 
 bool SGenerator::CanInteraction(int32 rm, int32 sid)
 {
-	CGameManager& gm = ServerIocpCore._rmgr->GetRoom(rm)._gameLogic;
+	CGameManager& gm = ServerIocpCore._rmgr->GetRoom(rm).GameLogic();
 	/*SPlayer& tp;
 	tp = gm.GetPlayerBySid(sid);*/
 	XMFLOAT3 myPlayerpos = gm.GetPlayerBySid(sid).GetPosition();

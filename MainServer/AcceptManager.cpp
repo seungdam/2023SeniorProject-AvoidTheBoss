@@ -148,7 +148,7 @@ void AcceptManager::ProcessAccept(AcceptEvent* acceptEvent)
 	packet.type = (uint8)S_ROOM_PACKET_TYPE::UPDATE_LIST;
 	for (int32 i = 0; i < 5; ++i)
 	{
-		packet.member = ServerIocpCore._rmgr->GetRoom(session->_curPage * 5 + i)._memCnt.load();
+		packet.member = ServerIocpCore._rmgr->GetRoom(session->_curPage * 5 + i).GetMemberCount();
 		packet.rmNum = session->_curPage * 5 + i;
 		session->DoSend(&packet);
 	}

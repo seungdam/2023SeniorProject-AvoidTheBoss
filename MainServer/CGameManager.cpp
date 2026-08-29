@@ -6,11 +6,12 @@
 
 CGameManager::CGameManager()
 {
-	_jobQueue = new Scheduler();
+	_jobQueue = new ClientEventScheduler();
 }
 
 CGameManager::~CGameManager()
 {
+	_jobQueue->Clear();
 	delete _jobQueue;
 }
 
@@ -33,6 +34,7 @@ void CGameManager::InitGame()
 
 	_gState = GAMESTATE::IN_GAME;
 	_history.Clear();
+	_jobQueue->Clear();
 
 }
 
@@ -93,6 +95,7 @@ GAMESTATE CGameManager::CheckGameState()
 
 void CGameManager::ResetGame()
 {
+	_jobQueue->Clear();
 	// 월드 히스토리 초기화
 	_history.Clear();
 	// 플레이어 상태 초기화
