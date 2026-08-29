@@ -113,15 +113,13 @@ void Room::UserOut(int32 sid)
 
 	SendRoomInfoPacket();
 
-	{
-		std::unique_lock<std::shared_mutex> lock(ServerIocpCore._lock);
-		ServerIocpCore._clients[sid]->_myRm = -1;
-	}
+	if (const auto session = ServerIocpCore.FindSession(sid)) session->_myRm = -1;
 }
 
 void Room::UserIn(int32 sid)
 {
-
+	const auto session = ServerIocpCore.FindSession(sid);
+	if (!session) return;
 
 	S2C_ROOM_ENTER packet;
 	packet.size = sizeof(S2C_ROOM_ENTER);
@@ -135,13 +133,13 @@ void Room::UserIn(int32 sid)
 		std::cout << "Enter Fail\n";
 		packet.rmNum = -1;
 		packet.type = (uint8)S_ROOM_PACKET_TYPE::REP_ENTER_FAIL;
-		ServerIocpCore._clients[sid]->DoSend(&packet);
+		session->DoSend(&packet);
 	}
 	else if (_status == (int8)ROOM_STATUS::NOT_FULL) // 아니면 접속 성공
 	{
 		packet.rmNum = _rmNum;
-		ServerIocpCore._clients[sid]->_myRm = _rmNum;
-		ServerIocpCore._clients[sid]->DoSend(&packet);
+		session->_myRm = _rmNum;
+		session->DoSend(&packet);
 		{
 			//cList Lock 쓰기 호출
 			std::unique_lock<std::shared_mutex> wll(_listLock);
@@ -188,8 +186,8 @@ void Room::BroadCasting(void* packet) // 방에 속하는 클라이언트에게�
 		else
 		{
 
-			if (ServerIocpCore._clients[i.sid] == nullptr) continue;
-			if (!ServerIocpCore._clients[i.sid]->DoSend(packet))
+			const auto session = ServerIocpCore.FindSession(i.sid);
+			if (!session || !session->DoSend(packet))
 			{
 				continue;
 			}
@@ -207,8 +205,8 @@ void Room::BroadCastingExcept(void* packet, int32 sid) // 방에 속하는 클�
 		if (-1 == i.sid || sid == i.sid) continue;
 		else
 		{
-			if (ServerIocpCore._clients[i.sid] == nullptr) continue;
-			if (!ServerIocpCore._clients[i.sid]->DoSend(packet))
+			const auto session = ServerIocpCore.FindSession(i.sid);
+			if (!session || !session->DoSend(packet))
 			{
 				continue;
 			}
@@ -295,10 +293,7 @@ void Room::SendRoomListPacket()
 	rmpacket.member = _memCnt.load();
 	rmpacket.rmNum = _rmNum;
 
-	{
-		std::shared_lock<std::shared_mutex> lock(ServerIocpCore._lock);
-		ServerIocpCore.BroadCastingAll(&rmpacket);
-	}
+	ServerIocpCore.BroadCastingAll(&rmpacket);
 
 }
 void Room::SendRoomInfoPacket()
@@ -382,13 +377,15 @@ void RoomManager::EnterRoom(int32 sid,int16 rmNum)
 }
 void RoomManager::CreateRoom(int32 sid)
 {
+	const auto session = ServerIocpCore.FindSession(sid);
+	if (!session) return;
 	S2C_ROOM_EVENT packet;
 	packet.size = sizeof(S2C_ROOM_EVENT);
 
 	if (_rmCnt.load() >= _cap)
 	{
 		packet.type = (uint8)S_ROOM_PACKET_TYPE::MK_RM_FAIL;
-		ServerIocpCore._clients[sid]->DoSend(&packet);
+		session->DoSend(&packet);
 		return;
 	}
 	for (int i = 0; i < 100; ++i)
@@ -403,7 +400,7 @@ void RoomManager::CreateRoom(int32 sid)
 	}
 
 	packet.type = (uint8)S_ROOM_PACKET_TYPE::MK_RM_OK;
-	ServerIocpCore._clients[sid]->DoSend(&packet);
+	session->DoSend(&packet);
 }
 void RoomManager::UpdateRooms()
 {

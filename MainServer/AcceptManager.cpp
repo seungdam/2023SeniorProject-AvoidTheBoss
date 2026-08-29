@@ -124,6 +124,8 @@ void AcceptManager::ProcessAccept(AcceptEvent* acceptEvent)
 
 	if (false == SocketUtil::SetUpdateAcceptSocket(session->GetSock(), _listenSock))
 	{
+		acceptEvent->_session = nullptr;
+		delete session;
 		RegisterAccept(acceptEvent);
 		return;
 	}
@@ -131,14 +133,14 @@ void AcceptManager::ProcessAccept(AcceptEvent* acceptEvent)
 	// 클라이언트 ID 셋팅 or unordered_map 컨테이너에 담는다.
 	// TODO
 
-	curAcceptCnt.fetch_add(1);
-	{ // 맵에다 추가하는 파트 이므로 락 걸어준다.
-
-		std::unique_lock<std::shared_mutex> lock(ServerIocpCore._lock);
-		ServerIocpCore._cList.insert(sid);
-		ServerIocpCore._clients.try_emplace(sid, session);
-		std::cout << sid << " Accept Success\n";
+	if (!ServerIocpCore.AddSession(sid, std::shared_ptr<ServerSession>(session)))
+	{
+		acceptEvent->_session = nullptr;
+		RegisterAccept(acceptEvent);
+		return;
 	}
+	curAcceptCnt.fetch_add(1);
+	std::cout << sid << " Accept Success\n";
 
 
 	S2C_ROOM_LIST packet;

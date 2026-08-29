@@ -3,7 +3,9 @@
 #include "CGameManager.h"
 void InteractionEvent::Task()
 {
-	int16 roomNum = ServerIocpCore._clients[_sid]->_myRm;
+	const auto session = ServerIocpCore.FindSession(_sid);
+	if (!session || session->_myRm < 0) return;
+	int16 roomNum = session->_myRm;
 	Room& targetRoom = ServerIocpCore._rmgr->GetRoom(roomNum);
 	CGameManager& gm = targetRoom._gameLogic;
 	switch ((EVENT_TYPE)eventId)
@@ -188,7 +190,9 @@ void InteractionEvent::Task()
 void moveEvent::Task()
 {
 	// to do move Player in gameLogic
-	int16 roomNum = ServerIocpCore._clients[_sid]->_myRm;
+	const auto session = ServerIocpCore.FindSession(_sid);
+	if (!session || session->_myRm < 0) return;
+	int16 roomNum = session->_myRm;
 	CGameManager& gm = ServerIocpCore._rmgr->GetRoom(roomNum)._gameLogic;
 	Room& targetRoom = ServerIocpCore._rmgr->GetRoom(roomNum);
 	//SPlayer& targetPlayer = gm.GetPlayerBySid(_sid);
@@ -214,7 +218,9 @@ void moveEvent::Task()
 
 void AttackEvent::Task()
 {
-	int16 roomNum = ServerIocpCore._clients[_sid]->_myRm;
+	const auto session = ServerIocpCore.FindSession(_sid);
+	if (!session || session->_myRm < 0) return;
+	int16 roomNum = session->_myRm;
 
 	CGameManager& gm = ServerIocpCore._rmgr->GetRoom(roomNum)._gameLogic;
 	bool retVal = ServerIocpCore._rmgr->GetRoom(roomNum).ProcessAttackEvent(_wf, _tidx);

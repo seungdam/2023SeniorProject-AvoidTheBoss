@@ -3,7 +3,9 @@
 #include "ServerSession.h"
 #include "CollisionDetector.h"
 
-ServerIocpCore ServerIocpCore;
+#include <vector>
+
+class ServerIocpCore ServerIocpCore;
 
 ServerIocpCore::ServerIocpCore()
 {
@@ -19,24 +21,85 @@ ServerIocpCore::~ServerIocpCore()
 	delete _rmgr;
 }
 
-
-void ServerIocpCore::RemoveSession(int32 sid)
+bool ServerIocpCore::Processing(const uint32_t limit_time)
 {
-	std::cout << "[" << _clients[sid]->GetSid() << "] Disconnected" << std::endl;
-	if(sid >= 0 && _clients[sid]->_myRm != -1) _rmgr->ExitRoom(sid, _clients[sid]->_myRm);
+	const bool processed = IocpCore::Processing(limit_time);
+	DrainRemovedSessions();
+	return processed;
+}
 
+bool ServerIocpCore::AddSession(const int32 sid, std::shared_ptr<ServerSession> session)
+{
+	if (!session) return false;
+
+	std::unique_lock lock(_lock);
+	if (!_clients.emplace(sid, std::move(session)).second) return false;
+	_cList.insert(sid);
+	return true;
+}
+
+std::shared_ptr<ServerSession> ServerIocpCore::FindSession(const int32 sid) const
+{
+	std::shared_lock lock(_lock);
+	const auto it = _clients.find(sid);
+	return it == _clients.end() ? nullptr : it->second;
+}
+
+void ServerIocpCore::RequestRemoveSession(const int32 sid)
+{
+	const auto session = FindSession(sid);
+	if (!session) return;
+
+	session->Disconnect();
+	std::unique_lock lock(_lock);
+	_removeRequests.insert(sid);
+}
+
+void ServerIocpCore::DrainRemovedSessions()
+{
+	std::vector<std::pair<int32, std::shared_ptr<ServerSession>>> ready;
 	{
-		std::unique_lock<std::shared_mutex> lock(_lock);
-		_cList.erase(_clients[sid]->GetSid());
-		_clients.erase(sid);
-		std::cout << "Dead Lock Checking\n";
+		std::unique_lock lock(_lock);
+		for (auto it = _removeRequests.begin(); it != _removeRequests.end();)
+		{
+			const auto sessionIt = _clients.find(*it);
+			if (sessionIt == _clients.end())
+			{
+				it = _removeRequests.erase(it);
+				continue;
+			}
+			if (sessionIt->second->PendingIO() != 0)
+			{
+				++it;
+				continue;
+			}
+			ready.emplace_back(*it, sessionIt->second);
+			it = _removeRequests.erase(it);
+		}
+	}
+
+	for (const auto& [sid, session] : ready)
+	{
+		if (session->_myRm != -1) _rmgr->ExitRoom(sid, session->_myRm);
+
+		std::unique_lock lock(_lock);
+		const auto it = _clients.find(sid);
+		if (it == _clients.end() || it->second != session || session->PendingIO() != 0) continue;
+		std::cout << "[" << sid << "] Disconnected" << std::endl;
+		_cList.erase(sid);
+		_clients.erase(it);
 	}
 }
 
 void ServerIocpCore::BroadCastingAll(void* packet)
 {
-	for (auto& i : _clients)
+	std::vector<std::shared_ptr<ServerSession>> sessions;
 	{
-		i.second->DoSend(packet);
+		std::shared_lock lock(_lock);
+		for (const auto& [sid, session] : _clients) sessions.push_back(session);
+	}
+	for (const auto& session : sessions)
+	{
+		session->DoSend(packet);
 	}
 }
