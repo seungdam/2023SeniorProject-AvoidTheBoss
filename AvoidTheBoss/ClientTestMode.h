@@ -6,7 +6,7 @@
 #include <mutex>
 #include <string>
 
-class CSession;
+class ClientSession;
 
 struct ClientFrameSnapshot
 {
@@ -33,9 +33,9 @@ public:
 	bool Configure();
 	bool Enabled() const { return _enabled; }
 
-	void OnConnected(CSession& session);
-	void OnLoginOk(CSession& session);
-	void OnRoomEntered(CSession& session, int roomNumber);
+	void OnConnected(ClientSession& session);
+	void OnLoginOk(ClientSession& session);
+	void OnRoomEntered(ClientSession& session, int roomNumber);
 	void OnProtocolFailure(const char* reason);
 	bool ValidateGameStart(const std::int16_t* sids, std::int32_t ownSid);
 	void OnGameStarted();
@@ -109,7 +109,7 @@ private:
 	std::uint64_t _timeoutMs = 180'000;
 	std::uint64_t _sequence = 0;
 	std::string _failureReason;
-	CSession* _session = nullptr; // Observer; the IOCP core owns the connected session.
+	ClientSession* _session = nullptr; // Observer; the IOCP core owns the connected session.
 };
 
 extern ClientTestMode g_clientTestMode;

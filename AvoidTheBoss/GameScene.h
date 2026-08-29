@@ -16,7 +16,7 @@ class CSound;
 
 class CGameScene : public CScene
 {
-	friend class CSession;
+	friend class ClientSession;
 public:
 	CGameScene();
 	~CGameScene();

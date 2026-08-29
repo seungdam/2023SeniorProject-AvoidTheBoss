@@ -1,11 +1,11 @@
 ﻿#include "pch.h"
-#include "CSIocpCore.h"
-#include "Session.h"
+#include "ServerIocpCore.h"
+#include "ServerSession.h"
 #include "CollisionDetector.h"
 
-CSIocpCore ServerIocpCore;
+ServerIocpCore ServerIocpCore;
 
-CSIocpCore::CSIocpCore()
+ServerIocpCore::ServerIocpCore()
 {
 	_rmgr = new RoomManager();
 	_rmgr->Init();
@@ -14,26 +14,26 @@ CSIocpCore::CSIocpCore()
 	BoxTree->ReadBoundingBoxInfoFromFile("bounding_boxes2.txt");
 }
 
-CSIocpCore::~CSIocpCore()
+ServerIocpCore::~ServerIocpCore()
 {
 	delete _rmgr;
 }
 
 
-void CSIocpCore::Disconnect(int32 sid)
+void ServerIocpCore::RemoveSession(int32 sid)
 {
-	std::cout << "[" << _clients[sid]->_sid << "] Disconnected" << std::endl;
+	std::cout << "[" << _clients[sid]->GetSid() << "] Disconnected" << std::endl;
 	if(sid >= 0 && _clients[sid]->_myRm != -1) _rmgr->ExitRoom(sid, _clients[sid]->_myRm);
 
 	{
 		std::unique_lock<std::shared_mutex> lock(_lock);
-		_cList.erase(_clients[sid]->_sid);
+		_cList.erase(_clients[sid]->GetSid());
 		_clients.erase(sid);
 		std::cout << "Dead Lock Checking\n";
 	}
 }
 
-void CSIocpCore::BroadCastingAll(void* packet)
+void ServerIocpCore::BroadCastingAll(void* packet)
 {
 	for (auto& i : _clients)
 	{

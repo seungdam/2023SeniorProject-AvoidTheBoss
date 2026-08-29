@@ -4,7 +4,7 @@ class CBullet;
 
 class CBoss : public CPlayer
 {
-	friend class CSession;
+	friend class ClientSession;
 private:
 	CGameObject* _rightHand = NULL;
 private: // 06/11 --> 06/13 추가

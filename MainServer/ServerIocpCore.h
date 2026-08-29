@@ -4,14 +4,15 @@
 
 class ServerSession;
 
-class CSIocpCore : public IocpCore
+class ServerIocpCore : public IocpCore
 {
 
 public:
-	CSIocpCore();
-	~CSIocpCore();
-	virtual void Disconnect(int32 sid) override;
+	ServerIocpCore();
+	~ServerIocpCore();
+	void RemoveSession(int32 sid);
 	void BroadCastingAll(void* packet);
+
 public:
 	std::shared_mutex _lock;
 	std::unordered_map<int32, ServerSession*> _clients;
@@ -20,4 +21,4 @@ public:
 };
 
 
-extern CSIocpCore ServerIocpCore;
+extern ServerIocpCore ServerIocpCore;

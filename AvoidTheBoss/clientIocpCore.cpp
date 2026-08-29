@@ -13,7 +13,7 @@ CCIocpCore clientCore;
 
 CCIocpCore::CCIocpCore()
 {
-	_client = new CSession();
+	_client = new ClientSession();
 	::ZeroMemory(&_serveraddr, sizeof(sockaddr_in));
 }
 
@@ -26,13 +26,13 @@ CCIocpCore::~CCIocpCore()
 void CCIocpCore::InitConnect(const char* address)
 {
 
-		_client->_sock = SocketUtil::CreateSocket();
+		_client->SetSock(SocketUtil::CreateSocket());
 		_client->SetIdentity(-1, -1);
-		ASSERT_CRASH(_client->_sock != INVALID_SOCKET);
+		ASSERT_CRASH(_client->GetSock() != INVALID_SOCKET);
 		_serveraddr.sin_family = AF_INET;
 		_serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
 		_serveraddr.sin_port = htons(0);
-		ASSERT_CRASH(::bind(_client->_sock, reinterpret_cast<sockaddr*>(&_serveraddr), sizeof(_serveraddr)) != SOCKET_ERROR);
+		ASSERT_CRASH(::bind(_client->GetSock(), reinterpret_cast<sockaddr*>(&_serveraddr), sizeof(_serveraddr)) != SOCKET_ERROR);
 		inet_pton(AF_INET, address, &_serveraddr.sin_addr);
 		_serveraddr.sin_port = htons(PORTNUM);
 		ASSERT_CRASH(Register(static_cast<IocpObject*>(_client)));
@@ -48,9 +48,9 @@ void CCIocpCore::DoConnect(void* loginInfo)
 		DWORD sendBytes(0);
 		DWORD sendLength = BUFSIZE / 2;
 		ConnectEvent* _connectEvent = new ConnectEvent();
-		_client->BeginIo();
+		_client->BeginIO();
 		//memcpy(_connectEvent->_buf, loginInfo, BUFSIZE / 2);
-		bool retVal = SocketUtil::ConnectEx(_client->_sock, reinterpret_cast<sockaddr*>(&_serveraddr), sizeof(_serveraddr), _connectEvent->_buf, (BUFSIZE / 2) - 1, NULL,
+		bool retVal = SocketUtil::ConnectEx(_client->GetSock(), reinterpret_cast<sockaddr*>(&_serveraddr), sizeof(_serveraddr), _connectEvent->_buf, (BUFSIZE / 2) - 1, NULL,
 			static_cast<LPWSAOVERLAPPED>(_connectEvent));
 
 		if (!retVal)
@@ -58,14 +58,14 @@ void CCIocpCore::DoConnect(void* loginInfo)
 			const int32 errorCode = ::WSAGetLastError();
 			if (errorCode == WSAETIMEDOUT)
 			{
-				_client->CompleteIo();
+				_client->CompleteIO();
 				delete _connectEvent;
 				std::cout << "Time Out\n";
 				DoConnect(nullptr);
 			}
 			else if (errorCode != WSA_IO_PENDING)
 			{
-				_client->CompleteIo();
+				_client->CompleteIO();
 				delete _connectEvent;
 				std::cout << errorCode << std::endl;
 				std::cout << "Connect Error" << std::endl;
@@ -91,11 +91,11 @@ bool CCIocpCore::Processing(uint32_t timelimit)
 		{
 			if (!_client || !_client->IsStopping()) return false;
 			_client->Stop();
-			return _client->PendingIo() > 0;
+			return _client->PendingIO() > 0;
 		}
 
-		CSession* session = static_cast<CSession*>(iocpObject);
-		session->CompleteIo();
+		ClientSession* session = static_cast<ClientSession*>(iocpObject);
+		session->CompleteIO();
 
 		if (!retVal) // 실패했다면 에러코드 확인
 		{
@@ -106,7 +106,7 @@ bool CCIocpCore::Processing(uint32_t timelimit)
 			case WSAECONNREFUSED:
 				if (iocpEvent && iocpEvent->_comp == EventType::Connect)
 					delete static_cast<ConnectEvent*>(iocpEvent);
-				if (session->IsStopping()) return session->PendingIo() > 0;
+				if (session->IsStopping()) return session->PendingIO() > 0;
 
 				std::cout << "Check The Server On... Retry Connecting\n";
 				DoConnect(nullptr);
@@ -123,7 +123,7 @@ bool CCIocpCore::Processing(uint32_t timelimit)
 					delete static_cast<SendEvent*>(iocpEvent);
 				session->Stop();
 			}
-			return session->PendingIo() > 0;
+			return session->PendingIO() > 0;
 			}
 		}
 
@@ -133,13 +133,13 @@ bool CCIocpCore::Processing(uint32_t timelimit)
 			//Disconnect
 			if (iocpEvent->_comp == EventType::Send) delete static_cast<SendEvent*>(iocpEvent);
 			session->Stop();
-			return session->PendingIo() > 0;
+			return session->PendingIO() > 0;
 		}
 		iocpObject->Processing(iocpEvent, numOfBytes); // 성공하면 전반적인 프로세싱을 시작해보자;
 		if (session->IsStopping())
 		{
 			session->Stop();
-			return session->PendingIo() > 0;
+			return session->PendingIO() > 0;
 		}
 		return true;
 

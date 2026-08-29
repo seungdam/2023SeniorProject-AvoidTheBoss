@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "IocpCore.h"
-#include "Session.h"
-#include "CSIocpCore.h"
+#include "ServerSession.h"
+#include "ServerIocpCore.h"
 // 0 1 2
 
 

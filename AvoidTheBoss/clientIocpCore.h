@@ -13,7 +13,7 @@ extern HWND g_hwnd;
 
 class CCIocpCore : public IocpCore
 {
-	friend class CSession;
+	friend class ClientSession;
 public:
 	CCIocpCore();
 	~CCIocpCore();
@@ -24,7 +24,7 @@ public:
 	virtual bool Processing(uint32_t timelimit = INFINITE);
 	virtual void Disconnect(int32 sid) override;
 private:
-	CSession* _client;
+	ClientSession* _client;
 	SOCKADDR_IN _serveraddr;
 
 };

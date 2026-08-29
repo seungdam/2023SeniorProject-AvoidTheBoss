@@ -32,7 +32,7 @@ public:
 	friend class CEmployee;
 	friend class CBoss;
 
-	friend class CSession;
+	friend class ClientSession;
 
 	friend class CGameScene;
 	friend class CRoomScene;

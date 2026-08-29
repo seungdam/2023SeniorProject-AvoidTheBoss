@@ -1,7 +1,7 @@
 ﻿#include "pch.h"
 #include "SPlayer.h"
 #include "CollisionDetector.h"
-#include "CSIocpCore.h"
+#include "ServerIocpCore.h"
 
 SPlayer::SPlayer()
 {

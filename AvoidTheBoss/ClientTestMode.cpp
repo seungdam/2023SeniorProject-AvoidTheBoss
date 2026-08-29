@@ -76,7 +76,7 @@ bool ClientTestMode::Configure()
 #endif
 }
 
-void ClientTestMode::OnConnected(CSession& session)
+void ClientTestMode::OnConnected(ClientSession& session)
 {
 	if (!_enabled) return;
 	{
@@ -92,7 +92,7 @@ void ClientTestMode::OnConnected(CSession& session)
 	if (!session.DoSend(&packet)) Fail("failed to send login");
 }
 
-void ClientTestMode::OnLoginOk(CSession& session)
+void ClientTestMode::OnLoginOk(ClientSession& session)
 {
 	if (!_enabled) return;
 	{
@@ -109,7 +109,7 @@ void ClientTestMode::OnLoginOk(CSession& session)
 	if (!session.DoSend(&packet)) Fail("failed to send room enter");
 }
 
-void ClientTestMode::OnRoomEntered(CSession& session, const int roomNumber)
+void ClientTestMode::OnRoomEntered(ClientSession& session, const int roomNumber)
 {
 	if (!_enabled) return;
 	int match = 0;
