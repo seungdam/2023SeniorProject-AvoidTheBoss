@@ -3,6 +3,8 @@
 #include "IocpEvent.h"
 #include "BaseSession.h"
 
+#include <atomic>
+
 // 서버에서 클라이언트 소켓을 관리할 클래스
 // 마찬가지로 Iocp에 등록할 대상이기 때문에 IocpObject에 해당된다
 
@@ -23,7 +25,7 @@ public:
 	void DoSendLoginPacket(bool isSuccess);
 	void ProcessPacket(char*);
 public:
-	int16 _myRm = -1;
+	std::atomic<int16> _myRm = -1;
 	int32 _curPage = 0;
 	int32 _prev_remain = 0;
 };

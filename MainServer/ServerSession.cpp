@@ -4,6 +4,7 @@
 #include "SPlayer.h"
 #include "ServerIocpCore.h"
 #include "JobQueue.h"
+#include "RoomCommand.h"
 using namespace std;
 // =========== 서버 세션 ============
 
@@ -134,11 +135,19 @@ void ServerSession::DoSendLoginPacket(bool isSuccess)
 
 void ServerSession::ProcessPacket(char* packet)
 {
+	const auto getCurrentRoom = [this]() -> Room*
+	{
+		const int32 roomNum = _myRm.load();
+		if (!ServerIocpCore._rmgr->IsValidRoom(roomNum)) return nullptr;
+		Room& room = ServerIocpCore._rmgr->GetRoom(roomNum);
+		return room.GetSidIndexBySid(_sid) >= 0 ? &room : nullptr;
+	};
+
 	switch ((uint8)packet[1])
 	{
 		case (uint8)C_TITLE_PACKET_TYPE::ACQ_LOGIN:
 		{
-			C2S_LOGIN* lp = reinterpret_cast<C2S_LOGIN*>(packet);
+			auto* lp = reinterpret_cast<C2S_LOGIN*>(packet);
 			std::wstring sqlExec(L"EXEC search_user_db ");
 			sqlExec.append(lp->name);
 			sqlExec.append(L", ");
@@ -149,7 +158,7 @@ void ServerSession::ProcessPacket(char* packet)
 		break;
 		case (uint8)C_TITLE_PACKET_TYPE::ACQ_REG:
 		{
-			C2S_LOGIN* lp  = reinterpret_cast<C2S_LOGIN*>(packet);
+			auto* lp  = reinterpret_cast<C2S_LOGIN*>(packet);
 			std::wstring sqlExec(L"EXEC update_user_status ");
 			sqlExec.append(lp->name);
 			sqlExec.append(L", ");
@@ -161,51 +170,34 @@ void ServerSession::ProcessPacket(char* packet)
 		// ======== 방 시스템 패킷
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_ENTER_RM:
 		{
-			C2S_ROOM_ENTER* rep = reinterpret_cast<C2S_ROOM_ENTER*>(packet);
-			ServerIocpCore._rmgr->EnterRoom(_sid, rep->rmNum);
+			auto* rep = reinterpret_cast<C2S_ROOM_ENTER*>(packet);
+			ServerIocpCore._rmgr->EnqueueCommand(
+				{ RoomCommandType::Enter, _sid, rep->rmNum });
 		}
 		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_MK_RM:
 		{
-			ServerIocpCore._rmgr->CreateRoom(_sid);
+			ServerIocpCore._rmgr->EnqueueCommand({ RoomCommandType::Create, _sid });
 		}
 		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_READY:
 		{
-			int32 idx = ServerIocpCore._rmgr->GetRoom(_myRm).GetSidIndexBySid(_sid);
-			if (-1 == idx)
-			{
-				std::cout << "SomeThing Error Detected\n";
-				break;
-			}
-			S2C_ROOM_READY packet;
-			packet.size = sizeof(S2C_ROOM_READY);
-			packet.type = (uint8)S_ROOM_PACKET_TYPE::REP_READY;
-			packet.sid = _sid;
-			ServerIocpCore._rmgr->GetRoom(_myRm).BroadCastingExcept(&packet, _sid);
-			ServerIocpCore._rmgr->GetRoom(_myRm).UpdateReady(idx, true);
-			ServerIocpCore._rmgr->GetRoom(_myRm).InitGame();
-
+			ServerIocpCore._rmgr->EnqueueCommand({ RoomCommandType::SetReady, _sid, -1, true });
 		}
 		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_READY_CANCEL:
 		{
-			int32 idx = ServerIocpCore._rmgr->GetRoom(_myRm).GetSidIndexBySid(_sid);
-			ServerIocpCore._rmgr->GetRoom(_myRm).UpdateReady(idx, false);
-			S2C_ROOM_READY packet{};
-
-			packet.size = sizeof(S2C_ROOM_READY);
-			packet.type = (uint8)S_ROOM_PACKET_TYPE::REP_READY_CANCEL;
-			packet.sid = _sid;
-			ServerIocpCore._rmgr->GetRoom(_myRm).BroadCastingExcept(&packet, _sid);
+			ServerIocpCore._rmgr->EnqueueCommand({ RoomCommandType::SetReady, _sid, -1, false });
 		}
 		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_EXIT_ROOM:
-			ServerIocpCore._rmgr->ExitRoom(_sid,_myRm);
+			ServerIocpCore._rmgr->EnqueueCommand({ RoomCommandType::Exit, _sid, _myRm.load() });
 		break;
 
 		case (uint8)C_GAME_PACKET_TYPE::CKEY:
 		{
+			Room* room = getCurrentRoom();
+			if (!room) break;
 			// 키 패킷 처리
 			C2S_KEY* movePacket = reinterpret_cast<C2S_KEY*>(packet);
 			moveEvent* mv = new moveEvent(_sid, movePacket->key, XMFLOAT3{ movePacket->x,0,movePacket->z });
@@ -220,53 +212,66 @@ void ServerSession::ProcessPacket(char* packet)
 			packet.x = movePacket->x;
 			packet.z = movePacket->z;
 
-			ServerIocpCore._rmgr->GetRoom(_myRm).AddEvent(me , 0.f);
-			ServerIocpCore._rmgr->GetRoom(_myRm).BroadCastingExcept(&packet, _sid);
+			room->AddEvent(me, 0.f);
+			room->BroadCastingExcept(&packet, _sid);
 		}
 		break;
 		case (uint8)C_GAME_PACKET_TYPE::CROT:
 		{
+			Room* room = getCurrentRoom();
+			if (!room) break;
 			C2S_ROTATE* rotatePacket = reinterpret_cast<C2S_ROTATE*>(packet);
 			S2C_ROTATE packet;
 			packet.size = sizeof(S2C_ROTATE);
 			packet.type = (uint8)S_GAME_PACKET_TYPE::SROT;
 			packet.sid = _sid;
 			packet.angle = rotatePacket->angle;
-			ServerIocpCore._rmgr->GetRoom(_myRm).BroadCastingExcept(&packet,_sid);
+			room->BroadCastingExcept(&packet, _sid);
 
 		}
 		break;
 		case (uint8)C_GAME_PACKET_TYPE::CCHAT:
 		{
+			Room* room = getCurrentRoom();
+			if (!room) break;
 
 			_CHAT* cp = reinterpret_cast<_CHAT*>(packet);
 			_CHAT  np;
 			memcpy(&np, cp, sizeof(_CHAT));
 			np.type = (uint8)S_GAME_PACKET_TYPE::SCHAT;
 
-			ServerIocpCore._rmgr->_rooms[_myRm].BroadCasting(&np);
+			room->BroadCasting(&np);
 		}
 		break;
 
 		case (uint8)C_GAME_PACKET_TYPE::CATTACK:
 		{
+			Room* room = getCurrentRoom();
+			if (!room) break;
 			C2S_ATTACK* ap = reinterpret_cast<C2S_ATTACK*>(packet);
+			if (ap->tidx < 0 || ap->tidx >= PLAYERNUM)
+			{
+				ServerIocpCore.RequestRemoveSession(_sid);
+				break;
+			}
 
 			AttackEvent* ape = new AttackEvent();
 			ape->_sid = _sid;
 			ape->_tidx = ap->tidx;
 			ape->_wf = ap->wf;
-			ServerIocpCore._rmgr->GetRoom(_myRm).AddEvent(ape, 0);
+			room->AddEvent(ape, 0);
 		}
 			break;
 		case (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT:
 		{
+			Room* room = getCurrentRoom();
+			if (!room) break;
 			SC_EVENTPACKET* ep = reinterpret_cast<SC_EVENTPACKET*>(packet);
 			InteractionEvent* swev = new InteractionEvent();
 			swev->eventId = ep->eventId;
 			std::cout << "EVENT ID : " << (int32)swev->eventId << "\n";
  			swev->_sid = _sid;
-			ServerIocpCore._rmgr->GetRoom(_myRm).AddEvent(swev, 0);
+			room->AddEvent(swev, 0);
 		}
 		break;
 
