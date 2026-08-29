@@ -7,7 +7,7 @@
 
 #include <cstring>
 
-class ASession;
+class BaseSession;
 
 //==========================
 //        IOCP EVENT TYPE
@@ -47,7 +47,7 @@ class AcceptEvent : public IocpEvent
 public:
 	AcceptEvent() : IocpEvent(EventType::Accept) { Init(); };
 public:
-	ASession* _session = nullptr;
+	BaseSession* _session = nullptr;
 	char _buf[BUFSIZE / 2] = {};
 };
 

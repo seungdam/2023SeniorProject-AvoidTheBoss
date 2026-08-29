@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "ASession.h"
+#include "BaseSession.h"
 #include <deque>
 #include <mutex>
 #include <shared_mutex>
@@ -9,7 +9,7 @@
 class IocpEvent;
 class Scheduler;
 
-class CSession : public ASession
+class CSession : public BaseSession
 {
 
 public:

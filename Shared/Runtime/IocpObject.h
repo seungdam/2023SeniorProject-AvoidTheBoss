@@ -4,7 +4,10 @@
 class IocpObject
 {
 public:
-	virtual HANDLE GetHandle() abstract;
-	virtual void Processing(class IocpEvent* iocpEvent, int32 numBytes) abstract; // 어떤 일감으로  Iocp에 등록했니?
+	virtual ~IocpObject() = default;
+	virtual HANDLE GetHandle() const noexcept = 0;
+	virtual void Processing(class IocpEvent* iocpEvent, int32 numBytes) = 0; // 어떤 일감으로  Iocp에 등록했니?
 	// iocpEvent에 따라 적절한 일을 처리
+	virtual void OnIocpError(class IocpEvent* iocpEvent, int32 errCode) = 0;
+	virtual void OnIocpCompletion(IocpEvent& iocpEvent, uint32_t bytes) = 0;
 };
