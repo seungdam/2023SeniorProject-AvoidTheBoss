@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Camera.h"
 #include "ClientTestMode.h"
 
 #include "ClientSession.h"

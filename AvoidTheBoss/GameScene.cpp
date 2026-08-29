@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "DXSampleHelper.h"
 #include "GameScene.h"
 #include "GameFramework.h"
 #include "UIManager.h"
