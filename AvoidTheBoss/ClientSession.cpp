@@ -77,41 +77,41 @@ namespace
 
 
 
-CSession::CSession()
+ClientSession::ClientSession()
 {
 }
 
-CSession::~CSession()
+ClientSession::~ClientSession()
 {
-	SocketUtil::Close(_sock);
+	Disconnect();
 }
 
-void CSession::SetIdentity(const int32 cid, const int32 sid)
+void ClientSession::SetIdentity(const int32 cid, const int32 sid)
 {
 	std::unique_lock identityLock(_lock);
 	_cid = cid;
 	_sid = sid;
 }
 
-void CSession::SetSid(const int32 sid)
+void ClientSession::SetSid(const int32 sid)
 {
 	std::unique_lock identityLock(_lock);
 	_sid = sid;
 }
 
-int32 CSession::GetSid()
+int32 ClientSession::GetSid()
 {
 	std::shared_lock identityLock(_lock);
 	return _sid;
 }
 
-std::pair<int32, int32> CSession::GetIdentity()
+std::pair<int32, int32> ClientSession::GetIdentity()
 {
 	std::shared_lock identityLock(_lock);
 	return { _cid, _sid };
 }
 
-bool CSession::QueuePacket(const char* packet, const std::size_t packetSize)
+bool ClientSession::QueuePacket(const char* packet, const std::size_t packetSize)
 {
 	std::lock_guard packetLock(_packetMutex);
 	if (_pendingPackets.size() >= MaxPendingPackets) return false;
@@ -119,7 +119,7 @@ bool CSession::QueuePacket(const char* packet, const std::size_t packetSize)
 	return true;
 }
 
-void CSession::DispatchPackets()
+void ClientSession::DispatchPackets()
 {
 	std::deque<std::vector<char>> packets;
 	{
@@ -130,18 +130,13 @@ void CSession::DispatchPackets()
 	for (auto& packet : packets) ApplyPacket(packet.data());
 }
 
-void CSession::Stop()
+void ClientSession::Stop()
 {
 	RequestStop();
-	SocketUtil::Close(_sock);
+	Disconnect();
 }
 
-HANDLE CSession::GetHandle()
-{
-	return reinterpret_cast<HANDLE>(_sock);
-}
-
-void CSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
+void ClientSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 {
 	//TODO
 	switch (iocpEvent->_comp)
@@ -239,21 +234,23 @@ void CSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 	}
 }
 
-bool CSession::DoSend(void* packet)
+bool ClientSession::DoSend(void* packet)
 {
 	if (IsStopping() || _sock == INVALID_SOCKET) return false;
 	DWORD sendLen(0);
 	DWORD flag(0);
 	SendEvent* sev = new SendEvent(reinterpret_cast<char*>(packet));
 	sev->_sid = GetSid();
-	BeginIo();
+	std::shared_lock socketLock(_lock);
+	if (_sock == INVALID_SOCKET) { delete sev; return false; }
+	BeginIO();
 	if (WSASend(_sock, &sev->_sWsaBuf, 1, &sendLen, flag, static_cast<LPWSAOVERLAPPED>(sev), NULL) == SOCKET_ERROR)
 	{
 		int32 errcode = WSAGetLastError();
 		if (WSAGetLastError() != WSA_IO_PENDING)
 		{
 			std::cout << errcode << std::endl;
-			CompleteIo();
+			CompleteIO();
 			delete sev;
 			return false;
 		}
@@ -263,7 +260,7 @@ bool CSession::DoSend(void* packet)
 
 
 
-bool CSession::DoRecv()
+bool ClientSession::DoRecv()
 {
 	if (IsStopping() || _sock == INVALID_SOCKET) return false;
 	_rev.Init();
@@ -274,14 +271,16 @@ bool CSession::DoRecv()
 	DWORD flag(0);
 	_rev._rWsaBuf.buf = _rev._rbuf + _prev_remain;
 	_rev._rWsaBuf.len = BUFSIZE - _prev_remain;
-	BeginIo();
+	std::shared_lock socketLock(_lock);
+	if (_sock == INVALID_SOCKET) return false;
+	BeginIO();
 	if (WSARecv(_sock, &_rev._rWsaBuf, 1, &recvBytes, &flag, static_cast<LPWSAOVERLAPPED>(&_rev), NULL) == SOCKET_ERROR)
 	{
 		int32 errcode = WSAGetLastError();
 		if (WSAGetLastError() != WSA_IO_PENDING)
 		{
 			std::cout << errcode << std::endl;
-			CompleteIo();
+			CompleteIO();
 			return false;
 		}
 	}
@@ -289,7 +288,7 @@ bool CSession::DoRecv()
 
 }
 
-void CSession::ApplyPacket(char* packet)
+void ClientSession::ApplyPacket(char* packet)
 {
 
 	CTitleScene* ts =

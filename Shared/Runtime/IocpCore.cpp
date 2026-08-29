@@ -36,6 +36,11 @@ bool IocpCore::Processing(uint32_t time_limit) // worker thread 기능 완료된
 		OUT reinterpret_cast<PULONG_PTR>(&iocpObject), // 하지만 이렇게 iocpObject를 인자로 넘겨주게 되면, 다른 스레드에서 이 오브젝트를 삭제했을 때, 문제가 생길 수도 있다. -->
 		//애초에 iocpEvent에서 해당 iocp객체들에 관한 정보(해당 이벤트를 호출한 주인 iocp객체들)을 담고 있도록하자.
 		OUT reinterpret_cast<LPOVERLAPPED*>(&iocpEvent), time_limit);
+	auto* session = dynamic_cast<BaseSession*>(iocpObject);
+	if (session != nullptr && iocpEvent != nullptr)
+	{
+		session->CompleteIO();
+	}
 
 	if (!retVal) // 실패했다면 에러코드 확인
 	{
@@ -59,12 +64,7 @@ bool IocpCore::Processing(uint32_t time_limit) // worker thread 기능 완료된
 		if (numOfBytes == 0)
 		{
 			//Disconnect
-			auto* session = static_cast<BaseSession*>(iocpObject);
-			session->Disconnect();
-			if (iocpEvent->_comp == EventType::Send)
-			{
-				delete iocpEvent;
-			}
+			iocpObject->OnIocpError(iocpEvent, 0);
 			return false;
 		}
 	}

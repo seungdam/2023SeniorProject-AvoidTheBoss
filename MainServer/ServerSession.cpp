@@ -1,8 +1,8 @@
 ﻿#include "pch.h"
 #include "SocketUtil.h"
-#include "Session.h"
+#include "ServerSession.h"
 #include "SPlayer.h"
-#include "CSIocpCore.h"
+#include "ServerIocpCore.h"
 #include "JobQueue.h"
 
 
@@ -31,13 +31,9 @@ ServerSession::ServerSession()
 
 ServerSession::~ServerSession()
 {
-	SocketUtil::Close(_sock);
+	Disconnect();
 }
 
-HANDLE ServerSession::GetHandle()
-{
-	return reinterpret_cast<HANDLE>(_sock);
-}
 
 void ServerSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 {
@@ -80,16 +76,19 @@ void ServerSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 
 bool ServerSession::DoSend(void* packet)
 {
-
 	DWORD sendLen(0);
 	DWORD flag(0);
 	SendEvent* sev = new SendEvent(reinterpret_cast<char*>(packet));
 	sev->_sid = _sid;
+	std::shared_lock socketLock(_lock);
+	if (_sock == INVALID_SOCKET) { delete sev; return false; }
+	BeginIO();
 	if (WSASend(_sock, &sev->_sWsaBuf, 1, &sendLen, flag, static_cast<LPWSAOVERLAPPED>(sev), NULL) == SOCKET_ERROR)
 	{
 		int32 errcode = WSAGetLastError();
 		if (WSAGetLastError() != WSA_IO_PENDING)
 		{
+			CompleteIO();
 			delete sev;
 			cout << "Send Error " << errcode << "\n";
 			return false;
@@ -108,12 +107,16 @@ bool ServerSession::DoRecv()
 	_rev._rWsaBuf.len = BUFSIZE - _prev_remain;
 	DWORD recvBytes(0);
 	DWORD flag(0);
+	std::shared_lock socketLock(_lock);
+	if (_sock == INVALID_SOCKET) return false;
+	BeginIO();
 
 	if (WSARecv(_sock, &_rev._rWsaBuf, 1, &recvBytes, &flag, static_cast<LPWSAOVERLAPPED>(&_rev), NULL) == SOCKET_ERROR)
 	{
 		int32 errcode = WSAGetLastError();
 		if (WSAGetLastError() != WSA_IO_PENDING)
 		{
+			CompleteIO();
 			cout << "Recv Error " << errcode << "\n";
 			return false;
 		}

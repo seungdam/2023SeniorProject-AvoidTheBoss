@@ -9,19 +9,17 @@
 class IocpEvent;
 class Scheduler;
 
-class CSession : public BaseSession
+class ClientSession : public BaseSession
 {
 
 public:
-	CSession();
-	virtual ~CSession();
+	ClientSession();
+	virtual ~ClientSession();
 public:
 	// 세션 인터페이스
-	virtual HANDLE GetHandle() override;
 	virtual void Processing(class IocpEvent* iocpEvent, int32 numOfBytes = 0) override;
 public:
 	// 세션 정보를 얻어 내거나 세팅할 수 있는 함수들
-	SOCKET GetSock() { return _sock; }
 	bool DoSend(void* packet);
 	bool DoRecv();
 	void DispatchPackets();
@@ -29,9 +27,6 @@ public:
 	void SetSid(int32 sid);
 	int32 GetSid();
 	std::pair<int32, int32> GetIdentity();
-	void BeginIo() { ++_pendingIo; }
-	int32 CompleteIo() { return --_pendingIo; }
-	int32 PendingIo() const { return _pendingIo.load(); }
 	void RequestStop() { _stopping.store(true); }
 	bool IsStopping() const { return _stopping.load(); }
 	void Stop();
@@ -45,6 +40,5 @@ private:
 
 	std::mutex _packetMutex;
 	std::deque<std::vector<char>> _pendingPackets;
-	std::atomic<int32> _pendingIo = 0;
 	std::atomic_bool _stopping = false;
 };
