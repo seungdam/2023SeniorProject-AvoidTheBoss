@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "IocpEvent.h"
+#include "IocpEvent.h" // shared overlapped event storage
 
 IocpEvent::IocpEvent(EventType et) : _comp(et)
 {

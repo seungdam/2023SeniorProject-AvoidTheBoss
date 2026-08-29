@@ -1,8 +1,11 @@
 ﻿#pragma once
+#include "../Types.h"
+#include "NetworkPlatform.h"
+
 #include <chrono>
 
-const int32 MAX_SAMPLE_COUNT = 50;
-const int32 DEAD_RECORNING_TPS = 30;
+inline constexpr int32 MAX_SAMPLE_COUNT = 50;
+inline constexpr int32 DEAD_RECORNING_TPS = 30;
 
 
 class Timer

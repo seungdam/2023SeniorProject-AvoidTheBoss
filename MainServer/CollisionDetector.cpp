@@ -2,6 +2,7 @@
 #include "SPlayer.h"
 #include "CollisionDetector.h"
 #include <cstdlib>
+#include <fstream>
 #include <string>
 
 OcTree* BoxTree = nullptr;
@@ -19,7 +20,7 @@ void OcTree::ReadBoundingBoxInfoFromFile(const char* filename)
 	int i = 0;
 	std::ifstream infile(filename);
 	std::string line;
-	while (getline(infile, line)) {
+	while (std::getline(infile, line)) {
 		// find the CENTER and EXTENTS substrings
 		size_t centerDelimeter = line.find("Center:");
 		size_t extentsDelimeter = line.find("Extents:");

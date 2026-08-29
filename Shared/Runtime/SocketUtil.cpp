@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "SocketUtil.h"
+#include "SocketUtil.h" // shared Winsock helpers
 
 LPFN_CONNECTEX		SocketUtil::ConnectEx = nullptr;
 LPFN_DISCONNECTEX	SocketUtil::DisconnectEx = nullptr;

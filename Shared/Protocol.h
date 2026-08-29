@@ -1,7 +1,9 @@
 ﻿#pragma once
 
+#include "NetworkConfig.h"
+#include "Types.h"
+
 #define MAX_USER 10
-#define PORTNUM 9001
 #define CHATBUF 50
 // 클라 -> 서버 패킷
 

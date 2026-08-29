@@ -109,7 +109,7 @@ void AcceptManager::RegisterAccept(AcceptEvent* acceptEvent)
 // Accept 처리 완료 시 , 후처리를 진행한다. callBack 처리
 void AcceptManager::ProcessAccept(AcceptEvent* acceptEvent)
 {
-	ServerSession* session = acceptEvent->_session; // 복원된 세션을 가져온다.
+	ServerSession* session = static_cast<ServerSession*>(acceptEvent->_session); // 복원된 세션을 가져온다.
 	ASSERT_CRASH(ServerIocpCore.Register(session)); // iocp핸들에 소켓 등록
 	C2S_LOGIN* lp = reinterpret_cast<C2S_LOGIN*>(acceptEvent->_buf);
 
@@ -135,7 +135,7 @@ void AcceptManager::ProcessAccept(AcceptEvent* acceptEvent)
 	curAcceptCnt.fetch_add(1);
 	{ // 맵에다 추가하는 파트 이므로 락 걸어준다.
 
-		WRITE_SERVER_LOCK;
+		std::unique_lock<std::shared_mutex> lock(ServerIocpCore._lock);
 		ServerIocpCore._cList.insert(sid);
 		ServerIocpCore._clients.try_emplace(sid, session);
 		std::cout << sid << " Accept Success\n";

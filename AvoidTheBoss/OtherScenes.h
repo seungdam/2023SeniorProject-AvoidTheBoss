@@ -123,16 +123,7 @@ public:
 	~CResultScene() {}
 	virtual void BuildObjects(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList) {};
 	virtual void ProcessInput(HWND& hWnd) {};
-	virtual void Update(HWND& hWnd)
-	{
-		m_timer.Tick(0.0f);
-		if (m_showTime > 0) m_showTime -= m_timer.GetTimeElapsed();
-		if (m_showTime < 0)
-		{
-			m_showTime = 4.0f;
-			mainGame.ChangeScene(CGameFramework::SCENESTATE::LOBBY);
-		}
-	};
+	virtual void Update(HWND& hWnd);
 	virtual void ReleaseUploadBuffers() {};
 	virtual void ReleaseObjects() {}
 	virtual void Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pCamera, bool bRaster) {};

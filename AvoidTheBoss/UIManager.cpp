@@ -25,8 +25,6 @@
 //const float STATUS_UI_WIDTH = PROFILE_UI_WIDTH * 0.8;
 //const float STATUS_UI_HEIGHT = PROFILE_UI_HEIGHT * 0.8;
 
-#pragma comment(lib,"windowscodecs.lib")
-
 D2D1_RECT_F MakeLayoutRect(float cx, float cy , float width, float height)
 {
     return D2D1_RECT_F{ cx - width / 2.0f , cy - height / 2.0f , cx + width / 2.0f , cy + height / 2.0f };

@@ -2,6 +2,8 @@
 #include "IocpCore.h"
 #include "RoomManager.h"
 
+class ServerSession;
+
 class CSIocpCore : public IocpCore
 {
 

@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "IocpEvent.h"
+#include "IocpEvent.h" // WSAOVERLAPPED event contract
 
 class IocpObject
 {

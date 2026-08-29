@@ -1,11 +1,29 @@
 ﻿#pragma once
 
-#define WIN32_LEAN_AND_MEAN // 거의 사용되지 않는 내용을 Windows 헤더에서 제외합니다.
+#include "../Shared/GameCommon.h"
+#include "../Shared/Protocol.h"
+#include "../Shared/Runtime/CoreMacro.h"
+#include "../Shared/Runtime/CoreTLS.h"
+#include "../Shared/Runtime/GameTimer.h"
+#include "../Shared/Runtime/NetworkPlatform.h"
 
-#ifdef _DEBUG
-#pragma comment(lib, "Debug\\CoreEngine.lib")
-#else
-#pragma comment(lib, "Release\\CoreEngine.lib")
-#endif
-
-#include "CorePch.h"
+#include <algorithm>
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <set>
+#include <shared_mutex>
+#include <stdexcept>
+#include <string>
+#include <thread>
+#include <unordered_map>
+#include <utility>
+#include <vector>

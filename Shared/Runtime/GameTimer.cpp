@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "CTimer.h"
+#include "GameTimer.h"
 #include <cmath>
 
 

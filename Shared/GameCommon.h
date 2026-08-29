@@ -1,155 +1,16 @@
 ﻿#pragma once
 
 #include "Types.h"
-#include "CoreGlobal.h"
-#include "CoreMacro.h"
-#include "CoreTLS.h"
-//#include "RWLock.h"
 
+#include <DirectXCollision.h>
+#include <DirectXMath.h>
 
-#include <vector>
-#include <list>
-#include <queue>
-#include <stack>
-#include <map>
-#include <set>
-#include <unordered_map>
-#include <unordered_set>
-#include <algorithm>
-#include <shared_mutex>
+#include <cmath>
 
-#include <iostream>
-#include <WinSock2.h>
-#include <MSWSock.h>
-#include <WS2tcpip.h>
-
-#pragma comment(lib, "WS2_32.lib")
-#pragma comment(lib, "MSWSock.lib")
-
-
-#include <windows.h>
-// C 런타임 헤더 파일입니다.
-#include <stdlib.h>
-#include <malloc.h>
-#include <memory.h>
-#include <tchar.h>
-#include <math.h>
-
-#include <timeapi.h>
-#include <MMSystem.h>
-
-#pragma comment(lib, "winmm.lib")
-#define BUFSIZE 512
-
-// ============ D3D Library ===========================
-//----D3D 라이브러리 헤더 포함
-
-#include <string>
-#include <wrl.h>
-#include <shellapi.h>
-#include <d3d12.h>	//Direct3D 12 API 함수
-#include <dxgi1_4.h>
-#include <D3Dcompiler.h>
-
-#include "d3dx12.h"
-
-//DirectD2D
-#include <d3d11.h>
-#include <dwrite.h>
-#include <d3d11on12.h>
-#include <dxgi1_6.h>
-#include <d2d1_3.h>
-
-#include <DXGIDebug.h>
-
-#include <array>
-#include <cassert>
-#include <memory>
-#include <new>
-#include <cstddef>
-#include <cstdint>
-#include <memory>
-#include <fstream>
-#include <filesystem>
-#include <iosfwd>
-
-//----DirectXMath 라이브러리
-#include <DirectXMath.h> //벡터 행렬 관련 함수,구조체,클래스 제공
-#include <DirectXPackedVector.h>//벡터 관련 패킹된 구조체 제공
-#include <DirectXColors.h>//색상 정의 제공
-#include <DirectXCollision.h>//충돌 검사 관련 함수,구조체,클래스 제공
-
-
-//C:\Program Files(x86)\Windows Kits\10\Include\10.0.17763.0\um 에서  DirectX로 시작하는 파일들 - 특히 “DirectXCollision.h”와 “DirectXCollision.inl” 내용 보기
-//심드 성능상 벡터 연산 오버로드 하지말자
-
-//----DirectXMath 라이브러리에 선언된 함수, 구조체, 클래스를 사용할 수 있는 네임스페이스
+// 기존 코드가 DirectXMath 타입을 네임스페이스 없이 사용한다.
+// 개별 헤더 자급화가 끝날 때까지 이 호환 경계를 Shared 안에만 둔다.
 using namespace DirectX;
-using namespace DirectX::PackedVector;
-
-#include "protocol.h"
-#include "CTimer.h"
-
-
-
-bool XMVerifyCPUSupport(); // 응용프로그램에서 SIMD 기능(벡터 연산 명령집합 확장 기능 / 벡터의 병렬 연산 ) 제공여부 확인
 using namespace TriangleTests;
-using Microsoft::WRL::ComPtr;
-
-//----임포트 라이브러리
-#pragma comment(lib, "d3dcompiler.lib")
-#pragma comment(lib, "d3d12.lib") //정적 Direct3D 12 API 스텁 라이브러리
-#pragma comment(lib, "dxgi.lib")
-#pragma comment(lib, "dxguid.lib")
-
-// -------D2D 라이브러리
-#pragma comment(lib, "d3d11.lib")
-#pragma comment(lib, "d2d1.lib")
-#pragma comment(lib, "dwrite.lib")
-
-//----클라이언트 영역 크기 및 후면 버퍼 크기
-#define FRAME_BUFFER_WIDTH  1920 //1200
-#define FRAME_BUFFER_HEIGHT 1080 //900
-
-const float CENTER_X = FRAME_BUFFER_WIDTH / 2.0;
-const float CENTER_Y = FRAME_BUFFER_HEIGHT / 2.0;
-const float TITLEBUTTON_X_OFFSET = (FRAME_BUFFER_WIDTH / 8.0f);
-const float TITLEBUTTON_Y_OFFSET = FRAME_BUFFER_HEIGHT / 10;
-
-const float LOBBYBUTTON_X_OFFSET = FRAME_BUFFER_WIDTH / 3.0;
-const float LOBBYBUTTON_Y_OFFSET = FRAME_BUFFER_HEIGHT / 4.0f * 3;
-
-const float LOBBYROOMLIST_X_OFFSET = FRAME_BUFFER_WIDTH / 23;
-const float LOBBYROOMLIST_X_OFFSET2 = FRAME_BUFFER_WIDTH / 18;
-
-const float LOBBYROOMLIST_Y_OFFSET = FRAME_BUFFER_HEIGHT / 23;
-
-const float MAX_RESCUE_GUAGE = 960 / 4.0f;
-
-const float PROFILE_UI_OFFSET_X = FRAME_BUFFER_WIDTH * 0.01f;
-const float PROFILE_UI_OFFSET_Y = FRAME_BUFFER_HEIGHT * 0.1f;
-
-const float PROFILE_UI_WIDTH = FRAME_BUFFER_WIDTH * 0.1f;
-const float PROFILE_UI_HEIGHT = FRAME_BUFFER_HEIGHT * 0.1f;
-
-const float BIG_PROFILE_UI_OFFSET_Y = PROFILE_UI_OFFSET_Y * 7;
-const float BIG_PROFILE_UI_WIDTH = FRAME_BUFFER_WIDTH * 0.2f;
-const float BIG_PROFILE_UI_HEIGHT = FRAME_BUFFER_HEIGHT * 0.2f;
-
-const float STATUS_UI_WIDTH = PROFILE_UI_WIDTH * 0.8f;
-const float STATUS_UI_HEIGHT = PROFILE_UI_HEIGHT * 0.8f;
-
-const float GAMEROOM_BUTTON_X_OFFSET = FRAME_BUFFER_WIDTH / 1.8f;
-const float GAMEROOM_BUTTON_Y_OFFSET = FRAME_BUFFER_HEIGHT / 1.2f;
-
-
-const float FontSize = 50;
-const float IDPW_Y_OFFSET = FontSize / 2.0f;
-
-
-#define _WITH_CB_WORLD_MATRIX_DESCRIPTOR_TABLE
-//----전체 화면 모드로 시작
-//#define _WITH_SWAPCHAIN_FULLSCREEN_STATE
 
 //1.0f = 1m
 #define UNIT 1.0f // 1m = 1 unit
@@ -158,21 +19,6 @@ const float IDPW_Y_OFFSET = FontSize / 2.0f;
 #define GENCNT 3
 const float EMPLOYEE_VELOCITY = UNIT * 3.f;
 const float BOSS_VELOCITY = UNIT * 2.f;
-
-extern UINT	gnCbvSrvDescriptorIncrementSize;
-extern UINT	gnRtvDescriptorIncrementSize;
-extern UINT gnDsvDescriptorIncrementSize;
-
-extern ID3D12Resource* CreateBufferResource(ID3D12Device5* pd3dDevice,
-
-	ID3D12GraphicsCommandList4* pd3dCommandList, void* pData, UINT nBytes, D3D12_HEAP_TYPE d3dHeapType = D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATES d3dResourceStates = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, ID3D12Resource** ppd3dUploadBuffer = NULL);
-extern ID3D12Resource* CreateTextureResourceFromDDSFile(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList, const wchar_t* pszFileName, ID3D12Resource** ppd3dUploadBuffer, D3D12_RESOURCE_STATES d3dResourceStates = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-extern BYTE ReadStringFromFile(FILE* pInFile, char* pstrToken);
-extern int ReadIntegerFromFile(FILE* pInFile);
-extern float ReadFloatFromFile(FILE* pInFile);
-
-
 #define			EPSILON 1.0e-10f
 
 inline bool IsZero(float fValue) { return((fabsf(fValue) < EPSILON)); }
@@ -181,19 +27,6 @@ inline bool IsZero(float fValue, float fEpsilon) { return((fabsf(fValue) < fEpsi
 inline bool IsEqual(float fA, float fB, float fEpsilon) { return(::IsZero(fA - fB, fEpsilon)); }
 inline float InverseSqrt(float fValue) { return 1.0f / sqrtf(fValue); }
 inline void Swap(float* pfS, float* pfT) { float fTemp = *pfS; *pfS = *pfT; *pfT = fTemp; }
-
-#define ANIMATION_TYPE_ONCE				0
-#define ANIMATION_TYPE_LOOP				1
-#define ANIMATION_TYPE_PINGPONG			2
-
-#define ANIMATION_CALLBACK_EPSILON		0.0165f
-
-
-enum Layout
-{
-	PLAYER, MAP, BOUDS, BULLET, SWITCH,  SIREN, DOOR, GENERATOR ,SOUND, EFFECT
-};
-
 
 //3차원 벡터의 연산
 namespace Vector3

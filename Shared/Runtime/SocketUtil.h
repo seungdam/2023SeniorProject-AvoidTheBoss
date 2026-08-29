@@ -1,5 +1,11 @@
 ﻿#pragma once
 
+#include "../NetworkConfig.h"
+#include "../Types.h"
+#include "NetworkPlatform.h"
+
+#include <string>
+
 // ==== Socket Util
 // 소켓 프로그램 처음 시작 시, winsock 초기화
 class SocketUtil

@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.26)
 
 project(AvoidTheBoss LANGUAGES CXX RC)
 
+include(CTest)
+
 if(NOT WIN32 OR NOT MSVC)
     message(FATAL_ERROR "This project requires Windows and the MSVC toolchain.")
 endif()
@@ -30,48 +32,53 @@ add_compile_options(
 
 add_compile_definitions(UNICODE _UNICODE)
 
-add_library(CoreEngine STATIC
-    CoreEngine/ASession.cpp
-    CoreEngine/CoreGlobal.cpp
-    CoreEngine/CoreMacro.cpp
-    CoreEngine/CorePch.cpp
-    CoreEngine/CoreTLS.cpp
-    CoreEngine/CTimer.cpp
-    CoreEngine/DeadLockFinder.cpp
-    CoreEngine/IocpCore.cpp
-    CoreEngine/IocpEvent.cpp
-    CoreEngine/IocpObject.cpp
-    CoreEngine/pch.cpp
-    CoreEngine/protocol.cpp
-    CoreEngine/RWLock.cpp
-    CoreEngine/SocketUtil.cpp
-    CoreEngine/ThreadManager.cpp
+add_library(SharedHeaders INTERFACE)
+target_include_directories(SharedHeaders INTERFACE Shared)
+
+add_library(SharedRuntime STATIC
+    Shared/Runtime/CoreTLS.cpp
+    Shared/Runtime/GameTimer.cpp
+    Shared/Runtime/IocpCore.cpp
+    Shared/Runtime/IocpEvent.cpp
+    Shared/Runtime/SocketUtil.cpp
+    Shared/Runtime/ThreadManager.cpp
 )
 
-target_include_directories(CoreEngine PUBLIC CoreEngine)
-target_compile_definitions(CoreEngine PRIVATE _LIB)
-target_precompile_headers(CoreEngine PRIVATE
-    "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/CoreEngine/pch.h>"
+target_include_directories(SharedRuntime PUBLIC Shared/Runtime)
+target_precompile_headers(SharedRuntime PRIVATE
+    "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/Shared/Runtime/pch.h>"
 )
-target_link_libraries(CoreEngine PUBLIC ws2_32 mswsock winmm)
-set_target_properties(CoreEngine PROPERTIES
+target_link_libraries(SharedRuntime PUBLIC SharedHeaders ws2_32)
+set_target_properties(SharedRuntime PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>"
 )
 
-add_executable(GameServer
+add_library(CoreEngine STATIC
     MainServer/AcceptManager.cpp
     MainServer/CGameManager.cpp
     MainServer/CollisionDetector.cpp
     MainServer/CSIocpCore.cpp
     MainServer/JobQueue.cpp
-    MainServer/newMain.cpp
     MainServer/packetEvent.cpp
-    MainServer/pch.cpp
     MainServer/RoomManager.cpp
     MainServer/Session.cpp
     MainServer/SGenerator.cpp
     MainServer/SPlayer.cpp
     MainServer/WorldRewinder.cpp
+)
+
+target_include_directories(CoreEngine PUBLIC MainServer)
+target_compile_definitions(CoreEngine PRIVATE _LIB)
+target_precompile_headers(CoreEngine PRIVATE
+    "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/MainServer/pch.h>"
+)
+target_link_libraries(CoreEngine PUBLIC SharedRuntime)
+set_target_properties(CoreEngine PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>"
+)
+
+add_executable(GameServer
+    MainServer/newMain.cpp
 )
 
 target_include_directories(GameServer PRIVATE MainServer)
@@ -80,10 +87,6 @@ target_precompile_headers(GameServer PRIVATE
     "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/MainServer/pch.h>"
 )
 target_link_libraries(GameServer PRIVATE CoreEngine)
-
-# Legacy pch.h still names Debug/CoreEngine.lib or Release/CoreEngine.lib.
-# CMake needs the parent search path until those legacy pragmas are removed.
-target_link_directories(GameServer PRIVATE "${CMAKE_BINARY_DIR}/lib")
 
 set_target_properties(GameServer PROPERTIES
     OUTPUT_NAME GAMESERVER
@@ -118,6 +121,7 @@ add_executable(GameClient WIN32
     AvoidTheBoss/clientIocpCore.cpp
     AvoidTheBoss/ClientPacketEvent.cpp
     AvoidTheBoss/ClientSession.cpp
+    AvoidTheBoss/ClientTestMode.cpp
     AvoidTheBoss/CollisionDetector.cpp
     AvoidTheBoss/CScene.cpp
     AvoidTheBoss/CSound.cpp
@@ -135,6 +139,7 @@ add_executable(GameClient WIN32
     AvoidTheBoss/SceneManager.cpp
     AvoidTheBoss/Shader.cpp
     AvoidTheBoss/SoundManager.cpp
+	AvoidTheBoss/TracerVisualState.cpp
     AvoidTheBoss/UIManager.cpp
     AvoidTheBoss/AvoidTheBoss.rc
     AvoidTheBoss/Light.hlsl
@@ -161,7 +166,7 @@ target_precompile_headers(GameClient PRIVATE
     "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss/pch.h>"
 )
 target_link_libraries(GameClient PRIVATE
-    CoreEngine
+    SharedRuntime
     d2d1
     d3d11
     d3d12
@@ -169,13 +174,13 @@ target_link_libraries(GameClient PRIVATE
     dwrite
     dxgi
     dxguid
+    shell32
     windowscodecs
 )
 
-# Compatibility paths for the two legacy #pragma comment(lib, ...) directives.
-target_link_directories(GameClient PRIVATE
-    "${CMAKE_BINARY_DIR}/lib"
-    "${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss"
+target_link_options(GameClient PRIVATE
+    "$<$<CONFIG:Debug>:/ENTRY:wWinMainCRTStartup>"
+    "$<$<CONFIG:Debug>:/SUBSYSTEM:CONSOLE>"
 )
 
 set_target_properties(GameClient PROPERTIES
@@ -205,3 +210,96 @@ add_custom_target(GameClientAssets
     VERBATIM
 )
 add_dependencies(GameClient GameClientAssets)
+
+add_executable(ProtocolScenarioHarness
+    tests/ProtocolScenarioHarness.cpp
+)
+target_link_libraries(ProtocolScenarioHarness PRIVATE ws2_32)
+target_link_libraries(ProtocolScenarioHarness PRIVATE SharedHeaders)
+set_target_properties(ProtocolScenarioHarness PROPERTIES
+    JOB_POOL_LINK msvc_link_pool
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
+)
+
+add_executable(ProjectileLogicTests
+	AvoidTheBoss/TracerVisualState.cpp
+	tests/ProjectileLogicTests.cpp
+)
+target_include_directories(ProjectileLogicTests PRIVATE AvoidTheBoss)
+set_target_properties(ProjectileLogicTests PROPERTIES
+	JOB_POOL_LINK msvc_link_pool
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
+)
+
+add_executable(GameObjectOwnershipTests
+	tests/GameObjectOwnershipTests.cpp
+)
+target_include_directories(GameObjectOwnershipTests PRIVATE AvoidTheBoss)
+set_target_properties(GameObjectOwnershipTests PROPERTIES
+	JOB_POOL_LINK msvc_link_pool
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
+)
+
+add_executable(PlayerStateTests
+	tests/PlayerStateTests.cpp
+)
+target_include_directories(PlayerStateTests PRIVATE AvoidTheBoss)
+set_target_properties(PlayerStateTests PROPERTIES
+	JOB_POOL_LINK msvc_link_pool
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
+)
+
+add_executable(SchedulerTests
+	AvoidTheBoss/CJobQueue.cpp
+	tests/SchedulerTests.cpp
+)
+target_include_directories(SchedulerTests PRIVATE AvoidTheBoss)
+target_link_libraries(SchedulerTests PRIVATE SharedHeaders)
+set_target_properties(SchedulerTests PROPERTIES
+	JOB_POOL_LINK msvc_link_pool
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
+)
+
+if(BUILD_TESTING)
+	add_test(NAME ProjectileLogicTests COMMAND ProjectileLogicTests)
+	add_test(NAME GameObjectOwnershipTests COMMAND GameObjectOwnershipTests)
+	add_test(NAME PlayerStateTests COMMAND PlayerStateTests)
+	add_test(NAME SchedulerTests COMMAND SchedulerTests)
+	set_tests_properties(
+		ProjectileLogicTests
+		GameObjectOwnershipTests
+		PlayerStateTests
+		SchedulerTests
+		PROPERTIES LABELS unit
+	)
+endif()
+
+add_custom_target(CameraLifecycleE2E
+    COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
+        -File "${CMAKE_CURRENT_SOURCE_DIR}/tools/run-camera-lifecycle-e2e.ps1"
+        -ServerExe "$<TARGET_FILE:GameServer>"
+        -ClientExe "$<TARGET_FILE:GameClient>"
+        -HarnessExe "$<TARGET_FILE:ProtocolScenarioHarness>"
+        -OutputRoot "${CMAKE_BINARY_DIR}/e2e"
+        -TimeoutSeconds 180
+    DEPENDS GameServer GameClient ProtocolScenarioHarness
+    USES_TERMINAL
+    VERBATIM
+)
+
+if(BUILD_TESTING AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+	add_test(NAME CameraLifecycleE2E
+		COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
+			-File "${CMAKE_CURRENT_SOURCE_DIR}/tools/run-camera-lifecycle-e2e.ps1"
+			-ServerExe "$<TARGET_FILE:GameServer>"
+			-ClientExe "$<TARGET_FILE:GameClient>"
+			-HarnessExe "$<TARGET_FILE:ProtocolScenarioHarness>"
+			-OutputRoot "${CMAKE_BINARY_DIR}/e2e"
+			-TimeoutSeconds 180
+	)
+	set_tests_properties(CameraLifecycleE2E PROPERTIES
+		LABELS integration
+		RUN_SERIAL TRUE
+		TIMEOUT 220
+	)
+endif()

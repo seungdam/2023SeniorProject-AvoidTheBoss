@@ -1,8 +1,10 @@
 ﻿#pragma once
-#include <thread>
-#include <functional>
+#include "../Types.h"
 
-using namespace std;
+#include <functional>
+#include <thread>
+#include <vector>
+
 class ThreadManager
 {
 public:
@@ -10,14 +12,14 @@ public:
 	~ThreadManager() { Join(); }
 
 
-	void Launch(function<void(void)> callback);
+	void Launch(std::function<void(void)> callback);
 	void Join();
 	//TLS init
 	static void InitTLS();
 	static void DestroyTLS();
 private:
 	Mutex _m;
-	vector<thread> _threads;
+	std::vector<std::thread> _threads;
 };
 
 

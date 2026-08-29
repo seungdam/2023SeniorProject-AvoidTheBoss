@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "IocpCore.h"
+#include "IocpCore.h" // shared IOCP dispatch primitive
 #include "ASession.h"
 #include "SocketUtil.h"
 

@@ -114,7 +114,7 @@ void Room::UserOut(int32 sid)
 	SendRoomInfoPacket();
 
 	{
-		WRITE_SERVER_LOCK
+		std::unique_lock<std::shared_mutex> lock(ServerIocpCore._lock);
 		ServerIocpCore._clients[sid]->_myRm = -1;
 	}
 }
@@ -296,7 +296,7 @@ void Room::SendRoomListPacket()
 	rmpacket.rmNum = _rmNum;
 
 	{
-		READ_SERVER_LOCK;
+		std::shared_lock<std::shared_mutex> lock(ServerIocpCore._lock);
 		ServerIocpCore.BroadCastingAll(&rmpacket);
 	}
 

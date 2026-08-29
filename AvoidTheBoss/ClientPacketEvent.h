@@ -1,14 +1,15 @@
 #pragma once
 
-#include "clientIocpCore.h"
+#include "../Shared/Protocol.h"
 
+#include <DirectXMath.h>
 #include <variant>
 
 struct moveEvent
 {
 	int32 _playerIndex = -1;
 	uint8 _key = 0;
-	XMFLOAT3 _direction{ 0.0f, 0.0f, 0.0f };
+	DirectX::XMFLOAT3 _direction{ 0.0f, 0.0f, 0.0f };
 
 	void Task();
 };
@@ -16,7 +17,7 @@ struct moveEvent
 struct posEvent
 {
 	int32 _playerIndex = -1;
-	XMFLOAT3 _position{ 0.0f, 0.0f, 0.0f };
+	DirectX::XMFLOAT3 _position{ 0.0f, 0.0f, 0.0f };
 
 	void Task();
 };

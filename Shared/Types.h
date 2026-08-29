@@ -1,7 +1,9 @@
 ﻿#pragma once
 
-#include <mutex>
 #include <atomic>
+#include <condition_variable>
+#include <memory>
+#include <mutex>
 
 using BYTE = unsigned char;
 using int8 = __int8;
@@ -24,8 +26,6 @@ using lockG = std::lock_guard<std::mutex>;
 
 using IocpObjRef = std::shared_ptr<class IocpObject>;
 using IocpCoreRef = std::shared_ptr<class IocpCore>;
-using SessionRef = std::shared_ptr<class ServerSession>;
-using ServerMainRef = std::shared_ptr<class ServerMain>;
 
 
 #define size16(val)		static_cast<int16>(sizeof(val))

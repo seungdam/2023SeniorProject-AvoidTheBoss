@@ -18,6 +18,17 @@ bool IntersectRectByPoint(const D2D1_RECT_F& rect, const POINT& mp)
 	return ((rect.left <= mp.x && mp.x <= rect.right) && (rect.top <= mp.y && mp.y <= rect.bottom));
 }
 
+void CResultScene::Update(HWND& hWnd)
+{
+	m_timer.Tick(0.0f);
+	if (m_showTime > 0) m_showTime -= m_timer.GetTimeElapsed();
+	if (m_showTime < 0)
+	{
+		m_showTime = 4.0f;
+		mainGame.ChangeScene(CGameFramework::SCENESTATE::LOBBY);
+	}
+}
+
 #pragma region Lobby
 
 void CLobbyScene::BuildObjects(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList)

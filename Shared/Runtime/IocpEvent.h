@@ -1,7 +1,13 @@
 ﻿#pragma once
 
 
-class ServerSession;
+#include "../NetworkConfig.h"
+#include "../Types.h"
+#include "NetworkPlatform.h"
+
+#include <cstring>
+
+class ASession;
 
 //==========================
 //        IOCP EVENT TYPE
@@ -41,7 +47,7 @@ class AcceptEvent : public IocpEvent
 public:
 	AcceptEvent() : IocpEvent(EventType::Accept) { Init(); };
 public:
-	ServerSession* _session = nullptr;
+	ASession* _session = nullptr;
 	char _buf[BUFSIZE / 2] = {};
 };
 

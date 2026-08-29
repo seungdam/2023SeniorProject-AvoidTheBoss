@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "CoreMacro.h"
 #include "IocpObject.h"
 
 class ASession : public IocpObject

@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "IocpObject.h"
-#include "NetAddress.h"
 
 class AcceptEvent;
 // Accept를 진행할 싱글톤 객체 (Listener)

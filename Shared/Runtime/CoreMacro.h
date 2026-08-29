@@ -1,5 +1,10 @@
 ﻿#pragma once
 
+#include "../Types.h"
+
+#include <mutex>
+#include <shared_mutex>
+
 //=================
 // CRASH
 // 인위적인 크러쉬를 일으키게 만드는 매크로
@@ -10,8 +15,6 @@
 
 #define RWLOCK std::shared_mutex _lock;
 #define RWLOCKS(count) std::shared_mutex _lock[count];
-#define READ_SERVER_LOCK std::shared_lock<std::shared_mutex> rl(ServerIocpCore._lock);
-#define WRITE_SERVER_LOCK std::unique_lock<std::shared_mutex> wr(ServerIocpCore._lock);
 #define RLock  std::shared_lock<std::shared_mutex> rl(_lock);
 #define WLock  std::unique_lock<std::shared_mutex> wr(_lock);
 

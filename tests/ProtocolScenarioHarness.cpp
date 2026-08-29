@@ -30,14 +30,11 @@
 #include <thread>
 #include <vector>
 
-// Types.h intentionally assumes these standard headers have already been included.
-#include "../CoreEngine/Types.h"
-#include "../CoreEngine/protocol.h"
+#include "../Shared/Protocol.h"
+#include "../Shared/Types.h"
 
 #include <WinSock2.h>
 #include <WS2tcpip.h>
-
-#pragma comment(lib, "Ws2_32.lib")
 
 namespace
 {

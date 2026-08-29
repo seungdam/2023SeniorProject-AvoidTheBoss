@@ -30,7 +30,7 @@ private:
 	//카메라의 위치(월드좌표계) 벡터이다.
 	XMFLOAT3 _position;
 
-	//카메라의 로컬 x-축(Right), y-축(Up), z-축(Look)을 나타내는 벡터이다.*/
+	//카메라의 로컬 x-축(Right), y-축(Up), z-축(Look)을 나타내는 벡터이다.
 	XMFLOAT3 _right;
 	XMFLOAT3 _up;
 	XMFLOAT3 _look;
@@ -53,7 +53,7 @@ private:
 	D3D12_VIEWPORT _viewport; // 렌더링 할 렌더타겟(후면버퍼) 영역 나타내는 구조체
 	D3D12_RECT _scissorRect; // 렌더링에서 제거하지 않을 영역 설정
 
-	ComPtr<ID3D12Resource> _constantBuffer;
+	ComPtr<ID3D12Resource> _constantBuffer; // Camera가 Constant Buffer를 영구 소유
 	VS_CB_CAMERA_INFO* _mappedConstants = nullptr;
 	uint32 _bufferCreateCount = 0;
 	int32 _viewerIndex = -1;
@@ -68,32 +68,30 @@ public:
 	//카메라의 정보를 셰이더 프로그램에게 전달하기 위한 상수 버퍼를 생성하고 갱신한다.
 	void CreateShaderVariables(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList);
 	void ReleaseShaderVariables();
-	void UpdateShaderVariables(
-		ID3D12GraphicsCommandList4* pd3dCommandList);
+	void UpdateShaderVariables(ID3D12GraphicsCommandList4* pd3dCommandList);
 
 	//카메라 변환 행렬을 생성한다.
 	void GenerateViewMatrix();
 	void GenerateViewMatrix(XMFLOAT3 xmf3Position, XMFLOAT3 xmf3LookAt, XMFLOAT3 xmf3Up);
-	/*카메라가 여러번 회전을 하게 되면 누적된 실수 연산의 부정확성 때문에 카메라의 로컬 x-축(Right), y-축(Up), z- 축(Look)이 서로 직교하지 않을 수 있다. 카메라의 로컬 x-축(Right), y-축(Up), z-축(Look)이 서로 직교하도록 만들
-어준다.*/
+	/*카메라가 여러번 회전을 하게 되면 누적된 실수 연산의 부정확성 때문에 카메라의 로컬 x-축(Right), y-축(Up), z- 축(Look)이 서로 직교하지 않을 수 있다.
+	카메라의 로컬 x-축(Right), y-축(Up), z-축(Look)이 서로 직교하도록 만들어준다.*/
 	void RegenerateViewMatrix();
 
 	//투영 변환 행렬을 생성한다.
 	void GenerateProjectionMatrix(float fNearPlaneDistance, float fFarPlaneDistance, float
 		fAspectRatio, float fFOVAngle);
 
-	void SetViewport(int xTopLeft, int yTopLeft, int nWidth, int nHeight, float fMinZ =
-		0.0f, float fMaxZ = 1.0f);
+	void SetViewport(int32 xTopLeft, int32 yTopLeft, int32 nWidth, int32 nHeight, float fMinZ = 0.0f, float fMaxZ = 1.0f);
 	void SetScissorRect(LONG xLeft, LONG yTop, LONG xRight, LONG yBottom);
 
 	void SetViewportsAndScissorRects(ID3D12GraphicsCommandList4* pd3dCommandList);
 
 	bool SetMode(DWORD mode);
 	void ResetPose(const CPlayer& target);
-	DWORD GetMode() const noexcept { return _mode; }
-	bool HasShaderVariables() const noexcept { return _constantBuffer && _mappedConstants; }
-	uint32 GetBufferCreateCount() const noexcept { return _bufferCreateCount; }
-	D3D12_GPU_VIRTUAL_ADDRESS GetBufferAddress() const noexcept
+	inline DWORD GetMode() const noexcept { return _mode; }
+	inline bool HasShaderVariables() const noexcept { return _constantBuffer && _mappedConstants; }
+	inline uint32 GetBufferCreateCount() const noexcept { return _bufferCreateCount; }
+	inline D3D12_GPU_VIRTUAL_ADDRESS GetBufferAddress() const noexcept
 	{
 		return _constantBuffer ? _constantBuffer->GetGPUVirtualAddress() : 0;
 	}

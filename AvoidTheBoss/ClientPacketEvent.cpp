@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ClientPacketEvent.h"
 
+#include "clientIocpCore.h"
 #include "GameFramework.h"
 #include "GameScene.h"
 #include "SceneManager.h"
