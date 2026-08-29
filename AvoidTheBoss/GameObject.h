@@ -6,6 +6,7 @@
 
 #include "Mesh.h"
 #include "Camera.h"
+#include "GameObjectOwnership.h"
 
 
 extern std::vector<DirectX::BoundingBox> bv;
@@ -321,15 +322,17 @@ public:
 class CGameObject
 {
 private:
-	int								m_nReferences = 0;
+	game_object_ownership::ReferenceCount m_references;
 
 public:
-	void AddRef();
-	void Release();
+	void AddRef() noexcept;
+	void Release() noexcept;
 
 public:
 	CGameObject();
 	CGameObject(int nMaterials);
+    // Transitional intrusive ownership: heap objects must normally be released
+    // through Release(). Direct delete is only safe while no references exist.
     virtual ~CGameObject();
 
 public:
@@ -430,6 +433,10 @@ public:
 	virtual void ResetState(){}
 };
 
+// Adopts one existing CGameObject ownership claim; it does not call AddRef().
+using GameObjectReleaser = game_object_ownership::Releaser<CGameObject>;
+using GameObjectOwner = game_object_ownership::Owner<CGameObject>;
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -449,8 +456,10 @@ class CSiren : public CGameObject
 private:
 	CGameObject* m_ppSirenCap = NULL;
 	CGameObject* m_ppSirenBell = NULL;
+	XMFLOAT4X4 _initialSirenCapTransform = Matrix4x4::Identity();
+	XMFLOAT4X4 _initialSirenBellTransform = Matrix4x4::Identity();
 
-	float m_AnimationDegree = 360.0f*3;
+	float m_AnimationDegree = 1080.0f;
 public:
 	CSiren();
 	virtual ~CSiren();
@@ -460,18 +469,10 @@ public:
 	virtual void ResetState()
 	{
 		m_bEmpExit = false;
-		m_AnimationDegree = 360.0f;
+		m_AnimationDegree = 1080.0f;
 
-		if (m_ppSirenBell)
-		{
-			XMMATRIX xmmtxRotate = DirectX::XMMatrixRotationZ(XMConvertToRadians(-360.0f));
-			m_ppSirenBell->m_xmf4x4ToParent = Matrix4x4::Multiply(xmmtxRotate, m_ppSirenBell->m_xmf4x4ToParent);
-		}
-		if (m_ppSirenCap)
-		{
-			XMMATRIX xmmtxRotate = DirectX::XMMatrixRotationZ(XMConvertToRadians(-360.0f));
-			m_ppSirenCap->m_xmf4x4ToParent = Matrix4x4::Multiply(xmmtxRotate, m_ppSirenCap->m_xmf4x4ToParent);
-		}
+		if (m_ppSirenBell) m_ppSirenBell->m_xmf4x4ToParent = _initialSirenBellTransform;
+		if (m_ppSirenCap) m_ppSirenCap->m_xmf4x4ToParent = _initialSirenCapTransform;
 		UpdateTransform(NULL);
 	}
 };
@@ -484,6 +485,8 @@ private:
 	float m_AnimationDistance = DOOR_ANIMATION_TIME;
 	CGameObject* m_pLeftDoorFrame = NULL;
 	CGameObject* m_pRightDoorFrame = NULL;
+	XMFLOAT4X4 _initialLeftDoorTransform = Matrix4x4::Identity();
+	XMFLOAT4X4 _initialRightDoorTransform = Matrix4x4::Identity();
 public:
 	CFrontDoor();
 	virtual ~CFrontDoor();
@@ -495,19 +498,8 @@ public:
 	{
 		m_bEmpExit = false;
 		m_AnimationDistance = DOOR_ANIMATION_TIME;
-		//m_pRightDoorFrame->SetPosition(1.52586f, -0.4999936f, -4.882812f);
-		//m_pLeftDoorFrame->SetPosition(1.83106f, -0.4999997f,0.0f);
-
-		if (m_pLeftDoorFrame)
-		{
-			XMMATRIX xmmtxTranslate = DirectX::XMMatrixTranslation(-DOOR_ANIMATION_TIME, 0.0f, 0.0f);
-			m_pLeftDoorFrame->m_xmf4x4ToParent = Matrix4x4::Multiply(xmmtxTranslate, m_pLeftDoorFrame->m_xmf4x4ToParent);
-		}
-		if (m_pRightDoorFrame)
-		{
-			XMMATRIX xmmtxTranslate = DirectX::XMMatrixTranslation(DOOR_ANIMATION_TIME, 0.0f, 0.0f);
-			m_pRightDoorFrame->m_xmf4x4ToParent = Matrix4x4::Multiply(xmmtxTranslate, m_pRightDoorFrame->m_xmf4x4ToParent);
-		}
+		if (m_pLeftDoorFrame) m_pLeftDoorFrame->m_xmf4x4ToParent = _initialLeftDoorTransform;
+		if (m_pRightDoorFrame) m_pRightDoorFrame->m_xmf4x4ToParent = _initialRightDoorTransform;
 		UpdateTransform(NULL);
 	}
 };
@@ -516,24 +508,19 @@ class CEmergencyDoor : public CGameObject
 {
 private:
 	float m_AnimationDegree = 120.0f;
+	XMFLOAT4X4 _initialTransform = Matrix4x4::Identity();
 public:
 	CEmergencyDoor();
 	virtual ~CEmergencyDoor();
 
+	virtual void OnPrepareAnimate();
 	virtual void Animate(float fTimeElapsed);
 
 	virtual void ResetState()
 	{
 		m_bEmpExit = false;
 		m_AnimationDegree = 120.0f;
-		//if(GetPosition().x>0)
-		//	Rotate(0.0f, -90.0f, 0.0f);
-		//else
-		//	Rotate(0.0f, 90.0f, 0.0f);
-
-		XMMATRIX xmmtxRotate = XMMatrixRotationY(XMConvertToRadians(-120.0f));
-		m_xmf4x4ToParent = Matrix4x4::Multiply(xmmtxRotate, m_xmf4x4ToParent);
-
+		m_xmf4x4ToParent = _initialTransform;
 		UpdateTransform(NULL);
 	}
 };
@@ -543,6 +530,7 @@ class CShutterDoor : public CGameObject
 private:
 	float m_AnimationDistance = 1.5f;//1.9f;
 	CGameObject* m_pShutter = NULL;
+	XMFLOAT4X4 _initialShutterTransform = Matrix4x4::Identity();
 public:
 	CShutterDoor();
 	virtual ~CShutterDoor();
@@ -554,13 +542,7 @@ public:
 	{
 		m_bEmpExit = false;
 		m_AnimationDistance = 1.5f;
-		//m_pShutter->SetPosition(0.0f, -5.453176f, 26.3315f);
-		if (m_pShutter)
-		{
-			XMMATRIX xmmtxTranslate = DirectX::XMMatrixTranslation(0.0f, 0.0f,-1.5f);
-			m_pShutter->m_xmf4x4ToParent = Matrix4x4::Multiply(xmmtxTranslate, m_pShutter->m_xmf4x4ToParent);
-		}
-
+		if (m_pShutter) m_pShutter->m_xmf4x4ToParent = _initialShutterTransform;
 		UpdateTransform(NULL);
 	}
 };
@@ -580,6 +562,7 @@ private:
 	float scaleFactor = 0.0f;
 	bool m_bOnHit = false;
 	CGameObject* m_pHit = NULL;
+	XMFLOAT4X4 _initialTransform = Matrix4x4::Identity();
 public:
 	CHitEffect();
 	virtual ~CHitEffect();
@@ -587,9 +570,11 @@ public:
 	virtual void OnPrepareAnimate();
 	virtual void Animate(float fTimeElapsed);
 	virtual void Update(float fTimeElapsed);
+	void ResetState() override;
+	void CaptureInitialTransform() noexcept { _initialTransform = m_xmf4x4ToParent; }
 
 	void SetOnHit(bool hit) { m_bOnHit = hit; }
-	bool GetOnHit() { return m_bOnHit; }
+	bool GetOnHit() const noexcept { return m_bOnHit; }
 
 	XMFLOAT3 GetLookVector() { return(m_xmf3Look); }
 	XMFLOAT3 GetUpVector() { return(m_xmf3Up); }

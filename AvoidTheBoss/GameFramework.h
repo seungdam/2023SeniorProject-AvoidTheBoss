@@ -29,12 +29,6 @@ class CGameFramework
 public:
 	enum class SCENESTATE { TITLE = 0, LOBBY = 1, ROOM = 2, INGAME = 3, RESULT = 4 };
 
-	friend class queueEvent;
-	friend class moveEvnet;
-	friend class posEvent;
-	friend class InteractionEvent;
-	friend class FrameEvent;
-
 	friend class CEmployee;
 	friend class CBoss;
 
@@ -114,6 +108,7 @@ public:
 public:
 	CGameFramework();
 	~CGameFramework();
+	CScene* GetSceneByIdx(int32 index) const noexcept;
 
 	//프레임워크를 초기화하는 함수이다(주 윈도우가 생성되면 호출된다).
 	bool OnCreate(HINSTANCE hInstance, HWND hMainWnd);

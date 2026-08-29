@@ -11,6 +11,16 @@
 
 namespace
 {
+	struct FileCloser
+	{
+		void operator()(FILE* file) const noexcept
+		{
+			if (file) ::fclose(file);
+		}
+	};
+
+	using FileHandle = std::unique_ptr<FILE, FileCloser>;
+
 	FILE* OpenUtf8BinaryFile(const char* fileName)
 	{
 		if (!fileName) return nullptr;
@@ -597,6 +607,12 @@ CGameObject::CGameObject(int nMaterials) : CGameObject()
 
 CGameObject::~CGameObject()
 {
+	assert(m_references.Empty() && "Referenced CGameObject must be destroyed through Release()");
+
+	// A node owns its first child and next sibling. Release the hierarchy only
+	// when this node actually dies; AddRef/Release never walk the tree.
+	game_object_ownership::ReleaseHierarchy(m_pParent, m_pChild, m_pSibling);
+
 	if (m_pMesh) {
 		m_pMesh->Release();
 		m_pMesh
@@ -619,41 +635,19 @@ CGameObject::~CGameObject()
 
 }
 
-void CGameObject::AddRef()
+void CGameObject::AddRef() noexcept
 {
-	m_nReferences++;
-
-	if (m_pSibling) m_pSibling->AddRef();
-	if (m_pChild) m_pChild->AddRef();
+	m_references.Add();
 }
 
-void CGameObject::Release()
+void CGameObject::Release() noexcept
 {
-	if (m_pChild) {
-		m_pChild->Release();
-	}
-	if (m_pSibling) {
-		m_pSibling->Release();
-	}
-	if (--m_nReferences <= 0) delete this;
+	if (m_references.Release()) delete this;
 }
 
 void CGameObject::SetChild(CGameObject *pChild, bool bReferenceUpdate)
 {
-	if (pChild)
-	{
-		pChild->m_pParent = this;
-		if (bReferenceUpdate) pChild->AddRef();
-	}
-	if (m_pChild)
-	{
-		if (pChild) pChild->m_pSibling = m_pChild->m_pSibling;
-		m_pChild->m_pSibling = pChild;
-	}
-	else
-	{
-		m_pChild = pChild;
-	}
+	game_object_ownership::AttachChild(*this, pChild, bReferenceUpdate);
 }
 
 void CGameObject::SetMesh(CMesh *pMesh)
@@ -1219,13 +1213,14 @@ void CGameObject::LoadAnimationFromFile(FILE *pInFile, CLoadedModelInfo *pLoaded
 
 CLoadedModelInfo *CGameObject::LoadGeometryAndAnimationFromFile(ID3D12Device5 *pd3dDevice, ID3D12GraphicsCommandList4   *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature, const char *pstrFileName, CShader *pShader, Layout objType)
 {
-	FILE *pInFile = OpenUtf8BinaryFile(pstrFileName);
-	if (!pInFile)
+	FileHandle inputFile{OpenUtf8BinaryFile(pstrFileName)};
+	if (!inputFile)
 	{
 		const std::string message = std::string("Cannot open model file: ") + (pstrFileName ? pstrFileName : "<null>");
 		::OutputDebugStringA((message + "\n").c_str());
 		throw std::runtime_error(message);
 	}
+	FILE* pInFile = inputFile.get();
 	::rewind(pInFile);
 
 	CLoadedModelInfo *pLoadedModel = new CLoadedModelInfo();
@@ -1256,8 +1251,6 @@ CLoadedModelInfo *CGameObject::LoadGeometryAndAnimationFromFile(ID3D12Device5 *p
 			break;
 		}
 	}
-	::fclose(pInFile);
-
 #ifdef _WITH_DEBUG_FRAME_HIERARCHY
 	TCHAR pstrDebug[256] = { 0 };
 	_stprintf_s(pstrDebug, 256, "Frame Hierarchy\n"));
@@ -1271,17 +1264,17 @@ CLoadedModelInfo *CGameObject::LoadGeometryAndAnimationFromFile(ID3D12Device5 *p
 
 CGameObject* CGameObject::LoadGeometryFromFile(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4  * pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, const char* pstrFileName, CShader* pShader, Layout objType)
 {
-	FILE* pInFile = OpenUtf8BinaryFile(pstrFileName);
-	if (!pInFile)
+	FileHandle inputFile{OpenUtf8BinaryFile(pstrFileName)};
+	if (!inputFile)
 	{
 		const std::string message = std::string("Cannot open model file: ") + (pstrFileName ? pstrFileName : "<null>");
 		::OutputDebugStringA((message + "\n").c_str());
 		throw std::runtime_error(message);
 	}
+	FILE* pInFile = inputFile.get();
 	::rewind(pInFile);
 
 	CGameObject* pGameObject = CGameObject::LoadFrameHierarchyFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, NULL, pInFile, pShader, NULL,objType);
-	::fclose(pInFile);
 
 #ifdef _WITH_DEBUG_FRAME_HIERARCHY
 	TCHAR pstrDebug[256] = { 0 };
@@ -1342,6 +1335,8 @@ void CSiren::OnPrepareAnimate()
 {
 	m_ppSirenBell = FindFrame("Siren_Bell");
 	m_ppSirenCap = FindFrame("Siren_Cap");
+	if (m_ppSirenBell) _initialSirenBellTransform = m_ppSirenBell->m_xmf4x4ToParent;
+	if (m_ppSirenCap) _initialSirenCapTransform = m_ppSirenCap->m_xmf4x4ToParent;
 }
 
 void CSiren::Animate(float fTimeElapsed)
@@ -1383,6 +1378,8 @@ void CFrontDoor::OnPrepareAnimate()
 {
 	m_pLeftDoorFrame = FindFrame("Hanger_Door_Left");
 	m_pRightDoorFrame = FindFrame("Hanger_Door_Right");
+	if (m_pLeftDoorFrame) _initialLeftDoorTransform = m_pLeftDoorFrame->m_xmf4x4ToParent;
+	if (m_pRightDoorFrame) _initialRightDoorTransform = m_pRightDoorFrame->m_xmf4x4ToParent;
 }
 void CFrontDoor::Animate(float fTimeElapsed)
 {
@@ -1430,6 +1427,12 @@ CEmergencyDoor::CEmergencyDoor()
 CEmergencyDoor::~CEmergencyDoor()
 {
 }
+
+void CEmergencyDoor::OnPrepareAnimate()
+{
+	_initialTransform = m_xmf4x4ToParent;
+}
+
 void CEmergencyDoor::Animate(float fTimeElapsed)
 {
 	if (m_bEmpExit)
@@ -1468,6 +1471,7 @@ CShutterDoor::~CShutterDoor()
 void CShutterDoor::OnPrepareAnimate()
 {
 	m_pShutter = FindFrame("Sutter_Open");
+	if (m_pShutter) _initialShutterTransform = m_pShutter->m_xmf4x4ToParent;
 }
 
 void CShutterDoor::Animate(float fTimeElapsed)
@@ -1502,6 +1506,19 @@ CHitEffect::CHitEffect()
 
 CHitEffect::~CHitEffect()
 {
+}
+
+void CHitEffect::ResetState()
+{
+	m_fDistance = 0.0f;
+	m_xmf3Look = XMFLOAT3(0.0f, 0.0f, 1.0f);
+	m_xmf3Right = XMFLOAT3(1.0f, 0.0f, 0.0f);
+	m_xmf3Up = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	m_xmf3Velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	scaleFactor = 0.0f;
+	m_bOnHit = false;
+	m_xmf4x4ToParent = _initialTransform;
+	UpdateTransform(nullptr);
 }
 
 void CHitEffect::OnPrepareAnimate()

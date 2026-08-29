@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "GameFramework.h"
 #include "ClientTestMode.h"
 #include "clientIocpCore.h"
@@ -56,6 +56,11 @@ CGameFramework::~CGameFramework()
 {
 }
 
+CScene* CGameFramework::GetSceneByIdx(const int32 index) const noexcept
+{
+	return m_SceneManager ? m_SceneManager->GetSceneByIdx(index) : nullptr;
+}
+
 //다음 함수는 응용 프로그램이 실행되어 주 윈도우가 생성되면 호출된다는 것에 유의하라.
 bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
 {
@@ -82,7 +87,15 @@ void CGameFramework::OnDestroy()
 {
 	if (m_pd3dCommandQueue && m_pd3dFence && m_hFenceEvent)
 	{
-		WaitForGpuComplete();
+		try
+		{
+			WaitForGpuComplete();
+		}
+		catch (...)
+		{
+			// Cleanup must continue even when the device was lost during initialization.
+			::OutputDebugStringA("[cleanup] GPU wait failed; continuing resource release\n");
+		}
 	}
 
 	//delete m_pSound;
@@ -97,37 +110,47 @@ void CGameFramework::OnDestroy()
 		m_hFenceEvent = NULL;
 	}
 
-	if (m_pd3dDepthStencilBuffer) m_pd3dDepthStencilBuffer->Release();
-	if (m_pd3dDsvDescriptorHeap) m_pd3dDsvDescriptorHeap->Release();
+	const auto releaseCom = [](auto*& object) noexcept
+	{
+		if (!object) return;
+		object->Release();
+		object = nullptr;
+	};
+
+	releaseCom(m_pd3dDepthStencilBuffer);
+	releaseCom(m_pd3dDsvDescriptorHeap);
 
 	for (int i = 0; i < m_nSwapChainBuffers; i++)
-		if (m_ppd3dSwapChainBackBuffers[i])
-			m_ppd3dSwapChainBackBuffers[i]->Release();
-	if (m_pd3dRtvDescriptorHeap) m_pd3dRtvDescriptorHeap->Release();
+		releaseCom(m_ppd3dSwapChainBackBuffers[i]);
+	releaseCom(m_pd3dRtvDescriptorHeap);
 
-	if (m_pd3dCommandList) m_pd3dCommandList->Release();
-	if (m_pd3dCommandAllocator) m_pd3dCommandAllocator->Release();
-	if (m_pd3dCommandQueue) m_pd3dCommandQueue->Release();
+	releaseCom(m_pd3dCommandList);
+	releaseCom(m_pd3dCommandAllocator);
+	releaseCom(m_pd3dCommandQueue);
 
 	if (m_pdxgiSwapChain)
 	{
 		m_pdxgiSwapChain->SetFullscreenState(FALSE, NULL);
-		m_pdxgiSwapChain->Release();
+		releaseCom(m_pdxgiSwapChain);
 	}
 
 	FinalizeClientTest();
-	if (m_pd3dFence) m_pd3dFence->Release();
-	if (m_pd3dDevice) m_pd3dDevice->Release();
-	if (m_pdxgiFactory) m_pdxgiFactory->Release();
+	releaseCom(m_pd3dFence);
+	releaseCom(m_pd3dDevice);
+	releaseCom(m_pdxgiFactory);
 
 #if defined(_DEBUG)
-	ComPtr<IDXGIDebug1> pdxgiDebug;
-	if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(pdxgiDebug.GetAddressOf()))))
 	{
-		::OutputDebugStringW(L"\n[Phase 0] DXGI live object report\n");
-		pdxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL);
+		ComPtr<IDXGIDebug1> pdxgiDebug;
+		if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(pdxgiDebug.GetAddressOf()))))
+		{
+			::OutputDebugStringW(L"\n[Phase 0] DXGI live object report\n");
+			pdxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL);
+		}
 	}
 #endif
+
+	g_clientTestMode.OnCleanupSequenceCompleted();
 }
 
 #define _WITH_SWAPCHAIN
@@ -491,24 +514,36 @@ void CGameFramework::FrameAdvance() // 여기서 업데이트랑 렌더링 동�
 	if (g_clientTestMode.Enabled())
 	{
 		ClientFrameSnapshot snapshot;
-		snapshot.scene = m_curScene.load();
-		snapshot.submittedFence = m_nLastSubmittedFenceValue;
-		snapshot.completedFence = m_pd3dFence->GetCompletedValue();
+		snapshot._scene = m_curScene.load();
+		snapshot._submittedFence = m_nLastSubmittedFenceValue;
+		snapshot._completedFence = m_pd3dFence->GetCompletedValue();
 		const int playerIndex = g_clientTestMode.DutPlayerIndex();
 		auto* gameScene = static_cast<CGameScene*>(m_SceneManager->GetSceneByIdx(
 			static_cast<int>(SCENESTATE::INGAME)));
 		CPlayer* player = gameScene ? gameScene->GetScenePlayerByIdx(playerIndex) : nullptr;
+		CCamera* camera = gameScene ? gameScene->GetCameraComponent() : nullptr;
 		if (player)
 		{
-			snapshot.hp = player->m_hp;
-			snapshot.behavior = player->m_behavior;
-			snapshot.cameraMode = player->GetCamera() ? static_cast<int>(player->GetCamera()->GetMode()) : -1;
-			snapshot.cameraIdentity = reinterpret_cast<std::uintptr_t>(player->GetCamera());
-			snapshot.sceneCameraMatches = gameScene->GetRenderCamera() ==
-				(gameScene->m_playerIdx >= 0 ? player->GetCamera() : nullptr);
-			snapshot.scenePlayerIndexMatches = gameScene->m_playerIdx == playerIndex;
-			snapshot.cameraResourcesValid = player->GetCamera() && player->GetCamera()->HasShaderVariables();
-			if (playerIndex > 0) snapshot.rescuing = static_cast<CEmployee*>(player)->GetRescueOn();
+			snapshot._health = player->GetHealth();
+			snapshot._behavior = player->GetBehavior();
+			snapshot._hidden = player->IsHidden();
+			if (playerIndex > 0) snapshot._rescuing = static_cast<CEmployee*>(player)->GetRescueOn();
+		}
+		if (camera)
+		{
+			snapshot._cameraMode = static_cast<int>(camera->GetMode());
+			snapshot._cameraIdentity = reinterpret_cast<std::uintptr_t>(camera);
+			snapshot._cameraResourcesValid = camera->HasShaderVariables();
+			snapshot._cameraBufferAddress = camera->GetBufferAddress();
+			snapshot._cameraBufferCreateCount = camera->GetBufferCreateCount();
+		}
+		if (gameScene)
+		{
+			CPlayer* localPlayer = gameScene->GetLocalPlayer();
+			snapshot._renderCameraStateValid = gameScene->GetRenderCamera() == (localPlayer ? camera : nullptr);
+			snapshot._localPlayerMatchesDut = localPlayer == player && gameScene->GetLocalPlayerIndex() == playerIndex;
+			snapshot._cameraViewerMatchesLocal = camera &&
+				camera->GetViewerIndex() == gameScene->GetLocalPlayerIndex();
 		}
 		if (g_clientTestMode.Pump(snapshot))
 		{
@@ -519,7 +554,14 @@ void CGameFramework::FrameAdvance() // 여기서 업데이트랑 렌더링 동�
 
 	//4 렌더링 처리
 	Render();
-	m_UIRenderer->Render2D(m_nSwapChainBufferIndex, m_curScene.load());
+	const int32 currentScene = m_curScene.load();
+	int32 localPlayerIndex = -1;
+	if (currentScene == static_cast<int32>(SCENESTATE::INGAME))
+	{
+		auto* gameScene = static_cast<CGameScene*>(m_SceneManager->GetSceneByIdx(currentScene));
+		if (gameScene) localPlayerIndex = gameScene->GetLocalPlayerIndex();
+	}
+	m_UIRenderer->Render2D(m_nSwapChainBufferIndex, currentScene, localPlayerIndex);
 
 	HRESULT presentResult = S_OK;
 #ifdef _WITH_PRESENT_PARAMETERS
