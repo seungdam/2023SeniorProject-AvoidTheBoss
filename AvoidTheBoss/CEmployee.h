@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Player.h"
 
 
@@ -6,41 +6,37 @@ class CGenerator;
 
 class CEmployee : public CPlayer
 {
-	friend class UIManager;
 public:
-	bool m_bIsPlayerOnGenInter = false; // F키를 눌렀다 땠는지 확인하는 용도
-	bool m_bIsPlayerOnRescueInter = false;
+	bool _generatorInteractionActive = false; // F키를 눌렀다 땠는지 확인하는 용도
+	bool _rescueInteractionActive = false;
 public:
-	bool m_bIsInvincibility = false;
-	float m_UICoolTime = 1.0f;
+	bool _invincible = false;
+	float _uiCooldown = 1.0f;
 
 private:
-	bool m_bIsInGenArea = false;
-	bool m_bIsInDownPlayerArea = false; // Down된 플레이어와 인접해 있는가?
+	bool _inGeneratorArea = false;
+	bool _nearDownedPlayer = false; // Down된 플레이어와 인접해 있는가?
 	//bool m_bIsDown
 protected:
-	float m_maxRGuage = 100;
-	float m_curGuage = 0;
-	float m_rVel = 10.0f;
-	int32 m_curRescuingEmpIdx = 0;
-	bool m_bIsRescuing = false;
+	float _maxRescueGauge = 100;
+	float _rescueGauge = 0;
+	float _rescueSpeed = 10.0f;
+	int32 _rescuingEmployeeIndex = -1;
+	bool _beingRescued = false;
 private:
-	int32 m_curInterGen = -1;
+	int32 _currentGeneratorIndex = -1;
 public:
-	int32 m_deadCnt = 0;
-	int32 m_activeCnt = 0;
+	int32 _deathCount = 0;
+	int32 _activatedGeneratorCount = 0;
 
-	int32 m_attackedAnimationCount = 0;
-	int32 m_downAnimationCount = 0;
-	int32 m_standAnimationCount = 0;
+	int32 _attackedAnimationFrames = 0;
+	int32 _downAnimationFrames = 0;
+	int32 _standAnimationFrames = 0;
 public:
 	CEmployee(ID3D12Device5* pd3dDevice,
 		ID3D12GraphicsCommandList4
 		* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CHARACTER_TYPE nType);
 	virtual ~CEmployee();
-
-	virtual CCamera* ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed);
-
 
 	// ========== 플레이어 조작 관련 ===================
 	virtual uint8 ProcessInput();
@@ -48,55 +44,59 @@ public:
 	virtual void Update(float fTimeElapsed, CLIENT_TYPE ptype);
 	virtual void LateUpdate(float fTimeElapsed, CLIENT_TYPE ptype);
 
-	void SetGenInteraction(bool value) { m_bIsPlayerOnGenInter = value; }
-	bool GetIsPlayerOnGenInter() { return m_bIsPlayerOnGenInter; }
-	void SetRescueInteraction(bool value) { m_bIsPlayerOnRescueInter = value; }
-	bool GetIsPlayerOnRescueInter() { return m_bIsPlayerOnRescueInter; }
+	void SetGenInteraction(bool value) { _generatorInteractionActive = value; }
+	bool GetIsPlayerOnGenInter() const noexcept { return _generatorInteractionActive; }
+	void SetRescueInteraction(bool value) { _rescueInteractionActive = value; }
+	bool GetIsPlayerOnRescueInter() const noexcept { return _rescueInteractionActive; }
 
 	// ============= 애니메이션 트랙 셋팅 관련 ============
 
 	bool IsMovable()
 	{
-		return (m_behavior == (int32)PLAYER_BEHAVIOR::RESCUE || m_behavior == (int32)PLAYER_BEHAVIOR::SWITCH_INTER || m_behavior == (int32)PLAYER_BEHAVIOR::CRAWL
-			|| m_behavior == (int32)PLAYER_BEHAVIOR::EXIT);
+		return (_state.behavior == (int32)PLAYER_BEHAVIOR::RESCUE || _state.behavior == (int32)PLAYER_BEHAVIOR::SWITCH_INTER || _state.behavior == (int32)PLAYER_BEHAVIOR::CRAWL
+			|| _state.behavior == (int32)PLAYER_BEHAVIOR::EXIT);
 	}
 	bool IsSeMiBehavior() // 스탠드, 크라울, 다운 상태
 	{
-		return (m_behavior == (int32)PLAYER_BEHAVIOR::DOWN  || m_behavior == (int32)PLAYER_BEHAVIOR::STAND);
+		return (_state.behavior == (int32)PLAYER_BEHAVIOR::DOWN  || _state.behavior == (int32)PLAYER_BEHAVIOR::STAND);
 	}
 
 	// 깨우기
 	void RescueOn(bool value)
 	{
-		if(m_bIsRescuing != value ) m_bIsRescuing = value;
+		if(_beingRescued != value ) _beingRescued = value;
 
 	}
-	void ResetRescueGuage() { m_curGuage = 0; }
-	bool GetRescueOn() { return m_bIsRescuing; }
+	void ResetRescueGuage() { _rescueGauge = 0; }
+	bool GetRescueOn() const noexcept { return _beingRescued; }
 
 	virtual void ResetState()
 	{
-		SetBehavior(PLAYER_BEHAVIOR::IDLE);
-		m_attackedAnimationCount = 0;
-		m_downAnimationCount = 0;
-		m_standAnimationCount = 0;
+		CPlayer::ResetState();
+		_attackedAnimationFrames = 0;
+		_downAnimationFrames = 0;
+		_standAnimationFrames = 0;
 
-		m_bIsPlayerOnGenInter = false; // F키를 눌렀다 땠는지 확인하는 용도
-		m_bIsPlayerOnRescueInter = false;
+		_generatorInteractionActive = false; // F키를 눌렀다 땠는지 확인하는 용도
+		_rescueInteractionActive = false;
 
-		m_bIsInvincibility = false;
-		m_UICoolTime = 1.0f;
-
-
-		m_bIsInGenArea = false;
-		m_bIsInDownPlayerArea = false; // Down된 플레이어와 인접해 있는가?
+		_invincible = false;
+		_uiCooldown = 1.0f;
 
 
-	    m_curGuage = 0;
-		m_hp = 3;
-		m_bIsRescuing = false;
+		_inGeneratorArea = false;
+		_currentGeneratorIndex = -1;
+		_deathCount = 0;
+		_activatedGeneratorCount = 0;
+		_nearDownedPlayer = false; // Down된 플레이어와 인접해 있는가?
 
-		m_bOnMoveSound = false;
+
+	    _rescueGauge = 0;
+		_rescuingEmployeeIndex = -1;
+		_beingRescued = false;
+
+		_moveSoundActive = false;
+		m_bEmpExit = false;
 
 	}
 
@@ -128,9 +128,13 @@ public: // 05-23 추가 함수
 	bool RescueTasking();
 
 
-	bool GetIsInGenArea() { return m_bIsInGenArea; }
+	bool GetIsInGenArea() const noexcept { return _inGeneratorArea; }
+	bool HasRescueTarget() const noexcept { return _nearDownedPlayer; }
+	float GetRescueGauge() const noexcept { return _rescueGauge; }
+	int32 GetRescuingEmployeeIndex() const noexcept { return _rescuingEmployeeIndex; }
+	int32 GetCurrentGeneratorIndex() const noexcept { return _currentGeneratorIndex; }
 	CGenerator* GetAvailGen();
 	CEmployee* GetAvailEMP();
 public: // 05-24 추가함수
-	GEN_INFO m_pSwitches[3];
+	GEN_INFO _switches[3];
 };

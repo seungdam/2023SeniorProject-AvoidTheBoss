@@ -1,56 +1,49 @@
-﻿#pragma once
-#include "GameObject.h"
-#define BUIIET_DISTANCE 3.7f
-#define BULLET_NUMBER 1
-#define BULLET_SPEED 0.3f
+#pragma once
 
+#include <utility>
+
+#include "GameObject.h"
+#include "TracerVisualState.h"
+
+#define BULLET_DISTANCE 3.7f
+#define BULLET_NUMBER 1
+#define BULLET_SPEED_UNITS_PER_SECOND 18.0f
 
 class CBullet : public CGameObject
 {
 private:
-	float		m_fDistance = 0.0f;
-	XMFLOAT3	m_xmf3Look = XMFLOAT3(0.0f, 0.0f, 1.0f);
-	XMFLOAT3	m_xmf3Right = XMFLOAT3(1.0f, 0.0f, 0.0f);
-	XMFLOAT3	m_xmf3Up = XMFLOAT3(0.0f, 1.0f, 0.0f);
-	XMFLOAT3	m_xmf3Velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	atb::client::TracerVisualState _tracer{
+		BULLET_SPEED_UNITS_PER_SECOND,
+		BULLET_DISTANCE
+	};
+	bool _spawnRequested = false;
+	XMFLOAT4X4 _initialTransform = Matrix4x4::Identity();
 
-	bool		m_bStartShoot = false;
-	bool		m_OnShoot = false;
-	bool		m_OnHit = false;
 public:
-	CHitEffect* m_pHitEffect = NULL;
+	// Observer. CHitEffect is owned by CHitEffectObjectsShader.
+	CHitEffect* m_pHitEffect = nullptr;
 
 	CBullet();
-	virtual ~CBullet();
+	~CBullet() override;
 
-	virtual void Update(float fTimeElapsed);
-	void SetStartShoot(bool value) { m_bStartShoot = value; }
-	bool GetStartShoot() { return m_bStartShoot; }
-
-	void SetOnShoot(bool value) { m_OnShoot = value; }
-	bool GetOnShoot() { return m_OnShoot; }
-
-	void SetOnHit(bool value) { m_OnHit = value; }
-	bool GetOnHit() { return m_OnHit; }
-
-	CHitEffect* GetHitEffect() { return m_pHitEffect; }
-	void SetHitEffect(CHitEffect* pHit) { m_pHitEffect = pHit; }
-
-	void SetBulletPosition(XMFLOAT3 Pos);
-	XMFLOAT3 GetLookVector() { return(m_xmf3Look); }
-	XMFLOAT3 GetUpVector() { return(m_xmf3Up); }
-	XMFLOAT3 GetRightVector() { return(m_xmf3Right); }
-	void SetDirection(const XMFLOAT3& look)
+	void Update(float fTimeElapsed) override;
+	[[nodiscard]] bool Spawn(const XMFLOAT3& origin, const XMFLOAT3& direction) noexcept;
+	void RequestSpawn() noexcept { _spawnRequested = true; }
+	[[nodiscard]] bool ConsumeSpawnRequest() noexcept
 	{
-		m_xmf3Look = look;
-		m_xmf3Right = Vector3::CrossProduct(m_xmf3Up, m_xmf3Look, true);
+		return std::exchange(_spawnRequested, false);
 	}
+	[[nodiscard]] bool GetOnShoot() const noexcept { return _tracer.IsActive(); }
 
-	virtual void ResetState() {
-		m_bStartShoot = false;
-		m_OnShoot = false;
-		m_OnHit = false;
+	CHitEffect* GetHitEffect() const noexcept { return m_pHitEffect; }
+	void SetHitEffect(CHitEffect* hitEffect) noexcept;
+
+	void ResetState() override
+	{
+		_spawnRequested = false;
+		_tracer.Reset();
+		m_xmf4x4ToParent = _initialTransform;
+		UpdateTransform(nullptr);
+		if (m_pHitEffect) m_pHitEffect->ResetState();
 	}
 };
-
-

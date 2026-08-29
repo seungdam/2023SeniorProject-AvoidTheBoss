@@ -1,49 +1,40 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "GameObject.h"
 #include "CBullet.h"
 
-CBullet::CBullet()
-{
-}
+CBullet::CBullet() = default;
+CBullet::~CBullet() = default;
 
-CBullet::~CBullet()
+void CBullet::SetHitEffect(CHitEffect* hitEffect) noexcept
 {
+	m_pHitEffect = hitEffect;
+	_initialTransform = m_xmf4x4ToParent;
+	if (m_pHitEffect) m_pHitEffect->CaptureInitialTransform();
 }
 
 void CBullet::Update(float fTimeElapsed)
 {
-	if (m_OnShoot)
+	if (_tracer.IsActive())
 	{
-		//5.6 총알 발사 코드
-		XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
-		xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look,
-			BUIIET_DISTANCE);
-		m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, xmf3Shift);
+		const bool reachedEnd = _tracer.Tick(fTimeElapsed);
+		const auto& position = _tracer.Position();
+		SetPosition(XMFLOAT3(position.x, position.y, position.z));
 
-		XMFLOAT3 xmf3Velocity = Vector3::ScalarProduct(m_xmf3Velocity, fTimeElapsed, false);
-
-		SetPosition(Vector3::Add(GetPosition(), xmf3Velocity));
-
-		m_fDistance += BULLET_SPEED;
-		if (m_fDistance > BUIIET_DISTANCE)
+		if (reachedEnd && m_pHitEffect)
 		{
-			m_OnShoot = false;
-			m_OnHit = true; //이 값을 총알 충돌 판정 처리로 옮긴다.
-
-			m_fDistance = 0.0f;
-			m_xmf3Velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
+			m_pHitEffect->SetPosition(position.x, 1.1f, position.z);
+			m_pHitEffect->SetOnHit(true);
 		}
 	}
-	if (m_OnHit)
-	{
-		m_pHitEffect->SetPosition(GetPosition().x, 1.1f, GetPosition().z); // 충돌 지점 위치 넘겨주기
-		m_pHitEffect->SetOnHit(true);
-		m_OnHit = false;
-	}
-	m_pHitEffect->Update(fTimeElapsed);
+
+	if (m_pHitEffect) m_pHitEffect->Update(fTimeElapsed);
 }
 
-void CBullet::SetBulletPosition(XMFLOAT3 playerPos)
+bool CBullet::Spawn(const XMFLOAT3& origin, const XMFLOAT3& direction) noexcept
 {
-	SetPosition(playerPos);
+	const bool spawned = _tracer.Spawn(
+		{ origin.x, origin.y, origin.z },
+		{ direction.x, direction.y, direction.z });
+	if (spawned) SetPosition(origin);
+	return spawned;
 }

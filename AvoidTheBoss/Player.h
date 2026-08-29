@@ -1,15 +1,6 @@
 ﻿#pragma once
 #include "GameObject.h"
-
-enum class CLIENT_TYPE
-{
-	OWNER,OTHER_PLAYER,NONE
-};
-
-enum class PLAYER_TYPE
-{
-	NONE = 0 ,BOSS = 1, EMPLOYEE = 2
-};
+#include "PlayerState.h"
 
 enum class CHARACTER_TYPE: uint8
 {
@@ -42,99 +33,79 @@ static const char* g_pstrFirstCharactorRefernece[4] =
 
 class CPlayer : public CGameObject
 {
-	friend class CSession;
-	friend class InteractionEvent;
 protected:
+	PlayerState _state;
 
-	XMFLOAT3					m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	XMFLOAT3					m_xmf3Right = XMFLOAT3(1.0f, 0.0f, 0.0f);
-	XMFLOAT3					m_xmf3Up = XMFLOAT3(0.0f, 1.0f, 0.0f);
-	XMFLOAT3					m_xmf3Look = XMFLOAT3(0.0f, 0.0f, 1.0f);
-	XMFLOAT3					m_xmf3Scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	XMFLOAT3 _position = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	XMFLOAT3 _right = XMFLOAT3(1.0f, 0.0f, 0.0f);
+	XMFLOAT3 _up = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	XMFLOAT3 _look = XMFLOAT3(0.0f, 0.0f, 1.0f);
+	XMFLOAT3 _scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
 
-	float m_fPitch;
-	float m_fYaw;
-	float m_fRoll;
+	float _pitch = 0.0f;
+	float _yaw = 0.0f;
+	float _roll = 0.0f;
 
-	XMFLOAT3 m_xmf3Velocity; // 플레이어 속도
-	XMFLOAT3 m_xmf3Gravity;  // 중력
-	float m_fFriction;       // 마찰력
-
-	// 플레이어와 수명이 같은 영구 카메라. 모드 전환 시 객체를 교체하지 않는다.
-	CCamera m_camera;
-	// 기존 파생 플레이어 구현을 위한 읽기 전용 별칭이다. 소유권은 m_camera에만 있다.
-	CCamera* const m_pCamera = &m_camera;
+	XMFLOAT3 _velocity = XMFLOAT3(0.0f, 0.0f, 0.0f); // 플레이어 속도
+	XMFLOAT3 _gravity = XMFLOAT3(0.0f, 0.0f, 0.0f);  // 중력
+	float _friction = 0.0f;                            // 마찰력
 
 public:
+	BoundingSphere _boundingSphere;
+	CHARACTER_TYPE _characterType;
 
-	uint8 m_ctype = -1; // 자신의 캐릭터 타입을 구현
-
-	CLIENT_TYPE m_clientType = CLIENT_TYPE::OTHER_PLAYER;
-
-	int16 m_sid = -1; // 자신으 Session Id
-	std::mutex m_lock; // 자신의 Lock
-
-	BoundingSphere m_playerBV; // BV = bounding volume
-	CHARACTER_TYPE m_nCharacterType;
-
-	bool m_hide = false;// 플레이어를 가릴 것이냐 그릴 것이냐
-
-	// 05-21 추가
-	int32 m_hp = 3; // hp는 5로 설정
-	int32 m_idx = 0;
-	int32 m_chartype = -1; // 0 boss 1, emp;
-	// 05-22 추가
-	int32 m_behavior = (int32)PLAYER_BEHAVIOR::IDLE;
-
-	bool m_bOnMoveSound = false;
+	bool _moveSoundActive = false;
 	virtual void SetOnMoveSound(bool bOnMoveSound)
 	{
-		m_bOnMoveSound = bOnMoveSound;
+		_moveSoundActive = bOnMoveSound;
 	}
 	virtual bool GetOnMoveSound()
 	{
-		return m_bOnMoveSound;
+		return _moveSoundActive;
 	}
 
 
 public:
 	CPlayer();
 	virtual ~CPlayer();
+	[[nodiscard]] const PlayerState& State() const noexcept { return _state; }
+	[[nodiscard]] PLAYER_TYPE GetPlayerType() const noexcept { return _state.playerType; }
+	void SetPlayerType(PLAYER_TYPE playerType) noexcept { _state.playerType = playerType; }
+	[[nodiscard]] CLIENT_TYPE GetClientType() const noexcept { return _state.clientType; }
+	void SetClientType(CLIENT_TYPE clientType) noexcept { _state.clientType = clientType; }
+	[[nodiscard]] int16 GetSessionId() const noexcept { return _state.sessionId; }
+	void SetPlayerSid(int16 sid) noexcept { _state.sessionId = sid; }
+	[[nodiscard]] int32 GetPlayerIndex() const noexcept { return _state.playerIndex; }
+	void SetPlayerIndex(int32 playerIndex) noexcept { _state.playerIndex = playerIndex; }
+	[[nodiscard]] int32 GetHealth() const noexcept { return _state.health; }
+	void SetHealth(int32 health) noexcept { _state.SetHealth(health); }
+	[[nodiscard]] bool ApplyDamage() noexcept { return _state.ApplyDamage(); }
+	void RestoreHealth() noexcept { _state.RestoreHealth(); }
+	[[nodiscard]] bool IsHidden() const noexcept { return _state.hidden; }
+	void SetHidden(bool hidden) noexcept { _state.hidden = hidden; }
 
-	XMFLOAT3 GetPosition() const { return(m_xmf3Position); }
-	XMFLOAT3 GetLookVector() { return(m_xmf3Look); }
-	XMFLOAT3 GetUpVector() { return(m_xmf3Up); }
-	XMFLOAT3 GetRightVector() { return(m_xmf3Right); }
+	XMFLOAT3 GetPosition() const { return _position; }
+	XMFLOAT3 GetLookVector() const { return _look; }
+	XMFLOAT3 GetUpVector() const { return _up; }
+	XMFLOAT3 GetRightVector() const { return _right; }
 	void SetDirection(const XMFLOAT3& look)
 	{
-		m_xmf3Look = look;
-		m_xmf3Right = Vector3::CrossProduct(m_xmf3Up, m_xmf3Look, true);
+		_look = look;
+		_right = Vector3::CrossProduct(_up, _look, true);
 	}
-	void SetVelocity(const XMFLOAT3& xmf3Velocity) { m_xmf3Velocity = xmf3Velocity; }
-	void SetPlayerSid(const int16& sid) { m_sid = sid; }
+	void SetVelocity(const XMFLOAT3& xmf3Velocity) { _velocity = xmf3Velocity; }
 	void SetPosition(const XMFLOAT3& xmf3Position)
 	{
-		m_xmf3Position = xmf3Position;
+		_position = xmf3Position;
 	}
-	void SetScale(const XMFLOAT3& xmf3Scale) { m_xmf3Scale = xmf3Scale; }
-	const XMFLOAT3& GetVelocity() const { return(m_xmf3Velocity); }
-	float GetYaw() { return(m_fYaw); }
-	float GetPitch() { return(m_fPitch); }
-	float GetRoll() { return(m_fRoll); }
-
-	CCamera* GetCamera() noexcept { return &m_camera; }
-	const CCamera* GetCamera() const noexcept { return &m_camera; }
+	void SetScale(const XMFLOAT3& xmf3Scale) { _scale = xmf3Scale; }
+	const XMFLOAT3& GetVelocity() const { return _velocity; }
+	float GetYaw() const { return _yaw; }
+	float GetPitch() const { return _pitch; }
+	float GetRoll() const { return _roll; }
 
 	//플레이어를 회전하는 함수이다.
 	virtual void Rotate(float x, float y, float z);
-	virtual void CreateShaderVariables(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4
-		* pd3dCommandList);
-	virtual void ReleaseShaderVariables();
-	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList4* pd3dCommandList);
-
-	//카메라를 변경하기 위하여 호출하는 함수이다.
-	CCamera* OnChangeCamera(DWORD nNewCameraMode, DWORD nCurrentCameraMode);
-	virtual CCamera* ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed) { return(NULL); }
 
 	//플레이어의 위치와 회전축으로부터 월드 변환 행렬을 생성하는 함수이다.
 	virtual void OnPrepareRender();
@@ -149,9 +120,9 @@ public: //04-29 추가함수
 	virtual void LateUpdate() {};
 	// 05-22 추가 함수
 	virtual void AnimTrackUpdate(float ,CLIENT_TYPE) {};
-	virtual void SetBehavior(PLAYER_BEHAVIOR b) { m_behavior = (int32)b; };
-	virtual int32 GetBehavior() { return m_behavior; }
-	virtual void ResetState() {};
+	virtual void SetBehavior(PLAYER_BEHAVIOR behavior) noexcept { _state.behavior = static_cast<int32>(behavior); }
+	[[nodiscard]] virtual int32 GetBehavior() const noexcept { return _state.behavior; }
+	virtual void ResetState();
 	virtual void BuildObjects(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4
 		* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature) {}
 };
@@ -163,8 +134,6 @@ public:
 	CVirtualPlayer(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 	virtual ~CVirtualPlayer();
 public:
-	virtual CCamera* ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed);
-
 	virtual void Move(DWORD dwDirection, float fDistance);
 	virtual void Animate(float fTimeElapsed);
 	virtual void Update(float fTimeElapsed);

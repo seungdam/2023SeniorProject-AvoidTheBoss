@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Player.h"
 class CBullet;
 
@@ -6,19 +6,18 @@ class CBoss : public CPlayer
 {
 	friend class CSession;
 private:
-	CGameObject* m_RightHands = NULL;
+	CGameObject* _rightHand = NULL;
 private: // 06/11 --> 06/13 추가
-	int32 m_runAttackAnimTime = 0;
-	int32 m_standAttackAnimTime = 0;
-	bool  m_IsOnAttack = false ;
+	int32 _runAttackAnimationTime = 0;
+	int32 _standAttackAnimationTime = 0;
+	bool  _isAttacking = false ;
 public:
-	int nBullet = 50;
-	CBullet* m_pBullet = NULL;
+	int _bulletCount = 50;
+	CBullet* _bullet = NULL;
 
 	CBoss(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
 	virtual ~CBoss();
 
-	virtual CCamera* ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed);
 	virtual void Rotate(float x, float y, float z);
 	virtual void PrepareAnimate();
 	// ========== 플레이어 조작 관련 ============
@@ -38,15 +37,15 @@ public:
 	void SetRunAttackAnimTrack();
 	virtual void AnimTrackUpdate();
 
-	void SetOnAttack(bool value) { m_IsOnAttack = value; }
-	bool GetOnAttack() { return m_IsOnAttack; }
+	void SetOnAttack(bool value) { _isAttacking = value; }
+	bool GetOnAttack() { return _isAttacking; }
 	void SetAttackAnimTime()
 	{
-		m_standAttackAnimTime = 0;
+		_standAttackAnimationTime = 0;
 	}
 	void SetRunAttackAnimTime()
 	{
-		m_runAttackAnimTime = 0;
+		_runAttackAnimationTime = 0;
 	}
 
 	virtual void ResetState();

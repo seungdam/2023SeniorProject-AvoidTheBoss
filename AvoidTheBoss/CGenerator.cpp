@@ -1,10 +1,5 @@
 ﻿#include "pch.h"
-#include "clientIocpCore.h"
 #include "CGenerator.h"
-#include "SceneManager.h"
-#include "GameScene.h"
-#include "CEmployee.h"
-#include "SoundManager.h"
 
 CGenerator::CGenerator()
 {
@@ -14,7 +9,6 @@ CGenerator::CGenerator()
 		m_nPipeStartAnimation[i] = false;
 		m_nGenerPipeAnimationCount[i] = 0;
 	}
-	m_bAlreadyOn = false;
 }
 
 void CGenerator::SetNormalVector()
@@ -24,7 +18,7 @@ void CGenerator::SetNormalVector()
 
 void CGenerator::LogicUpdate()
 {
-	if (m_bOnInteraction || m_bAlreadyOn)
+	if (IsAnimating())
 	{
 		m_nPipeStartAnimation[0] = true;
 		m_nGenerBodyAnimationCount++;
@@ -34,7 +28,7 @@ void CGenerator::LogicUpdate()
 		if (m_nGenerPipeAnimationCount[1] == 4)
 			m_nPipeStartAnimation[2] = true;
 	}
-	else if(!m_bOnInteraction && !m_bAlreadyOn)
+	else
 	{
 		for (int i = 0; i < m_nPipe; i++)
 		{
@@ -46,60 +40,6 @@ void CGenerator::LogicUpdate()
 	{
 		if(m_nPipeStartAnimation[i])
 			m_nGenerPipeAnimationCount[i] += 1;
-	}
-}
-
-void CGenerator::Update(float fTimeElapsed)
-{
-	if (m_bOnInteraction && !m_bGenActive)
-	{
-		m_curGuage += m_guageSpeed * fTimeElapsed;
-	}
-	if (m_curGuage > m_maxGuage && !m_bGenActive)
-	{
-		m_bGenActive = true;
-		m_bOnInteraction = false;
-		m_bAlreadyOn = true;
-
-		SC_EVENTPACKET packet;
-		packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
-		packet.size = sizeof(SC_EVENTPACKET);
-		packet.eventId = (uint8)EVENT_TYPE::SWITCH_ONE_ACTIVATE_EVENT + m_idx;
-		clientCore.DoSend(&packet);
-		CGameScene* gs = static_cast<CGameScene*>(mainGame.m_SceneManager->GetSceneByIdx(3));
-		static_cast<CEmployee*>(gs->GetScenePlayerByIdx(gs->m_playerIdx))->m_activeCnt += 1;
-	}
-	if (m_bOnInteraction || m_bAlreadyOn)
-	{
-		if (!GetbIsStartGenInter())
-		{
-			for (int i = 0; i < 3; i++)
-			{
-				if (m_idx == i)
-					SoundManager::GetInstance().PlayObjectSound(17, 8+i);
-			}
-			SetbIsStartGenInter(true);
-		}
-	}
-	else
-	{
-		if (GetbIsStartGenInter())
-		{
-			for (int i = 0; i < 3; i++)
-			{
-				if (m_idx == i)
-					SoundManager::SoundStop(8+i);
-			}
-			SetbIsStartGenInter(false);
-		}
-	}
-	for (int i = 0; i < 3; i++)
-	{
-		if (m_idx == i)
-		{
-			if (m_bGenActive)
-				SoundManager::GetInstance().SetVolum(8+i, 0.1f);
-		}
 	}
 }
 
@@ -119,7 +59,7 @@ void CGenerator::OnPrepareAnimate()
 
 void CGenerator::BodyAnimate(float fTimeElapsed)
 {
-	if (m_bOnInteraction || m_bAlreadyOn)
+	if (IsAnimating())
 	{
 		XMMATRIX xmmtxTranslate;
 		float move = 0.001f;
@@ -149,7 +89,7 @@ void CGenerator::BodyAnimate(float fTimeElapsed)
 
 void CGenerator::PipelineAnimate(float fTimeElapsed)
 {
-	if (m_bOnInteraction || m_bAlreadyOn)
+	if (IsAnimating())
 	{
 		float delta = 0.01f;
 		for (int i = 0; i < m_nPipe; i++) //1.8 ->1.7    ̵  10.f
