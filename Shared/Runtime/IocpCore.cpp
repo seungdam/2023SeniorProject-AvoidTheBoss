@@ -36,39 +36,29 @@ bool IocpCore::Processing(uint32_t time_limit) // worker thread 기능 완료된
 		OUT reinterpret_cast<PULONG_PTR>(&iocpObject), // 하지만 이렇게 iocpObject를 인자로 넘겨주게 되면, 다른 스레드에서 이 오브젝트를 삭제했을 때, 문제가 생길 수도 있다. -->
 		//애초에 iocpEvent에서 해당 iocp객체들에 관한 정보(해당 이벤트를 호출한 주인 iocp객체들)을 담고 있도록하자.
 		OUT reinterpret_cast<LPOVERLAPPED*>(&iocpEvent), time_limit);
-	auto* session = dynamic_cast<BaseSession*>(iocpObject);
-	if (session != nullptr && iocpEvent != nullptr)
+
+	if (!iocpObject || !iocpEvent)
 	{
-		session->CompleteIO();
+		return false; // timeout/wakeup
 	}
 
 	if (!retVal) // 실패했다면 에러코드 확인
 	{
 		auto errCode = ::WSAGetLastError();
-		switch (errCode)
-		{
-			case WAIT_TIMEOUT: // time_limit이 INFINITE가 아닌 경우 ==> 나중에 다중 접속 시, 접속 시간에 따라 지정 가능
-				std::cout << "Time Out Plz Check Your Network Condition" << std::endl;
-				return false;
-			default:
-			{
-				iocpObject->OnIocpError(iocpEvent, errCode);
-			}
-			return false;
-		}
+		iocpObject->OnIocpError(iocpEvent, errCode);
+		return false;
+	}
+
+	if ((iocpEvent->_comp == EventType::Recv || iocpEvent->_comp == EventType::Send) && numOfBytes == 0)
+	{
+		iocpObject->OnIocpError(iocpEvent, 0);
+		return false; // 여기서도 CompleteIO는 한 번
 	}
 
 	// 클라이언트가 정상적으로 종료한 경우
-	if (iocpEvent->_comp == EventType::Recv || iocpEvent->_comp == EventType::Send)
-	{
-		if (numOfBytes == 0)
-		{
-			//Disconnect
-			iocpObject->OnIocpError(iocpEvent, 0);
-			return false;
-		}
-	}
+
 	iocpObject->Processing(iocpEvent, numOfBytes); // 성공하면 전반적인 프로세싱을 시작해보자
+	iocpObject->OnIocpCompletion(iocpEvent, numOfBytes);
 	return true;
 }
 

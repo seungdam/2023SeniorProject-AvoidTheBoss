@@ -4,14 +4,8 @@
 #include "SPlayer.h"
 #include "ServerIocpCore.h"
 #include "JobQueue.h"
-
-
-
-
 using namespace std;
 // =========== 서버 세션 ============
-
-
 
 void LoginProcess(ServerSession* s, std::wstring sqlexec)
 {
@@ -34,44 +28,37 @@ ServerSession::~ServerSession()
 	Disconnect();
 }
 
+void ServerSession::OnIocpError(IocpEvent* iocpEvent, const int32 errCode)
+{
+	BaseSession::OnIocpError(iocpEvent, errCode);
+	ServerIocpCore.RequestRemoveSession(GetSid());
+}
 
 void ServerSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 {
-	switch (iocpEvent->_comp)
+	if (EventType::Recv == iocpEvent->_comp)
 	{
-		case EventType::Recv:
+		auto* rev = static_cast<RecvEvent*>(iocpEvent);
+		auto remain_data = numOfBytes + _prev_remain;
+		auto* p = rev->_rbuf;
+		while (remain_data > 0)
 		{
-			RecvEvent* rev = static_cast<RecvEvent*>(iocpEvent);
-			int remain_data = numOfBytes + _prev_remain;
-			char* p = rev->_rbuf;
-			while (remain_data > 0)
+			uint8 packet_size = p[0];
+			if (packet_size <= remain_data)
 			{
-				uint8 packet_size = p[0];
-				if (packet_size <= remain_data)
-				{
-					ProcessPacket(p);
-					p = p + packet_size;
-					remain_data = remain_data - packet_size;
-				}
-				else break;
+				ProcessPacket(p);
+				p = p + packet_size;
+				remain_data = remain_data - packet_size;
 			}
-			_prev_remain = remain_data;
-			if (remain_data > 0)
-			{
-				memcpy(rev->_rbuf, p, remain_data);
-			}
-			DoRecv();
+			else break;
 		}
-		break;
-		case EventType::Send:
+		_prev_remain = remain_data;
+		if (remain_data > 0)
 		{
-			SendEvent* sev = static_cast<SendEvent*>(iocpEvent);
-			if (iocpEvent == nullptr) ASSERT_CRASH("double Del");
-			delete iocpEvent;
+			memcpy(rev->_rbuf, p, remain_data);
 		}
-		break;
+		DoRecv();
 	}
-
 }
 
 bool ServerSession::DoSend(void* packet)

@@ -14,9 +14,15 @@ public:
 		return reinterpret_cast<HANDLE>(_sock);
 	}
 	virtual void Processing(class IocpEvent* iocpEvent, int32 numBytes) override {} // 어떤 일감으로  Iocp에 등록했니?
-	virtual void OnIocpCompletion(IocpEvent& iocpEvent, uint32_t bytes) override {};
+	virtual void OnIocpCompletion(class IocpEvent* iocpEvent, uint32_t bytes) override
+	{
+		if (iocpEvent && iocpEvent->_comp == EventType::Send)
+			delete static_cast<SendEvent*>(iocpEvent);
+		CompleteIO();
+	};
 	virtual void OnIocpError(class IocpEvent* iocpEvent, int32 errCode) override
 	{
+		CompleteIO();
 		if (iocpEvent && iocpEvent->_comp == EventType::Send)
 			delete static_cast<SendEvent*>(iocpEvent);
 		Disconnect();
@@ -47,8 +53,8 @@ public:
 		return _sid;
 	}
 
-	void BeginIO() noexcept { _pendingIO.fetch_add(1, std::memory_order_relaxed); }
-	int32 CompleteIO() noexcept { return _pendingIO.fetch_sub(1, std::memory_order_acq_rel) - 1; }
+	void BeginIO() noexcept			 { _pendingIO.fetch_add(1, std::memory_order_relaxed); }
+	int32 CompleteIO() noexcept		 { return _pendingIO.fetch_sub(1, std::memory_order_acq_rel) - 1; }
 	int32 PendingIO() const noexcept { return _pendingIO.load(std::memory_order_acquire); }
 
 	void Disconnect() noexcept
@@ -73,5 +79,5 @@ protected:
 	int32 _sid = -1;
 	SOCKET _sock = INVALID_SOCKET;
 	RecvEvent _rev;
-	RWLOCK;
+	mutable std::shared_mutex _lock;
 };
