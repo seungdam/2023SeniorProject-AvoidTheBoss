@@ -30,10 +30,10 @@ void Room::UserOut(int32 sid)
 		std::unique_lock<std::shared_mutex> wll(_listLock);
 		for (int i = 0; i < PLAYERNUM; ++i)
 		{
-			if (sid == _cArr[i].sid)
+			if (sid == _roomMembers[i].sid)
 			{
-				_cArr[i].sid = -1;
-				_cArr[i].isReady = false;
+				_roomMembers[i].sid = -1;
+				_roomMembers[i].isReady = false;
 				if (_memCnt) _memCnt.fetch_sub(1);
 			}
 		}
@@ -66,8 +66,8 @@ void Room::UserOut(int32 sid)
 
 					for (int i = 0; i < PLAYERNUM; ++i)
 					{
-						_cArr[i].sid = -1;
-						_cArr[i].isReady = false;
+						_roomMembers[i].sid = -1;
+						_roomMembers[i].isReady = false;
 					}
 				}
 				_memCnt.store(0);
@@ -92,7 +92,7 @@ void Room::UserOut(int32 sid)
 		{
 			_status = (uint8)ROOM_STATUS::NOT_FULL;
 			std::cout << "LEFT USER SID LIST [";
-			for (auto i : _cArr)  std::cout << (int32)i.sid << "|";
+			for (auto i : _roomMembers)  std::cout << (int32)i.sid << "|";
 			std::cout << " ]\n";
 		}
 
@@ -102,8 +102,8 @@ void Room::UserOut(int32 sid)
 			_status = (uint8)ROOM_STATUS::EMPTY;
 			{
 				std::unique_lock<std::shared_mutex> wll(_listLock);
-				for (auto& i : _cArr) i.sid = -1;
-				for (auto& i : _cArr) i.isReady = false;
+				for (auto& i : _roomMembers) i.sid = -1;
+				for (auto& i : _roomMembers) i.isReady = false;
 			}
 			std::cout << "Destroy Room\n";
 		}
@@ -147,14 +147,14 @@ void Room::UserIn(int32 sid)
 			// 빈 배열 자리에다가 정보 채우기
 			for (int k = 0; k < PLAYERNUM; ++k)
 			{
-				if (-1 == _cArr[k].sid)
+				if (-1 == _roomMembers[k].sid)
 				{
-					_cArr[k].sid = sid;
+					_roomMembers[k].sid = sid;
 					break;
 				}
 			}
 			std::cout << "LEFT USER SID LIST [";
-			for (auto i : _cArr)  std::cout << (int32)i.sid << "|";
+			for (auto i : _roomMembers)  std::cout << (int32)i.sid << "|";
 			std::cout << " ]\n";
 
 			SendRoomListPacket();
@@ -180,7 +180,7 @@ void Room::BroadCasting(void* packet) // 방에 속하는 클라이언트에게�
 	// cList Lock 읽기 호출
 	std::shared_lock<std::shared_mutex> rll(_listLock);
 
-	for (auto i : _cArr)
+	for (auto i : _roomMembers)
 	{
 		if (-1 == i.sid) continue;
 		else
@@ -200,7 +200,7 @@ void Room::BroadCastingExcept(void* packet, int32 sid) // 방에 속하는 클�
 	// cList Lock 읽기 호출
 	std::shared_lock<std::shared_mutex> rll(_listLock);
 
-	for (auto i : _cArr)
+	for (auto i : _roomMembers)
 	{
 		if (-1 == i.sid || sid == i.sid) continue;
 		else
@@ -266,7 +266,7 @@ void Room::Update()
 		BroadCasting(&packet);
 		std::cout << "Normal Game END\n";
 
-		for (auto& i : _cArr)
+		for (auto& i : _roomMembers)
 		{
 			if (i.sid != -1) UserOut(i.sid);
 		}
@@ -305,8 +305,8 @@ void Room::SendRoomInfoPacket()
 		shared_lock<std::shared_mutex> rl(_listLock);
 		for (int i = 0; i < PLAYERNUM; ++i)
 		{
-			rmifpacket.sids[i] = _cArr[i].sid;
-			rmifpacket.rd[i] = _cArr[i].isReady;
+			rmifpacket.sids[i] = _roomMembers[i].sid;
+			rmifpacket.rd[i] = _roomMembers[i].isReady;
 		}
 
 	}
@@ -325,8 +325,8 @@ void Room::InitGame()
 		{
 			for (int i = 0; i < PLAYERNUM; ++i)
 			{
-				packet.sids[i] = _cArr[i].sid;
-				_gameLogic.SetPlayerSidAndIdx(_cArr[i].sid, i);
+				packet.sids[i] = _roomMembers[i].sid;
+				_gameLogic.SetPlayerSidAndIdx(_roomMembers[i].sid, i);
 			}
 		}
 		BroadCasting(&packet);
@@ -337,7 +337,7 @@ void Room::InitGame()
 
 		{
 			shared_lock<std::shared_mutex> rl(_listLock);
-			for (auto& i : _cArr) i.isReady = false;
+			for (auto& i : _roomMembers) i.isReady = false;
 		}
 		_gameLogic.InitGame();
 		_timer.Reset();
@@ -346,7 +346,7 @@ void Room::InitGame()
 }
 void Room::UpdateReady(int32 idx, bool val)
 {
-	_cArr[idx].isReady = val;
+	_roomMembers[idx].isReady = val;
 }
 
 bool Room::IsGameStartAvailable()
@@ -355,7 +355,7 @@ bool Room::IsGameStartAvailable()
 
 	 {
 		 shared_lock<std::shared_mutex> rl(_listLock);
-		 for (int i = 0; i < 4; ++i) if (_cArr[i].isReady) ++cnt;
+		 for (int i = 0; i < 4; ++i) if (_roomMembers[i].isReady) ++cnt;
 		 return (PLAYERNUM == cnt);
 	 }
 }
@@ -365,12 +365,72 @@ bool Room::IsGameStartAvailable()
 // ============================
 void RoomManager::Init()
 {
-	for (int i = 0; i < _cap; ++i)
+	for (int i = 0; i < _maxRoomCapacity; ++i)
 	{
-		_rooms[i]._cList.clear();
+		_rooms[i]._clientLists.clear();
 		_rooms[i]._rmNum = i;
 	}
 }
+
+void RoomManager::EnqueueCommand(RoomCommand command)
+{
+	std::lock_guard lock(_commandLock);
+	_commands.push_back(std::move(command));
+}
+
+void RoomManager::DrainCommands()
+{
+	std::deque<RoomCommand> commands;
+	{
+		std::lock_guard lock(_commandLock);
+		commands.swap(_commands);
+	}
+
+	for (const RoomCommand& command : commands)
+		ExecuteCommand(command);
+}
+
+void RoomManager::ExecuteCommand(const RoomCommand& command)
+{
+	switch (command.type)
+	{
+	case RoomCommandType::Create:
+		CreateRoom(command.sid);
+		return;
+	case RoomCommandType::Enter:
+		EnterRoom(command.sid, command.roomNum);
+		return;
+	case RoomCommandType::Exit:
+	{
+		const auto session = ServerIocpCore.FindSession(command.sid);
+		if (!session || session->_myRm < 0) return;
+		ExitRoom(command.sid, session->_myRm);
+		return;
+	}
+	case RoomCommandType::SetReady:
+	{
+		const auto session = ServerIocpCore.FindSession(command.sid);
+		if (!session || session->_myRm < 0) return;
+
+		Room& room = GetRoom(session->_myRm);
+		const int32 idx = room.GetSidIndexBySid(command.sid);
+		if (idx < 0) return;
+
+		S2C_ROOM_READY packet{};
+		packet.size = sizeof(S2C_ROOM_READY);
+		packet.type = command.isReady
+			? static_cast<uint8>(S_ROOM_PACKET_TYPE::REP_READY)
+			: static_cast<uint8>(S_ROOM_PACKET_TYPE::REP_READY_CANCEL);
+		packet.sid = command.sid;
+
+		room.BroadCastingExcept(&packet, command.sid);
+		room.UpdateReady(idx, command.isReady);
+		if (command.isReady) room.InitGame();
+		return;
+	}
+	}
+}
+
 void RoomManager::EnterRoom(int32 sid,int16 rmNum)
 {
 	_rooms[rmNum].UserIn(sid);
@@ -382,7 +442,7 @@ void RoomManager::CreateRoom(int32 sid)
 	S2C_ROOM_EVENT packet;
 	packet.size = sizeof(S2C_ROOM_EVENT);
 
-	if (_rmCnt.load() >= _cap)
+	if (_roomCnt.load() >= _maxRoomCapacity)
 	{
 		packet.type = (uint8)S_ROOM_PACKET_TYPE::MK_RM_FAIL;
 		session->DoSend(&packet);
@@ -394,7 +454,7 @@ void RoomManager::CreateRoom(int32 sid)
 		{
 			_rooms[i]._status = (int8)ROOM_STATUS::NOT_FULL;
 			EnterRoom(sid, i);
-			_rmCnt.fetch_add(1);
+			_roomCnt.fetch_add(1);
 			break;
 		}
 	}
@@ -404,7 +464,9 @@ void RoomManager::CreateRoom(int32 sid)
 }
 void RoomManager::UpdateRooms()
 {
-	for (int i = 0; i < _cap; ++i)
+	DrainCommands();
+
+	for (int i = 0; i < _maxRoomCapacity; ++i)
 	{
 		if (_rooms[i]._status != (int8)ROOM_STATUS::INGAME) continue;
 		_rooms[i].Update();

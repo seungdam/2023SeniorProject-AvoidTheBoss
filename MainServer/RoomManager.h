@@ -1,15 +1,13 @@
 ﻿#pragma once
 #define MAX_ROOM_USER 4 // 한 방당 최대 인원수
 #include "WorldRewinder.h"
-#include "SGenerator.h"
-#include "SPlayer.h"
 #include "CGameManager.h"
+#include "RoomCommand.h"
+#include <deque>
+#include <mutex>
 
 
-
-
-
-class Scheduler;
+class ClientEventScheduler;
 class QueueEvent;
 class SPlayer;
 
@@ -47,7 +45,7 @@ public:
 		std::shared_lock<std::shared_mutex> rll(_listLock);
 		for (int32 i = 0; i < PLAYERNUM; ++i)
 		{
-			if (_cArr[i].sid == sid) return i;
+			if (_roomMembers[i].sid == sid) return i;
 		}
 		return -1;
 	};
@@ -59,11 +57,10 @@ private:
 	Rewinder<30> _history;
 public:
 	CGameManager _gameLogic;
-public:
 	std::shared_mutex _listLock;
-	std::vector<int32> _cList; // 방에 속해있는 클라이언트 리스트
-	Member _cArr[4];
-	Atomic<bool> _readys[4];
+	std::vector<int32> _clientLists; // 방에 속해있는 클라이언트 리스트
+	Member _roomMembers[4];
+	Atomic<bool> _bReadys[4];
 	uint8 _status = (int8)ROOM_STATUS::EMPTY; // 방 상태
 	int32 _rmNum = 0; // 방번호
 	Atomic<int32> _memCnt = 0;
@@ -74,15 +71,25 @@ class RoomManager
 {
 
 public:
+	void EnqueueCommand(RoomCommand command);
 	void ExitRoom(int32 sid, int16 rmNum);
 	void EnterRoom(int32 sid, int16 rmNum);
 	void CreateRoom(int32 sid);
 	void UpdateRooms();
 	Room& GetRoom(int32 rmNum) { return _rooms[rmNum]; }
 	void Init();
+
+private:
+	void DrainCommands();
+	void ExecuteCommand(const RoomCommand& command);
+
 public:
 	Room _rooms[100];
-	Atomic<int32> _rmCnt = 0; // 현재 방 개수;
-	int32 _cap = 100;
+	Atomic<int32> _roomCnt = 0; // 현재 방 개수;
+	int32 _maxRoomCapacity = 100;
+
+private:
+	std::mutex _commandLock;
+	std::deque<RoomCommand> _commands;
 };
 
