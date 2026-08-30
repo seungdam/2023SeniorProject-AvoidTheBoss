@@ -72,7 +72,7 @@ target_compile_definitions(CoreEngine PRIVATE _LIB)
 target_precompile_headers(CoreEngine PRIVATE
     "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/MainServer/pch.h>"
 )
-target_link_libraries(CoreEngine PUBLIC SharedRuntime)
+target_link_libraries(CoreEngine PUBLIC SharedRuntime bcrypt)
 set_target_properties(CoreEngine PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>"
 )
@@ -131,7 +131,7 @@ add_executable(GameClient WIN32
     AvoidTheBoss/GameFramework.cpp
     AvoidTheBoss/GameObject.cpp
     AvoidTheBoss/GameScene.cpp
-    AvoidTheBoss/CJobQueue.cpp
+        AvoidTheBoss/ClientEventScheduler.cpp
     AvoidTheBoss/InputManager.cpp
     AvoidTheBoss/Mesh.cpp
     AvoidTheBoss/OtherScenes.cpp
@@ -251,7 +251,7 @@ set_target_properties(PlayerStateTests PROPERTIES
 )
 
 add_executable(SchedulerTests
-	AvoidTheBoss/CJobQueue.cpp
+        AvoidTheBoss/ClientEventScheduler.cpp
 	tests/SchedulerTests.cpp
 )
 target_include_directories(SchedulerTests PRIVATE AvoidTheBoss)
@@ -261,16 +261,29 @@ set_target_properties(SchedulerTests PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
 )
 
+add_executable(ServerEventSchedulerTests
+	MainServer/JobQueue.cpp
+	tests/ServerEventSchedulerTests.cpp
+)
+target_include_directories(ServerEventSchedulerTests PRIVATE MainServer)
+target_link_libraries(ServerEventSchedulerTests PRIVATE SharedRuntime)
+set_target_properties(ServerEventSchedulerTests PROPERTIES
+	JOB_POOL_LINK msvc_link_pool
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
+)
+
 if(BUILD_TESTING)
 	add_test(NAME ProjectileLogicTests COMMAND ProjectileLogicTests)
 	add_test(NAME GameObjectOwnershipTests COMMAND GameObjectOwnershipTests)
 	add_test(NAME PlayerStateTests COMMAND PlayerStateTests)
 	add_test(NAME SchedulerTests COMMAND SchedulerTests)
+	add_test(NAME ServerEventSchedulerTests COMMAND ServerEventSchedulerTests)
 	set_tests_properties(
 		ProjectileLogicTests
 		GameObjectOwnershipTests
 		PlayerStateTests
 		SchedulerTests
+		ServerEventSchedulerTests
 		PROPERTIES LABELS unit
 	)
 endif()
