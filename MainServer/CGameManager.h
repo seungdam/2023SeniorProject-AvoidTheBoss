@@ -20,10 +20,10 @@ protected:
 	SPlayer _players[4];
 	SGenerator _generators[3];
 	GAMESTATE _gState = GAMESTATE::NONE;
-	std::shared_mutex _jobQueueLock; // eventQueue 관리용 Lock
 protected:
 	Rewinder<30> _history;
 	ClientEventScheduler* _jobQueue; // 방에 속해 있는 클라이언트가 야기한 이벤트 큐
+	void ClearQueuedEvents();
 public:
 	CGameManager();
 	~CGameManager();

@@ -209,12 +209,29 @@ void ServerSession::DoSendLoginPacket(bool isSuccess)
 
 void ServerSession::ProcessPacket(char* packet)
 {
-	const auto GetCurrentRoom = [this]() -> Room*
+	const auto EnqueueControl = [this](RoomCommand command)
+	{
+		if (!ServerIocpCore._rmgr->EnqueueCommand(std::move(command)))
+			ServerIocpCore.RequestRemoveSession(_sid);
+	};
+
+	const auto EnqueueGamePacket = [this, packet]()
 	{
 		const auto roomNum = _myRoomNumber.load();
-		if (!ServerIocpCore._rmgr->IsValidRoom(roomNum)) return nullptr;
-		Room& room = ServerIocpCore._rmgr->GetRoom(roomNum);
-		return room.GetSidIndexBySid(_sid) >= 0 ? &room : nullptr;
+		if (!ServerIocpCore._rmgr->IsValidRoom(roomNum)) return;
+
+		RoomCommand command{};
+		command.type = RoomCommandType::GamePacket;
+		command.sid = _sid;
+		command.roomNum = roomNum;
+		command.packetSize = static_cast<uint8>(packet[0]);
+		if (command.packetSize > command.packet.size())
+		{
+			ServerIocpCore.RequestRemoveSession(_sid);
+			return;
+		}
+		memcpy(command.packet.data(), packet, command.packetSize);
+		ServerIocpCore._rmgr->EnqueueCommand(std::move(command));
 	};
 
 	switch ((uint8)packet[1])
@@ -251,7 +268,7 @@ void ServerSession::ProcessPacket(char* packet)
 			ServerIocpCore.RequestRemoveSession(GetSid());
 			break;
 		}
-		ServerIocpCore._rmgr->EnqueueCommand({ RoomCommandType::Resume, _sid, -1, false, resume->resumeToken });
+		EnqueueControl({ RoomCommandType::Resume, _sid, -1, false, resume->resumeToken });
 	}
 	break;
 
@@ -259,109 +276,36 @@ void ServerSession::ProcessPacket(char* packet)
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_ENTER_RM:
 		{
 			auto* rep = reinterpret_cast<C2S_ROOM_ENTER*>(packet);
-			ServerIocpCore._rmgr->EnqueueCommand(
+			EnqueueControl(
 				{ RoomCommandType::Enter, _sid, rep->rmNum });
 		}
 		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_MK_RM:
 		{
-			ServerIocpCore._rmgr->EnqueueCommand({ RoomCommandType::Create, _sid });
+			EnqueueControl({ RoomCommandType::Create, _sid });
 		}
 		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_READY:
 		{
-			ServerIocpCore._rmgr->EnqueueCommand({ RoomCommandType::SetReady, _sid, -1, true });
+			EnqueueControl({ RoomCommandType::SetReady, _sid, -1, true });
 		}
 		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_READY_CANCEL:
 		{
-			ServerIocpCore._rmgr->EnqueueCommand({ RoomCommandType::SetReady, _sid, -1, false });
+			EnqueueControl({ RoomCommandType::SetReady, _sid, -1, false });
 		}
 		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_EXIT_ROOM:
-			ServerIocpCore._rmgr->EnqueueCommand({ RoomCommandType::Exit, _sid, _myRoomNumber.load() });
+			EnqueueControl({ RoomCommandType::Exit, _sid, _myRoomNumber.load() });
 		break;
 
 		case (uint8)C_GAME_PACKET_TYPE::CKEY:
-		{
-			auto* room = GetCurrentRoom();
-			if (!room) break;
-			// 키 패킷 처리
-			auto* movePacket = reinterpret_cast<C2S_KEY*>(packet);
-			auto* mv = new moveEvent(_sid, movePacket->key, XMFLOAT3{ movePacket->x,0,movePacket->z });
-			auto* me = static_cast<QueueEvent*>(mv);
-
-			// 서버키 패킷 전송
-			S2C_KEY packet;
-			packet.size = sizeof(S2C_KEY);
-			packet.type = (uint8)S_GAME_PACKET_TYPE::SKEY;
-			packet.sid = _sid;
-			packet.key = movePacket->key;
-			packet.x = movePacket->x;
-			packet.z = movePacket->z;
-
-			room->AddEvent(me, 0.f);
-			room->BroadCastingExcept(&packet, _sid);
-		}
-		break;
 		case (uint8)C_GAME_PACKET_TYPE::CROT:
-		{
-			Room* room = GetCurrentRoom();
-			if (!room) break;
-			C2S_ROTATE* rotatePacket = reinterpret_cast<C2S_ROTATE*>(packet);
-			S2C_ROTATE packet;
-			packet.size = sizeof(S2C_ROTATE);
-			packet.type = (uint8)S_GAME_PACKET_TYPE::SROT;
-			packet.sid = _sid;
-			packet.angle = rotatePacket->angle;
-			room->BroadCastingExcept(&packet, _sid);
-
-		}
-		break;
 		case (uint8)C_GAME_PACKET_TYPE::CCHAT:
-		{
-			Room* room = GetCurrentRoom();
-			if (!room) break;
-
-			_CHAT* cp = reinterpret_cast<_CHAT*>(packet);
-			_CHAT  np;
-			memcpy(&np, cp, sizeof(_CHAT));
-			np.type = (uint8)S_GAME_PACKET_TYPE::SCHAT;
-
-			room->BroadCasting(&np);
-		}
-		break;
-
 		case (uint8)C_GAME_PACKET_TYPE::CATTACK:
-		{
-			auto* room = GetCurrentRoom();
-			if (!room) break;
-			auto* ap = reinterpret_cast<C2S_ATTACK*>(packet);
-			if (ap->tidx < 0 || ap->tidx >= PLAYERNUM)
-			{
-				ServerIocpCore.RequestRemoveSession(_sid);
-				break;
-			}
-
-			auto* ape = new AttackEvent();
-			ape->_sid = _sid;
-			ape->_tidx = ap->tidx;
-			ape->_wf = ap->wf;
-			room->AddEvent(ape, 0);
-		}
-			break;
 		case (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT:
-		{
-			auto* room = GetCurrentRoom();
-			if (!room) break;
-			auto* ep = reinterpret_cast<SC_EVENTPACKET*>(packet);
-			auto* swev = new InteractionEvent();
-			swev->eventId = ep->eventId;
-			std::cout << "EVENT ID : " << (int32)swev->eventId << "\n";
- 			swev->_sid = _sid;
-			room->AddEvent(swev, 0);
-		}
-		break;
+			EnqueueGamePacket();
+			break;
 
 	}
 }

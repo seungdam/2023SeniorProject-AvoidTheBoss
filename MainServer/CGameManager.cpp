@@ -11,7 +11,7 @@ CGameManager::CGameManager()
 
 CGameManager::~CGameManager()
 {
-	_jobQueue->Clear();
+	ClearQueuedEvents();
 	delete _jobQueue;
 }
 
@@ -34,17 +34,14 @@ void CGameManager::InitGame()
 
 	_gState = GAMESTATE::IN_GAME;
 	_history.Clear();
-	_jobQueue->Clear();
+	ClearQueuedEvents();
 
 }
 
 void CGameManager::Update(float eTime)
 {
 	if (GAMESTATE::IN_GAME != _gState) return;
-	{
-		std::unique_lock<std::shared_mutex> ql(_jobQueueLock); // Queue Lock 호출
-		_jobQueue->DoTasks();
-	}
+	_jobQueue->DoTasks();
 
 	for (auto& i : _players) if(!i.m_hide) i.Update(eTime);
 }
@@ -66,14 +63,17 @@ void CGameManager::LateUpdate(float eTime)
 
 void CGameManager::AddEventAfterTime(float after, QueueEvent* qe)
 {
-	std::unique_lock<std::shared_mutex> ql(_jobQueueLock); // Queue Lock 호출
 	_jobQueue->PushTask(qe, after);
 }
 
 void CGameManager::AddEvent(QueueEvent* qe)
 {
-	std::unique_lock<std::shared_mutex> ql(_jobQueueLock); // Queue Lock 호출
 	_jobQueue->PushTask(qe);
+}
+
+void CGameManager::ClearQueuedEvents()
+{
+	_jobQueue->Clear();
 }
 
 GAMESTATE CGameManager::CheckGameState()
@@ -95,7 +95,7 @@ GAMESTATE CGameManager::CheckGameState()
 
 void CGameManager::ResetGame()
 {
-	_jobQueue->Clear();
+	ClearQueuedEvents();
 	// 월드 히스토리 초기화
 	_history.Clear();
 	// 플레이어 상태 초기화

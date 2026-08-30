@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+class SPlayer;
+
 class SGenerator
 {
 public:
@@ -37,6 +39,6 @@ public:
 		_curGuage = 0.f;
 	}
 
-	bool CanInteraction(int32 rm, int32 sid);
+	bool CanInteraction(const SPlayer& player) const;
 
 };

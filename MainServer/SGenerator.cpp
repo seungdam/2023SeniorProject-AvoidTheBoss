@@ -1,16 +1,10 @@
 ﻿#include "pch.h"
 #include "SGenerator.h"
-#include "ServerIocpCore.h"
+#include "SPlayer.h"
 
-
-
-
-bool SGenerator::CanInteraction(int32 rm, int32 sid)
+bool SGenerator::CanInteraction(const SPlayer& player) const
 {
-	CGameManager& gm = ServerIocpCore._rmgr->GetRoom(rm).GameLogic();
-	/*SPlayer& tp;
-	tp = gm.GetPlayerBySid(sid);*/
-	XMFLOAT3 myPlayerpos = gm.GetPlayerBySid(sid).GetPosition();
+	XMFLOAT3 myPlayerpos = player.GetPosition();
 	XMFLOAT3 distance = Vector3::Subtract(myPlayerpos,_pos);
 	float range = 0.5f + _ActiveRadius;
 	if (Vector3::Length(distance) <= range) return true;

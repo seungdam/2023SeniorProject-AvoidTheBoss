@@ -1,6 +1,8 @@
 #pragma once
 
-#include "../Shared/Types.h"
+#include "../Shared/Protocol.h"
+
+#include <array>
 
 enum class RoomCommandType : uint8
 {
@@ -10,6 +12,7 @@ enum class RoomCommandType : uint8
 	Exit,
 	Disconnected,
 	Resume,
+	GamePacket,
 };
 
 struct RoomCommand
@@ -19,4 +22,7 @@ struct RoomCommand
 	int32 roomNum = -1;
 	bool isReady = false;
 	uint64 resumeToken = 0;
+	bool reliable = false;
+	uint8 packetSize = 0;
+	std::array<char, sizeof(_CHAT)> packet{};
 };

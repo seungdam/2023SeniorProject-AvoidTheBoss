@@ -10,6 +10,9 @@
 
 class QueueEvent;
 class RoomManager;
+class InteractionEvent;
+class moveEvent;
+class AttackEvent;
 
 // 방은 호스트가 요청하는 순간 생성한다.
 class Room
@@ -42,13 +45,10 @@ public:
 	void BroadCastingExcept(void* packet, int32 sid);
 	bool ProcessAttackEvent(const int32& frame, const int16& target) { return (_gameLogic._history.IsAttackAvailable(frame, target)); }
 	void Update();
-	void AddEvent(QueueEvent* packet, float after); // 이벤트 패킷이 들어오면 큐에다가 추가를 할 것이다.
-	void AddEvent(QueueEvent* qe);
 	void StartGame() { _timer.Reset(); }
 
 	void SendRoomListPacket();
 	void SendRoomInfoPacket();
-	CGameManager& GameLogic() noexcept { return _gameLogic; }
 	int32 GetMemberCount() const noexcept { return _nMembers.load(); }
 
 	int32 GetSidIndexBySid(int32 sid)
@@ -69,8 +69,15 @@ private:
 	static constexpr auto ReconnectGracePeriod = std::chrono::seconds(30);
 	int32 GetMemberIndex(int32 sid, bool connectedOnly) const;
 	void ExpireReconnects();
+	void ProcessGamePacket(int32 sid, const char* packet, uint8 packetSize);
+	void AddEvent(QueueEvent* packet, float after);
+	void AddEvent(QueueEvent* qe);
+	CGameManager& GameLogic() noexcept { return _gameLogic; }
 
 	friend class RoomManager;
+	friend class InteractionEvent;
+	friend class moveEvent;
+	friend class AttackEvent;
 
 	CGameManager _gameLogic;
 	mutable std::shared_mutex _listLock;
@@ -86,7 +93,7 @@ class RoomManager
 public:
 	static constexpr int32 RoomCapacity = 100;
 
-	void EnqueueCommand(RoomCommand command);
+	bool EnqueueCommand(RoomCommand command);
 	void ExitRoom(int32 sid, int32 rmNum);
 	void DisconnectSession(int32 sid, int32 rmNum, uint64 resumeToken);
 	void ResumeSession(int32 sid, uint64 resumeToken);
@@ -98,6 +105,10 @@ public:
 	void Init();
 
 private:
+	// ponytail: a single bounded queue fits the current 100 rooms × 4 members; use per-room mailboxes only when profiling proves this dispatcher is saturated.
+	static constexpr size_t MaxPendingCommands = 4096;
+	static constexpr size_t MaxCommandsPerUpdate = 512;
+
 	void DrainCommands();
 	void ExecuteCommand(const RoomCommand& command);
 

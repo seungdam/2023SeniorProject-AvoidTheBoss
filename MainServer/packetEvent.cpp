@@ -19,7 +19,7 @@ void InteractionEvent::Task()
 		if (!targetGen._IsActive && !targetGen._IsOnInteraction) // 발전기 상호작용이 가능할 경우
 		{
 			// 검증 후 상호작용 상태로 변경
-			if (!targetGen.CanInteraction(roomNum, _sid))
+			if (!targetGen.CanInteraction(gm.GetPlayerBySid(_sid)))
 			{
 				std::cout << "Bug Detected\n";
 				break;
@@ -201,6 +201,15 @@ void moveEvent::Task()
 
 	if (gm.GetPlayerBySid(_sid).m_idx == 0) gm.GetPlayerBySid(_sid).Move(_key, BOSS_VELOCITY);
 	else gm.GetPlayerBySid(_sid).Move(_key, EMPLOYEE_VELOCITY);
+
+	S2C_KEY keyPacket{};
+	keyPacket.size = sizeof(keyPacket);
+	keyPacket.type = (uint8)S_GAME_PACKET_TYPE::SKEY;
+	keyPacket.sid = static_cast<int16>(_sid);
+	keyPacket.key = _key;
+	keyPacket.x = _dir.x;
+	keyPacket.z = _dir.z;
+	targetRoom.BroadCastingExcept(&keyPacket, _sid);
 
 	if (_key == 0)
 	{
