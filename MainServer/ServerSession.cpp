@@ -79,8 +79,15 @@ ServerSession::~ServerSession()
 	Disconnect();
 }
 
+void ServerSession::OnIocpCompletion(IocpEvent* iocpEvent, const uint32_t bytes)
+{
+	[[maybe_unused]] const auto keepAlive = shared_from_this();
+	BaseSession::OnIocpCompletion(iocpEvent, bytes);
+}
+
 void ServerSession::OnIocpError(IocpEvent* iocpEvent, const int32 errCode)
 {
+	[[maybe_unused]] const auto keepAlive = shared_from_this();
 	BaseSession::OnIocpError(iocpEvent, errCode);
 	ServerIocpCore.RequestRemoveSession(GetSid());
 }
@@ -209,21 +216,21 @@ void ServerSession::DoSendLoginPacket(bool isSuccess)
 
 void ServerSession::ProcessPacket(char* packet)
 {
-	const auto EnqueueControl = [this](RoomCommand command)
+	const auto EnqueueLobby = [this](LobbyCommand command)
 	{
-		if (!ServerIocpCore._rmgr->EnqueueCommand(std::move(command)))
+		if (!ServerIocpCore._rmgr->EnqueueLobbyCommand(std::move(command)))
 			ServerIocpCore.RequestRemoveSession(_sid);
 	};
 
 	const auto EnqueueGamePacket = [this, packet]()
 	{
-		const auto roomNum = _myRoomNumber.load();
-		if (!ServerIocpCore._rmgr->IsValidRoom(roomNum)) return;
+		const GameBinding binding = GetGameBinding();
+		if (!ServerIocpCore._rmgr->IsValidRoom(binding.roomNumber)) return;
 
-		RoomCommand command{};
-		command.type = RoomCommandType::GamePacket;
+		GameCommand command{};
 		command.sid = _sid;
-		command.roomNum = roomNum;
+		command.roomNum = binding.roomNumber;
+		command.lease = binding.lease;
 		command.packetSize = static_cast<uint8>(packet[0]);
 		if (command.packetSize > command.packet.size())
 		{
@@ -231,7 +238,7 @@ void ServerSession::ProcessPacket(char* packet)
 			return;
 		}
 		memcpy(command.packet.data(), packet, command.packetSize);
-		ServerIocpCore._rmgr->EnqueueCommand(std::move(command));
+		(void)ServerIocpCore._rmgr->EnqueueGameCommand(std::move(command));
 	};
 
 	switch ((uint8)packet[1])
@@ -268,7 +275,7 @@ void ServerSession::ProcessPacket(char* packet)
 			ServerIocpCore.RequestRemoveSession(GetSid());
 			break;
 		}
-		EnqueueControl({ RoomCommandType::Resume, _sid, -1, false, resume->resumeToken });
+		EnqueueLobby({ LobbyCommandType::Resume, _sid, -1, false, resume->resumeToken });
 	}
 	break;
 
@@ -276,27 +283,28 @@ void ServerSession::ProcessPacket(char* packet)
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_ENTER_RM:
 		{
 			auto* rep = reinterpret_cast<C2S_ROOM_ENTER*>(packet);
-			EnqueueControl(
-				{ RoomCommandType::Enter, _sid, rep->rmNum });
+			EnqueueLobby(
+				{ LobbyCommandType::Enter, _sid, rep->rmNum });
 		}
 		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_MK_RM:
 		{
-			EnqueueControl({ RoomCommandType::Create, _sid });
+			EnqueueLobby({ LobbyCommandType::Create, _sid });
 		}
 		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_READY:
 		{
-			EnqueueControl({ RoomCommandType::SetReady, _sid, -1, true });
+			EnqueueLobby({ LobbyCommandType::SetReady, _sid, -1, true });
 		}
 		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_READY_CANCEL:
 		{
-			EnqueueControl({ RoomCommandType::SetReady, _sid, -1, false });
+			EnqueueLobby({ LobbyCommandType::SetReady, _sid, -1, false });
 		}
 		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_EXIT_ROOM:
-			EnqueueControl({ RoomCommandType::Exit, _sid, _myRoomNumber.load() });
+			EnqueueLobby({ LobbyCommandType::Exit, _sid, GetRoomNumber() });
+			ClearRoomBinding();
 		break;
 
 		case (uint8)C_GAME_PACKET_TYPE::CKEY:

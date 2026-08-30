@@ -4,7 +4,7 @@
 
 struct JobComparator // 우선 순위 큐에서 비교연산 수행
 {
-	bool operator()(const QueueEvent* lhs, const QueueEvent* rhs)
+	bool operator()(const QueueEvent* lhs, const QueueEvent* rhs) const noexcept
 	{
 		if (lhs->generateTime != rhs->generateTime)
 			return lhs->generateTime > rhs->generateTime;
@@ -20,6 +20,9 @@ class ClientEventScheduler
 public:
 	using Clock = std::chrono::steady_clock;
 	ClientEventScheduler();
+	~ClientEventScheduler();
+	ClientEventScheduler(const ClientEventScheduler&) = delete;
+	ClientEventScheduler& operator=(const ClientEventScheduler&) = delete;
 	void Reset()
 	{
 		_BeginTickPoint = Clock::now(); // 시작 시점은 지금
@@ -27,8 +30,8 @@ public:
 	}
 	void PushTask(QueueEvent*, float after); // after 시간 후에 해당 임무를 수행한다.
 	void PushTask(QueueEvent*);
-	void DoTasks();
-	void Clear();
+	void DoTasks(Room& room, MatchState& match);
+	void Clear() noexcept;
 	int64 GetCurrentTick() const
 	{
 		return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - _BeginTickPoint).count();

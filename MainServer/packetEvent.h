@@ -1,9 +1,10 @@
 ﻿#pragma once
-#include "IocpCore.h"
-#include "ServerSession.h"
-#include "ServerIocpCore.h"
+#include "MatchLease.h"
+#include "../Shared/GameCommon.h"
 // 0 1 2
 
+class MatchState;
+class Room;
 
 class QueueEvent
 {
@@ -11,12 +12,14 @@ public:
 	int64 generateTime = 0;
 	uint64 sequence = 0;
 	int32 _sid = -1;
-	int32 _roomNum = -1;
-	uint64 _memberGeneration = 0;
+	MatchLease _lease{};
 public:
 	QueueEvent() {};
 	virtual ~QueueEvent() {};
-	virtual void Task() {};
+	virtual void Task(Room&, MatchState&) {};
+
+protected:
+	[[nodiscard]] bool IsCurrent(Room& room, MatchState& match) const;
 };
 
 class moveEvent : public QueueEvent // 33 ms 마다 전송한다.
@@ -28,7 +31,7 @@ public:
 	XMFLOAT3 _dir {0,0,0};
 	uint8 _key = 0;
 public:
-	virtual void Task();
+	void Task(Room& room, MatchState& match) override;
 };
 
 
@@ -40,7 +43,7 @@ public:
 	virtual ~InteractionEvent() {};
 	uint8 eventId = -1;
 public:
-	virtual void Task();
+	void Task(Room& room, MatchState& match) override;
 };
 
 class AttackEvent : public QueueEvent
@@ -51,5 +54,5 @@ public:
 public:
 	AttackEvent():_wf(0), _tidx(0) {};
 	virtual ~AttackEvent() {}
-	virtual void Task();
+	void Task(Room& room, MatchState& match) override;
  };

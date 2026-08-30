@@ -24,7 +24,7 @@ ServerIocpCore::~ServerIocpCore()
 bool ServerIocpCore::Processing(const uint32_t limit_time)
 {
 	const bool processed = IocpCore::Processing(limit_time);
-	DrainRemovedSessions();
+	DrainRetiredSessions();
 	return processed;
 }
 
@@ -33,6 +33,7 @@ bool ServerIocpCore::AddSession(const int32 sid, std::shared_ptr<ServerSession> 
 	if (!session) return false;
 
 	std::unique_lock lock(_lock);
+	if (_retiredSessions.contains(sid)) return false;
 	if (!_clients.emplace(sid, std::move(session)).second) return false;
 	_cList.insert(sid);
 	return true;
@@ -50,50 +51,39 @@ void ServerIocpCore::RequestRemoveSession(const int32 sid)
 	const auto session = FindSession(sid);
 	if (!session) return;
 
+	session->RetireGameBinding();
 	session->Disconnect();
-	std::unique_lock lock(_lock);
-	_removeRequests.insert(sid);
-}
-
-void ServerIocpCore::DrainRemovedSessions()
-{
-	std::vector<std::pair<int32, std::shared_ptr<ServerSession>>> ready;
 	{
 		std::unique_lock lock(_lock);
-		for (auto it = _removeRequests.begin(); it != _removeRequests.end();)
+		const auto it = _clients.find(sid);
+		if (it == _clients.end() || it->second != session) return;
+		if (!_retiredSessions.emplace(sid, session).second) return;
+		_cList.erase(sid);
+		_clients.erase(it);
+	}
+
+	LobbyCommand command{ LobbyCommandType::Disconnected, sid, -1, false, session->GetResumeToken() };
+	const bool queued = _rmgr->EnqueueLobbyCommand(std::move(command));
+	ASSERT_CRASH(queued); // Disconnected is the queue's must-admit lifecycle command.
+	std::cout << "[" << sid << "] Disconnected" << std::endl;
+	DrainRetiredSessions();
+}
+
+void ServerIocpCore::DrainRetiredSessions()
+{
+	std::vector<std::shared_ptr<ServerSession>> released;
+	{
+		std::unique_lock lock(_lock);
+		for (auto it = _retiredSessions.begin(); it != _retiredSessions.end();)
 		{
-			const auto sessionIt = _clients.find(*it);
-			if (sessionIt == _clients.end())
-			{
-				it = _removeRequests.erase(it);
-				continue;
-			}
-			if (sessionIt->second->PendingIO() != 0)
+			if (it->second->PendingIO() != 0)
 			{
 				++it;
 				continue;
 			}
-			ready.emplace_back(*it, sessionIt->second);
-			it = _removeRequests.erase(it);
+			released.push_back(std::move(it->second));
+			it = _retiredSessions.erase(it);
 		}
-	}
-
-	for (const auto& [sid, session] : ready)
-	{
-		const auto roomNum = session->_myRoomNumber.load();
-		if (_rmgr->IsValidRoom(roomNum))
-		{
-			RoomCommand command{ RoomCommandType::Disconnected, sid, roomNum, false,
-				session->GetResumeToken() };
-			command.reliable = true;
-			_rmgr->EnqueueCommand(std::move(command));
-		}
-		std::unique_lock lock(_lock);
-		const auto it = _clients.find(sid);
-		if (it == _clients.end() || it->second != session || session->PendingIO() != 0) continue;
-		std::cout << "[" << sid << "] Disconnected" << std::endl;
-		_cList.erase(sid);
-		_clients.erase(it);
 	}
 }
 

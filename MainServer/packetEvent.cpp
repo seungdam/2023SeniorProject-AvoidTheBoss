@@ -1,13 +1,15 @@
 ﻿#include "pch.h"
 #include "packetEvent.h"
-#include "CGameManager.h"
-void InteractionEvent::Task()
+#include "RoomManager.h"
+
+bool QueueEvent::IsCurrent(Room& room, MatchState& match) const
 {
-	if (!ServerIocpCore._rmgr->IsValidRoom(_roomNum)) return;
-	const int32 roomNum = _roomNum;
-	Room& targetRoom = ServerIocpCore._rmgr->GetRoom(roomNum);
-	if (!targetRoom.IsCurrentMember(_sid, _memberGeneration)) return;
-	CGameManager& gm = targetRoom.GameLogic();
+	return room.IsCurrentLease(_sid, _lease) && match.IsCurrentGeneration(_lease.matchGeneration);
+}
+
+void InteractionEvent::Task(Room& targetRoom, MatchState& match)
+{
+	if (!IsCurrent(targetRoom, match)) return;
 	switch ((EVENT_TYPE)eventId)
 	{
 		//============= 스위치 관련 이벤트 ===================
@@ -15,11 +17,11 @@ void InteractionEvent::Task()
 	case EVENT_TYPE::SWITCH_TWO_START_EVENT:
 	case EVENT_TYPE::SWITCH_THREE_START_EVENT:
 	{
-		SGenerator& targetGen = gm.GetGeneratorByIdx(eventId - (uint8)EVENT_TYPE::SWITCH_ONE_START_EVENT);
+		SGenerator& targetGen = match.GetGeneratorByIdx(eventId - (uint8)EVENT_TYPE::SWITCH_ONE_START_EVENT);
 		if (!targetGen._IsActive && !targetGen._IsOnInteraction) // 발전기 상호작용이 가능할 경우
 		{
 			// 검증 후 상호작용 상태로 변경
-			if (!targetGen.CanInteraction(gm.GetPlayerBySid(_sid)))
+			if (!targetGen.CanInteraction(match.GetPlayerBySid(_sid)))
 			{
 				std::cout << "Bug Detected\n";
 				break;
@@ -36,7 +38,7 @@ void InteractionEvent::Task()
 				S2C_ANIMPACKET animPacket;
 				animPacket.size = sizeof(S2C_ANIMPACKET);
 				animPacket.type = (uint8)S_GAME_PACKET_TYPE::ANIM;
-				animPacket.idx =  gm.GetPlayerBySid(_sid).m_idx;
+				animPacket.idx =  match.GetPlayerBySid(_sid).m_idx;
 				animPacket.track = (uint8)ANIMTRACK::GEN_ANIM;
 
 				targetRoom.BroadCastingExcept(&animPacket, _sid);
@@ -49,7 +51,7 @@ void InteractionEvent::Task()
 	case EVENT_TYPE::SWITCH_TWO_END_EVENT: // 상호작용 도중에 끝낸 경우
 	case EVENT_TYPE::SWITCH_THREE_END_EVENT: // 상호작용 도중에 끝낸 경우
 	{
-		SGenerator& targetGen = gm.GetGeneratorByIdx(eventId - (uint8)EVENT_TYPE::SWITCH_ONE_END_EVENT);
+		SGenerator& targetGen = match.GetGeneratorByIdx(eventId - (uint8)EVENT_TYPE::SWITCH_ONE_END_EVENT);
 		if (!targetGen._IsActive && targetGen._IsOnInteraction) // 발전기 상호작용이 도중에 발생한 경우
 		{
 
@@ -78,7 +80,7 @@ void InteractionEvent::Task()
 	case EVENT_TYPE::SWITCH_THREE_ACTIVATE_EVENT: // 상호작용 도중에 끝낸 경우
 	{
 
-		SGenerator& targetGen = gm.GetGeneratorByIdx(eventId - (uint8)EVENT_TYPE::SWITCH_ONE_ACTIVATE_EVENT);
+		SGenerator& targetGen = match.GetGeneratorByIdx(eventId - (uint8)EVENT_TYPE::SWITCH_ONE_ACTIVATE_EVENT);
 		targetGen.GenActivate(true);
 		SC_EVENTPACKET packet;
 		packet.size = sizeof(SC_EVENTPACKET);
@@ -97,7 +99,7 @@ void InteractionEvent::Task()
 	case EVENT_TYPE::RESCUE_PLAYER_THREE:
 	case EVENT_TYPE::RESCUE_PLAYER_FOUR:
 	{
-		SPlayer& p = gm.GetPlayerByIdx((int8)eventId - (int8)EVENT_TYPE::RESCUE_PLAYER_ONE);
+		SPlayer& p = match.GetPlayerByIdx((int8)eventId - (int8)EVENT_TYPE::RESCUE_PLAYER_ONE);
 		if (!p.m_bIsRescue)
 		{
 			p.m_bIsRescue = true;
@@ -109,7 +111,7 @@ void InteractionEvent::Task()
 			targetRoom.BroadCastingExcept(&packet, _sid);
 
 			S2C_ANIMPACKET ap;
-			ap.idx = gm.GetPlayerBySid(_sid).m_idx;
+			ap.idx = match.GetPlayerBySid(_sid).m_idx;
 			ap.size = sizeof(ap);
 			ap.type = (uint8)S_GAME_PACKET_TYPE::ANIM;
 			ap.track = (uint8)ANIMTRACK::RESCUE;
@@ -122,7 +124,7 @@ void InteractionEvent::Task()
 	case EVENT_TYPE::RESCUE_CANCEL_PLAYER_THREE:
 	case EVENT_TYPE::RESCUE_CANCEL_PLAYER_FOUR:
 	{
-		SPlayer& p = gm.GetPlayerByIdx((int8)eventId - (int8)EVENT_TYPE::RESCUE_CANCEL_PLAYER_ONE);
+		SPlayer& p = match.GetPlayerByIdx((int8)eventId - (int8)EVENT_TYPE::RESCUE_CANCEL_PLAYER_ONE);
 		if (p.m_bIsRescue) p.m_bIsRescue = false;
 
 
@@ -133,7 +135,7 @@ void InteractionEvent::Task()
 		targetRoom.BroadCastingExcept(&packet,_sid);
 
 		S2C_ANIMPACKET ap;
-		ap.idx = gm.GetPlayerBySid(_sid).m_idx;
+		ap.idx = match.GetPlayerBySid(_sid).m_idx;
 		ap.size = sizeof(ap);
 		ap.type = (uint8)S_GAME_PACKET_TYPE::ANIM;
 		ap.track = (uint8)ANIMTRACK::RESCUE_CANCEL;
@@ -145,7 +147,7 @@ void InteractionEvent::Task()
 	case EVENT_TYPE::ALIVE_PLAYER_THREE:
 	case EVENT_TYPE::ALIVE_PLAYER_FOUR:
 	{
-		SPlayer& p = gm.GetPlayerByIdx((int8)eventId - (int8)EVENT_TYPE::ALIVE_PLAYER_ONE);
+		SPlayer& p = match.GetPlayerByIdx((int8)eventId - (int8)EVENT_TYPE::ALIVE_PLAYER_ONE);
 		p.ProcessAlive();
 		SC_EVENTPACKET packet;
 		packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
@@ -154,7 +156,7 @@ void InteractionEvent::Task()
 		targetRoom.BroadCastingExcept(&packet, _sid);
 
 		S2C_ANIMPACKET ap;
-		ap.idx = gm.GetPlayerBySid(_sid).m_idx;
+		ap.idx = match.GetPlayerBySid(_sid).m_idx;
 		ap.size = sizeof(ap);
 		ap.type = (uint8)S_GAME_PACKET_TYPE::ANIM;
 		ap.track = (uint8)ANIMTRACK::RESCUE_CANCEL;
@@ -167,7 +169,7 @@ void InteractionEvent::Task()
 	case EVENT_TYPE::EXIT_PLAYER_FOUR:
 	{
 		int32 playerIdx = eventId - (int8)EVENT_TYPE::EXIT_PLAYER_ONE;
-		SPlayer& p = gm.GetPlayerByIdx(playerIdx);
+		SPlayer& p = match.GetPlayerByIdx(playerIdx);
 		if(!p.m_isEscaped) p.m_isEscaped = true;
 	}
 	break;
@@ -187,20 +189,16 @@ void InteractionEvent::Task()
 	}
 };
 
-void moveEvent::Task()
+void moveEvent::Task(Room& targetRoom, MatchState& match)
 {
 	// to do move Player in gameLogic
-	if (!ServerIocpCore._rmgr->IsValidRoom(_roomNum)) return;
-	const int32 roomNum = _roomNum;
-	CGameManager& gm = ServerIocpCore._rmgr->GetRoom(roomNum).GameLogic();
-	Room& targetRoom = ServerIocpCore._rmgr->GetRoom(roomNum);
-	if (!targetRoom.IsCurrentMember(_sid, _memberGeneration)) return;
-	//SPlayer& targetPlayer = gm.GetPlayerBySid(_sid);
+	if (!IsCurrent(targetRoom, match)) return;
+	//SPlayer& targetPlayer = match.GetPlayerBySid(_sid);
 
-	gm.GetPlayerBySid(_sid).SetDirection(_dir);
+	match.GetPlayerBySid(_sid).SetDirection(_dir);
 
-	if (gm.GetPlayerBySid(_sid).m_idx == 0) gm.GetPlayerBySid(_sid).Move(_key, BOSS_VELOCITY);
-	else gm.GetPlayerBySid(_sid).Move(_key, EMPLOYEE_VELOCITY);
+	if (match.GetPlayerBySid(_sid).m_idx == 0) match.GetPlayerBySid(_sid).Move(_key, BOSS_VELOCITY);
+	else match.GetPlayerBySid(_sid).Move(_key, EMPLOYEE_VELOCITY);
 
 	S2C_KEY keyPacket{};
 	keyPacket.size = sizeof(keyPacket);
@@ -217,24 +215,19 @@ void moveEvent::Task()
 		packet.sid = _sid;
 		packet.size = sizeof(S2C_POS);
 		packet.type = (uint8)S_GAME_PACKET_TYPE::SPOS;
-		packet.x = gm.GetPlayerBySid(_sid).GetPosition().x;
-		packet.z = gm.GetPlayerBySid(_sid).GetPosition().z;
+		packet.x = match.GetPlayerBySid(_sid).GetPosition().x;
+		packet.z = match.GetPlayerBySid(_sid).GetPosition().z;
 
 		targetRoom.BroadCastingExcept(&packet, _sid);
 	}
 
 };
 
-void AttackEvent::Task()
+void AttackEvent::Task(Room& targetRoom, MatchState& match)
 {
-	if (!ServerIocpCore._rmgr->IsValidRoom(_roomNum)) return;
-	const int32 roomNum = _roomNum;
-
-	CGameManager& gm = ServerIocpCore._rmgr->GetRoom(roomNum).GameLogic();
-	Room& targetRoom = ServerIocpCore._rmgr->GetRoom(roomNum);
-	if (!targetRoom.IsCurrentMember(_sid, _memberGeneration)) return;
-	bool retVal = targetRoom.ProcessAttackEvent(_wf, _tidx);
-	SPlayer& emp = gm.GetPlayerByIdx(_tidx);
+	if (!IsCurrent(targetRoom, match)) return;
+	bool retVal = match.IsAttackAvailable(_wf, _tidx);
+	SPlayer& emp = match.GetPlayerByIdx(_tidx);
 
 
 

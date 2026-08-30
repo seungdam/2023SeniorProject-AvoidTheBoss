@@ -166,7 +166,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AcceptManager.cpp" />
-    <ClCompile Include="CGameManager.cpp" />
+    <ClCompile Include="MatchState.cpp" />
     <ClCompile Include="CollisionDetector.cpp" />
     <ClCompile Include="CSIocpCore.cpp" />
     <ClCompile Include="JobQueue.cpp" />
@@ -186,7 +186,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AcceptManager.h" />
-    <ClInclude Include="CGameManager.h" />
+    <ClInclude Include="MatchState.h" />
     <ClInclude Include="CollisionDetector.h" />
     <ClInclude Include="CSIocpCore.h" />
     <ClInclude Include="JobQueue.h" />

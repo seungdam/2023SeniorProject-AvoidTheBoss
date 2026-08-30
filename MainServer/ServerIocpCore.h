@@ -7,7 +7,6 @@
 #include <set>
 #include <shared_mutex>
 #include <unordered_map>
-#include <unordered_set>
 
 class ServerSession;
 
@@ -26,12 +25,12 @@ public:
 	RoomManager* _rmgr;
 
 private:
-	void DrainRemovedSessions();
+	void DrainRetiredSessions();
 
 	mutable std::shared_mutex _lock;
 	std::unordered_map<int32, std::shared_ptr<ServerSession>> _clients;
+	std::unordered_map<int32, std::shared_ptr<ServerSession>> _retiredSessions;
 	std::set<int32> _cList;
-	std::unordered_set<int32> _removeRequests;
 };
 
 

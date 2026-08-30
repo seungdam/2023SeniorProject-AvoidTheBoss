@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "RoomManager.h"
 #include "ServerIocpCore.h"
+#include "ServerSession.h"
 #include "JobQueue.h"
 
 
@@ -44,21 +45,16 @@ void Room::UserOut(int32 sid)
 		}
 	}
 	if (!removed) return;
+	if (const auto session = ServerIocpCore.FindSession(sid)) session->ClearRoomBinding();
 
 	if (_status == (uint8)ROOM_STATUS::INGAME)
 	{
-		SPlayer& player = _gameLogic.GetPlayerBySid(sid);
-		player.SetVelocity(XMFLOAT3(0, 0, 0)); // 속도 0
-		idx = player.m_idx; /// 인덱스 가져오기
-		player.m_hide = true; // 업데이트 false로
-		player.SetBehavior(PLAYER_BEHAVIOR::CRAWL);
-
-		if (_gameLogic._gState == GAMESTATE::IN_GAME)
+		const MatchPlayerDeparture departure = _matchState.OnPlayerLeft(sid);
+		idx = departure.playerIndex;
+		if (departure.effect != PlayerDepartureEffect::None)
 		{
-
-			if (idx == 0) // 사장 플레이어가 나간 경우
+			if (departure.effect == PlayerDepartureEffect::EndMatch)
 			{
-				_gameLogic.ResetGame();
 				SC_EVENTPACKET packet;
 				packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
 				packet.size = sizeof(SC_EVENTPACKET);
@@ -84,7 +80,7 @@ void Room::UserOut(int32 sid)
 				for (const int16 memberSid : members)
 				{
 					if (const auto member = ServerIocpCore.FindSession(memberSid))
-						member->_myRoomNumber.store(-1);
+						member->ClearRoomBinding();
 				}
 				std::cout << "STRANGE GAME END\n";
 				return;
@@ -131,7 +127,6 @@ void Room::UserOut(int32 sid)
 
 	SendRoomInfoPacket();
 
-	if (const auto session = ServerIocpCore.FindSession(sid)) session->_myRoomNumber.store(-1);
 }
 
 int32 Room::GetMemberIndex(const int32 sid, const bool connectedOnly) const
@@ -156,10 +151,18 @@ bool Room::IsCurrentMember(const int32 sid, const uint64 generation) const
 	return false;
 }
 
+bool Room::IsCurrentLease(const int32 sid, const MatchLease& lease) const
+{
+	return _status == static_cast<uint8>(ROOM_STATUS::INGAME) &&
+		_matchState.IsCurrentGeneration(lease.matchGeneration) &&
+		IsCurrentMember(sid, lease.memberGeneration);
+}
+
 void Room::OnTransportDisconnected(const int32 sid, const uint64 resumeToken)
 {
-	const int32 idx = GetMemberIndex(sid, true);
-	if (idx < 0 || _status != static_cast<uint8>(ROOM_STATUS::INGAME) || idx == 0 || resumeToken == 0)
+	const int32 idx = GetMemberIndex(sid, false);
+	if (idx < 0) return;
+	if (_status != static_cast<uint8>(ROOM_STATUS::INGAME) || idx == 0 || resumeToken == 0)
 	{
 		UserOut(sid);
 		return;
@@ -168,6 +171,7 @@ void Room::OnTransportDisconnected(const int32 sid, const uint64 resumeToken)
 	{
 		std::unique_lock lock(_listLock);
 		RoomMember& member = _roomMembers[idx];
+		if (member.sid == sid && member.connection == ConnectionState::Reconnecting) return;
 		if (member.sid != sid || member.connection != ConnectionState::Connected || member.resumeToken != resumeToken)
 			return;
 		member.connection = ConnectionState::Reconnecting;
@@ -175,13 +179,14 @@ void Room::OnTransportDisconnected(const int32 sid, const uint64 resumeToken)
 		++member.generation;
 	}
 
-	_gameLogic.GetPlayerBySid(sid).SetVelocity(XMFLOAT3(0, 0, 0));
+	_matchState.PausePlayer(sid);
 }
 
 bool Room::ResumeUser(const int32 newSid, const uint64 resumeToken)
 {
 	const auto session = ServerIocpCore.FindSession(newSid);
-	if (!session || _status != static_cast<uint8>(ROOM_STATUS::INGAME)) return false;
+	if (!session || !IsSessionUnbound(session->GetRoomNumber()) ||
+		_status != static_cast<uint8>(ROOM_STATUS::INGAME)) return false;
 
 	int32 idx = -1;
 	int16 oldSid = -1;
@@ -196,27 +201,28 @@ bool Room::ResumeUser(const int32 newSid, const uint64 resumeToken)
 				std::chrono::steady_clock::now() >= member.reconnectDeadline)
 				return false;
 
+			const uint64 nextGeneration = member.generation + 1;
+			if (!session->BindRoom(_roomNumber, nextGeneration, _matchState.Generation())) return false;
 			idx = i;
 			oldSid = member.sid;
 			replaceConnectedSession = member.connection == ConnectionState::Connected;
 			member.sid = static_cast<int16>(newSid);
 			member.connection = ConnectionState::Connected;
 			member.reconnectDeadline = {};
-			++member.generation;
+			member.generation = nextGeneration;
 			break;
 		}
 	}
 
 	if (idx < 0) return false;
-	_gameLogic.SetPlayerSidAndIdx(newSid, idx);
-	session->_myRoomNumber.store(static_cast<int16>(_roomNumber));
+	_matchState.RebindPlayer(newSid, idx);
 	session->SetResumeToken(resumeToken);
 
 	if (replaceConnectedSession && oldSid != newSid)
 	{
 		if (const auto oldSession = ServerIocpCore.FindSession(oldSid))
 		{
-			oldSession->_myRoomNumber.store(-1);
+			oldSession->ClearRoomBinding();
 			ServerIocpCore.RequestRemoveSession(oldSid);
 		}
 	}
@@ -270,6 +276,7 @@ bool Room::UserIn(int32 sid)
 	else if (_status == (int8)ROOM_STATUS::NOT_FULL) // 아니면 접속 성공
 	{
 		packet.rmNum = _roomNumber;
+		bool inserted = false;
 		{
 			//cList Lock 쓰기 호출
 			std::unique_lock<std::shared_mutex> wll(_listLock);
@@ -279,13 +286,16 @@ bool Room::UserIn(int32 sid)
 				if (-1 == _roomMembers[k].sid)
 				{
 					RoomMember& member = _roomMembers[k];
+					const uint64 nextGeneration = member.generation + 1;
+					if (!session->BindRoom(_roomNumber, nextGeneration)) break;
 					member.sid = static_cast<int16>(sid);
 					member.bReady = false;
 					member.resumeToken = session->GetResumeToken();
 					member.connection = ConnectionState::Connected;
 					member.reconnectDeadline = {};
-					++member.generation;
+					member.generation = nextGeneration;
 					_nMembers.fetch_add(1);
+					inserted = true;
 					break;
 				}
 			}
@@ -293,7 +303,13 @@ bool Room::UserIn(int32 sid)
 			for (auto i : _roomMembers)  std::cout << (int32)i.sid << "|";
 			std::cout << " ]\n";
 		}
-		session->_myRoomNumber.store(static_cast<int16>(_roomNumber));
+		if (!inserted)
+		{
+			packet.rmNum = -1;
+			packet.type = static_cast<uint8>(S_ROOM_PACKET_TYPE::REP_ENTER_FAIL);
+			session->DoSend(&packet);
+			return false;
+		}
 		session->DoSend(&packet);
 		SendRoomListPacket();
 		if (_nMembers == PLAYERNUM)
@@ -358,27 +374,24 @@ void Room::Update()
 	if (_status != (int8)ROOM_STATUS::INGAME) return;
 	ExpireReconnects();
 	if (_status != (int8)ROOM_STATUS::INGAME) return;
-	_timer.Tick(60.f);
-	_gameLogic.Update(_timer.GetTimeElapsed());
-	_gameLogic.LateUpdate(_timer.GetTimeElapsed());
+	const MatchTickResult tick = _matchState.Tick(*this);
 
-	if (_timer.IsTimeToAddHistory())
+	if (tick.frame >= 0)
 	{
-		_gameLogic.AddHistory();
 		S2C_FRAMEPACKET packet;
 		packet.size = sizeof(S2C_FRAMEPACKET);
 		packet.type = (uint8)S_GAME_PACKET_TYPE::FRAME;
-		packet.wf = _gameLogic._history.GetCurFrame();
+		packet.wf = tick.frame;
 		BroadCasting(&packet);
 	}
 
-	if (_timer.IsAfterTick(45)) // 1/45초마다 정확한 위치값을 브로드캐스팅 한다.
+	if (tick.broadcastPositions) // 1/45초마다 정확한 위치값을 브로드캐스팅 한다.
 	{
 
 		for (int i = 0; i < PLAYERNUM; ++i)
 		{
 
-			SPlayer& ps = _gameLogic.GetPlayerByIdx(i);
+			SPlayer& ps = _matchState.GetPlayerByIdx(i);
 
 			S2C_POS packet;
 			packet.sid = ps.m_sid;
@@ -393,14 +406,14 @@ void Room::Update()
 
 
 	// 게임이 끝났다면 게임이 끝났다는 패킷 전송
-	if (GAMESTATE::EMP_WIN == _gameLogic._gState || GAMESTATE::BOSS_WIN == _gameLogic._gState)
+	if (GAMESTATE::EMP_WIN == tick.state || GAMESTATE::BOSS_WIN == tick.state)
 	{
 		_status = (uint8)ROOM_STATUS::FULL;
 
 		SC_EVENTPACKET packet;
 		packet.size = sizeof(SC_EVENTPACKET);
 		packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
-		if (GAMESTATE::BOSS_WIN == _gameLogic._gState) packet.eventId = (uint8)EVENT_TYPE::BOSS_WIN;
+		if (GAMESTATE::BOSS_WIN == tick.state) packet.eventId = (uint8)EVENT_TYPE::BOSS_WIN;
 		else  packet.eventId = (uint8)EVENT_TYPE::EMP_WIN;
 
 		BroadCasting(&packet);
@@ -416,56 +429,38 @@ void Room::Update()
 			if (memberSid != -1) UserOut(memberSid);
 		}
 
-		_gameLogic.ResetGame();
+		_matchState.Reset();
 	}
 }
 
-void Room::AddEvent(QueueEvent* qe, float after)
+void Room::AddEvent(QueueEvent* event, const MatchLease& lease, const float after)
 {
-	if (!qe) return;
+	if (!event) return;
+	if (!IsCurrentLease(event->_sid, lease))
 	{
-		std::shared_lock lock(_listLock);
-		for (const RoomMember& member : _roomMembers)
-		{
-			if (member.sid != qe->_sid || member.connection != ConnectionState::Connected) continue;
-			qe->_roomNum = _roomNumber;
-			qe->_memberGeneration = member.generation;
-			_gameLogic.AddEventAfterTime(after, qe);
-			return;
-		}
+		delete event;
+		return;
 	}
-	delete qe;
+	event->_lease = lease;
+	_matchState.AddEventAfterTime(after, event);
 }
 
-void Room::AddEvent(QueueEvent* qe)
+void Room::ProcessGamePacket(const GameCommand& command)
 {
-	if (!qe) return;
-	{
-		std::shared_lock lock(_listLock);
-		for (const RoomMember& member : _roomMembers)
-		{
-			if (member.sid != qe->_sid || member.connection != ConnectionState::Connected) continue;
-			qe->_roomNum = _roomNumber;
-			qe->_memberGeneration = member.generation;
-			_gameLogic.AddEvent(qe);
-			return;
-		}
-	}
-	delete qe;
-}
-
-void Room::ProcessGamePacket(const int32 sid, const char* packet, const uint8 packetSize)
-{
-	if (!packet || packetSize < 2 || GetMemberIndex(sid, true) < 0) return;
+	const uint8 packetSize = command.packetSize;
+	if (packetSize < 2 || packetSize > command.packet.size() ||
+		!IsCurrentLease(command.sid, command.lease)) return;
+	const char* packet = command.packet.data();
+	const int32 sid = command.sid;
 
 	switch (static_cast<uint8>(packet[1]))
 	{
 	case static_cast<uint8>(C_GAME_PACKET_TYPE::CKEY):
 	{
-		if (_status != static_cast<uint8>(ROOM_STATUS::INGAME)) return;
 		if (packetSize != sizeof(C2S_KEY)) return;
 		const auto* movePacket = reinterpret_cast<const C2S_KEY*>(packet);
-		AddEvent(new moveEvent(sid, movePacket->key, XMFLOAT3{ movePacket->x, 0, movePacket->z }), 0.f);
+		AddEvent(new moveEvent(sid, movePacket->key, XMFLOAT3{ movePacket->x, 0, movePacket->z }),
+			command.lease);
 		return;
 	}
 	case static_cast<uint8>(C_GAME_PACKET_TYPE::CROT):
@@ -491,7 +486,6 @@ void Room::ProcessGamePacket(const int32 sid, const char* packet, const uint8 pa
 	}
 	case static_cast<uint8>(C_GAME_PACKET_TYPE::CATTACK):
 	{
-		if (_status != static_cast<uint8>(ROOM_STATUS::INGAME)) return;
 		if (packetSize != sizeof(C2S_ATTACK)) return;
 		const auto* attackPacket = reinterpret_cast<const C2S_ATTACK*>(packet);
 		if (attackPacket->tidx < 0 || attackPacket->tidx >= PLAYERNUM)
@@ -503,18 +497,17 @@ void Room::ProcessGamePacket(const int32 sid, const char* packet, const uint8 pa
 		event->_sid = sid;
 		event->_tidx = attackPacket->tidx;
 		event->_wf = attackPacket->wf;
-		AddEvent(event);
+		AddEvent(event, command.lease);
 		return;
 	}
 	case static_cast<uint8>(SC_GAME_PACKET_TYPE::GAMEEVENT):
 	{
-		if (_status != static_cast<uint8>(ROOM_STATUS::INGAME)) return;
 		if (packetSize != sizeof(SC_EVENTPACKET)) return;
 		const auto* eventPacket = reinterpret_cast<const SC_EVENTPACKET*>(packet);
 		auto* event = new InteractionEvent();
 		event->_sid = sid;
 		event->eventId = eventPacket->eventId;
-		AddEvent(event);
+		AddEvent(event, command.lease);
 		return;
 	}
 	default:
@@ -553,39 +546,50 @@ void Room::SendRoomInfoPacket()
 }
 void Room::InitGame()
 {
-
 	if (IsGameStartAvailable())
 	{
-		S2C_GAMESTART packet;
+		S2C_GAMESTART packet{};
 		packet.size = sizeof(S2C_GAMESTART);
 		packet.type = (uint8)S_ROOM_PACKET_TYPE::GAME_START;
-
+		std::array<int16, PLAYERNUM> playerSids{};
 		{
+			std::shared_lock lock(_listLock);
 			for (int i = 0; i < PLAYERNUM; ++i)
 			{
 				packet.sids[i] = _roomMembers[i].sid;
-				_gameLogic.SetPlayerSidAndIdx(_roomMembers[i].sid, i);
+				playerSids[i] = _roomMembers[i].sid;
 			}
 		}
-		BroadCasting(&packet);
-		std::cout << "TOTAL USER SID LIST[";
-
-		for (int i = 0; i < 4; ++i) std::cout << _gameLogic._players[i].m_sid << " | ";
-		std::cout << "]\n";
-
 		{
 			std::unique_lock<std::shared_mutex> rl(_listLock);
 			for (auto& i : _roomMembers) i.bReady = false;
 		}
-		_gameLogic.InitGame();
-		_timer.Reset();
+		const uint64 matchGeneration = _matchState.Start(playerSids);
 		_status = (uint8)ROOM_STATUS::INGAME;
+		for (const int16 playerSid : playerSids)
+		{
+			if (const auto session = ServerIocpCore.FindSession(playerSid))
+				(void)session->BindMatch(matchGeneration);
+		}
+		BroadCasting(&packet);
+		std::cout << "TOTAL USER SID LIST[";
+		for (const int16 playerSid : playerSids) std::cout << playerSid << " | ";
+		std::cout << "]\n";
 	}
 }
-void Room::UpdateReady(int32 idx, bool val)
+bool Room::TryUpdateReady(const int32 sid, const bool val)
 {
+	if (_status != static_cast<uint8>(ROOM_STATUS::NOT_FULL) &&
+		_status != static_cast<uint8>(ROOM_STATUS::FULL)) return false;
+
 	std::unique_lock<std::shared_mutex> lock(_listLock);
-	_roomMembers[idx].bReady = val;
+	for (RoomMember& member : _roomMembers)
+	{
+		if (member.sid != sid || member.connection != ConnectionState::Connected) continue;
+		member.bReady = val;
+		return true;
+	}
+	return false;
 }
 
 bool Room::IsGameStartAvailable()
@@ -610,74 +614,59 @@ void RoomManager::Init()
 	}
 }
 
-bool RoomManager::EnqueueCommand(RoomCommand command)
+bool RoomManager::EnqueueLobbyCommand(LobbyCommand command)
 {
-	std::lock_guard lock(_commandLock);
-	if (_commands.size() >= MaxPendingCommands)
-	{
-		if (!command.reliable) return false;
-
-		const auto victim = std::find_if(_commands.begin(), _commands.end(),
-			[](const RoomCommand& queued) { return !queued.reliable; });
-		if (victim == _commands.end()) return false;
-		_commands.erase(victim);
-	}
-	_commands.push_back(std::move(command));
-	return true;
+	return _lobbyCommands.TryEnqueue(std::move(command));
 }
 
-void RoomManager::DrainCommands()
+bool RoomManager::EnqueueGameCommand(GameCommand command)
 {
-	std::deque<RoomCommand> commands;
-	{
-		std::lock_guard lock(_commandLock);
-		const size_t count = std::min(_commands.size(), MaxCommandsPerUpdate);
-		for (size_t i = 0; i < count; ++i)
-		{
-			commands.push_back(std::move(_commands.front()));
-			_commands.pop_front();
-		}
-	}
-
-	for (const RoomCommand& command : commands)
-		ExecuteCommand(command);
+	return _gameCommands.TryEnqueue(std::move(command));
 }
 
-void RoomManager::ExecuteCommand(const RoomCommand& command)
+void RoomManager::DrainLobbyCommands()
+{
+	auto commands = _lobbyCommands.Drain(MaxLobbyCommandsPerUpdate);
+	for (const LobbyCommand& command : commands)
+		ExecuteLobbyCommand(command);
+}
+
+void RoomManager::DrainGameCommands()
+{
+	auto commands = _gameCommands.Drain(MaxGameCommandsPerUpdate);
+	for (const GameCommand& command : commands)
+		ExecuteGameCommand(command);
+}
+
+void RoomManager::ExecuteLobbyCommand(const LobbyCommand& command)
 {
 	switch (command.type)
 	{
-	case RoomCommandType::Create:
+	case LobbyCommandType::Create:
 		CreateRoom(command.sid);
 		return;
-	case RoomCommandType::Enter:
+	case LobbyCommandType::Enter:
 		EnterRoom(command.sid, command.roomNum);
 		return;
-	case RoomCommandType::Exit:
+	case LobbyCommandType::Exit:
 		if (IsValidRoom(command.roomNum))
 			ExitRoom(command.sid, command.roomNum);
 		return;
-	case RoomCommandType::Disconnected:
-		if (IsValidRoom(command.roomNum))
-			DisconnectSession(command.sid, command.roomNum, command.resumeToken);
+	case LobbyCommandType::Disconnected:
+		DisconnectSession(command.sid, command.resumeToken);
 		return;
-	case RoomCommandType::Resume:
+	case LobbyCommandType::Resume:
 		ResumeSession(command.sid, command.resumeToken);
 		return;
-	case RoomCommandType::GamePacket:
-		if (IsValidRoom(command.roomNum))
-			GetRoom(command.roomNum).ProcessGamePacket(command.sid, command.packet.data(), command.packetSize);
-		return;
-	case RoomCommandType::SetReady:
+	case LobbyCommandType::SetReady:
 	{
 		const auto session = ServerIocpCore.FindSession(command.sid);
 		if (!session) return;
-		const int32 roomNum = session->_myRoomNumber.load();
+		const int32 roomNum = session->GetRoomNumber();
 		if (!IsValidRoom(roomNum)) return;
 
 		Room& room = GetRoom(roomNum);
-		const int32 idx = room.GetSidIndexBySid(command.sid);
-		if (idx < 0) return;
+		if (!room.TryUpdateReady(command.sid, command.isReady)) return;
 
 		S2C_ROOM_READY packet{};
 		packet.size = sizeof(S2C_ROOM_READY);
@@ -687,11 +676,21 @@ void RoomManager::ExecuteCommand(const RoomCommand& command)
 		packet.sid = command.sid;
 
 		room.BroadCastingExcept(&packet, command.sid);
-		room.UpdateReady(idx, command.isReady);
 		if (command.isReady) room.InitGame();
 		return;
 	}
 	}
+}
+
+void RoomManager::ExecuteGameCommand(const GameCommand& command)
+{
+	if (!IsValidRoom(command.roomNum)) return;
+	const auto session = ServerIocpCore.FindSession(command.sid);
+	if (!session) return;
+	const ServerSession::GameBinding binding = session->GetGameBinding();
+	if (binding.roomNumber != command.roomNum ||
+		!command.lease.Matches(binding.lease.memberGeneration, binding.lease.matchGeneration)) return;
+	GetRoom(command.roomNum).ProcessGamePacket(command);
 }
 
 bool RoomManager::EnterRoom(int32 sid, int32 rmNum)
@@ -702,7 +701,7 @@ bool RoomManager::EnterRoom(int32 sid, int32 rmNum)
 		return false;
 	}
 	const auto session = ServerIocpCore.FindSession(sid);
-	if (!session || session->_myRoomNumber.load() != -1) return false;
+	if (!session || !IsSessionUnbound(session->GetRoomNumber())) return false;
 	return _rooms[rmNum].UserIn(sid);
 }
 void RoomManager::CreateRoom(int32 sid)
@@ -712,7 +711,7 @@ void RoomManager::CreateRoom(int32 sid)
 	S2C_ROOM_EVENT packet;
 	packet.size = sizeof(S2C_ROOM_EVENT);
 
-	if (session->_myRoomNumber.load() != -1)
+	if (!IsSessionUnbound(session->GetRoomNumber()))
 	{
 		packet.type = (uint8)S_ROOM_PACKET_TYPE::MK_RM_FAIL;
 		session->DoSend(&packet);
@@ -738,7 +737,8 @@ void RoomManager::CreateRoom(int32 sid)
 }
 void RoomManager::UpdateRooms()
 {
-	DrainCommands();
+	DrainLobbyCommands();
+	DrainGameCommands();
 
 	for (int i = 0; i < RoomCapacity; ++i)
 	{
@@ -752,10 +752,11 @@ void RoomManager::ExitRoom(int32 sid, int32 rmNum)
 	_rooms[rmNum].UserOut(sid);
 }
 
-void RoomManager::DisconnectSession(const int32 sid, const int32 rmNum, const uint64 resumeToken)
+void RoomManager::DisconnectSession(const int32 sid, const uint64 resumeToken)
 {
-	if (!IsValidRoom(rmNum)) return;
-	_rooms[rmNum].OnTransportDisconnected(sid, resumeToken);
+	// ponytail: 100 rooms x 4 slots avoids an enqueue-time room snapshot race;
+	// add an owner-maintained SID index only if this fixed capacity grows.
+	for (Room& room : _rooms) room.OnTransportDisconnected(sid, resumeToken);
 }
 
 void RoomManager::ResumeSession(const int32 sid, const uint64 resumeToken)

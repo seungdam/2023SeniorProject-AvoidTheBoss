@@ -1,11 +1,9 @@
 ﻿#pragma once
-#include "CGameManager.h"
+#include "MatchState.h"
 #include "RoomCommand.h"
 
 #include <array>
 #include <chrono>
-#include <deque>
-#include <mutex>
 
 
 class QueueEvent;
@@ -43,9 +41,7 @@ public:
 	bool ResumeUser(int32 newSid, uint64 resumeToken);
 	void BroadCasting(void* packet);
 	void BroadCastingExcept(void* packet, int32 sid);
-	bool ProcessAttackEvent(const int32& frame, const int16& target) { return (_gameLogic._history.IsAttackAvailable(frame, target)); }
 	void Update();
-	void StartGame() { _timer.Reset(); }
 
 	void SendRoomListPacket();
 	void SendRoomInfoPacket();
@@ -61,31 +57,29 @@ public:
 		return -1;
 	};
 	bool IsCurrentMember(int32 sid, uint64 generation) const;
-
-	void InitGame();
-	void UpdateReady(int32 idx, bool val);
-	bool IsGameStartAvailable();
 private:
 	static constexpr auto ReconnectGracePeriod = std::chrono::seconds(30);
 	int32 GetMemberIndex(int32 sid, bool connectedOnly) const;
+	void InitGame();
+	bool TryUpdateReady(int32 sid, bool val);
+	bool IsGameStartAvailable();
 	void ExpireReconnects();
-	void ProcessGamePacket(int32 sid, const char* packet, uint8 packetSize);
-	void AddEvent(QueueEvent* packet, float after);
-	void AddEvent(QueueEvent* qe);
-	CGameManager& GameLogic() noexcept { return _gameLogic; }
+	bool IsCurrentLease(int32 sid, const MatchLease& lease) const;
+	void ProcessGamePacket(const GameCommand& command);
+	void AddEvent(QueueEvent* event, const MatchLease& lease, float after = 0.f);
 
 	friend class RoomManager;
+	friend class QueueEvent;
 	friend class InteractionEvent;
 	friend class moveEvent;
 	friend class AttackEvent;
 
-	CGameManager _gameLogic;
+	MatchState _matchState;
 	mutable std::shared_mutex _listLock;
 	std::array<RoomMember, PLAYERNUM> _roomMembers{};
 	uint8 _status = (int8)ROOM_STATUS::EMPTY; // 방 상태
 	int32 _roomNumber = 0; // 방번호
 	Atomic<int32> _nMembers = 0;
-	Timer _timer;
 };
 
 class RoomManager
@@ -93,9 +87,10 @@ class RoomManager
 public:
 	static constexpr int32 RoomCapacity = 100;
 
-	bool EnqueueCommand(RoomCommand command);
+	[[nodiscard]] bool EnqueueLobbyCommand(LobbyCommand command);
+	[[nodiscard]] bool EnqueueGameCommand(GameCommand command);
 	void ExitRoom(int32 sid, int32 rmNum);
-	void DisconnectSession(int32 sid, int32 rmNum, uint64 resumeToken);
+	void DisconnectSession(int32 sid, uint64 resumeToken);
 	void ResumeSession(int32 sid, uint64 resumeToken);
 	bool EnterRoom(int32 sid, int32 rmNum);
 	void CreateRoom(int32 sid);
@@ -105,15 +100,20 @@ public:
 	void Init();
 
 private:
-	// ponytail: a single bounded queue fits the current 100 rooms × 4 members; use per-room mailboxes only when profiling proves this dispatcher is saturated.
-	static constexpr size_t MaxPendingCommands = 4096;
-	static constexpr size_t MaxCommandsPerUpdate = 512;
+	// ponytail: one bounded queue per domain fits the current 100 rooms × 4 members;
+	// add per-room/per-match queues only when profiling proves either dispatcher is saturated.
+	static constexpr std::size_t MaxPendingLobbyCommands = 4096;
+	static constexpr std::size_t MaxPendingGameCommands = 4096;
+	static constexpr std::size_t MaxLobbyCommandsPerUpdate = 512;
+	static constexpr std::size_t MaxGameCommandsPerUpdate = 512;
 
-	void DrainCommands();
-	void ExecuteCommand(const RoomCommand& command);
+	void DrainLobbyCommands();
+	void DrainGameCommands();
+	void ExecuteLobbyCommand(const LobbyCommand& command);
+	void ExecuteGameCommand(const GameCommand& command);
 
 	std::array<Room, RoomCapacity> _rooms{};
-	std::mutex _commandLock;
-	std::deque<RoomCommand> _commands;
+	LobbyCommandQueue _lobbyCommands{ MaxPendingLobbyCommands };
+	GameCommandQueue _gameCommands{ MaxPendingGameCommands };
 };
 

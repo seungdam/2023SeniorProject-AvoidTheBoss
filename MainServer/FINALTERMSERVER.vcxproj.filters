@@ -82,7 +82,7 @@
     <ClCompile Include="JobQueue.cpp">
       <Filter>ForServer\JobQueue</Filter>
     </ClCompile>
-    <ClCompile Include="CGameManager.cpp">
+    <ClCompile Include="MatchState.cpp">
       <Filter>GameManager</Filter>
     </ClCompile>
   </ItemGroup>
@@ -120,7 +120,7 @@
     <ClInclude Include="JobQueue.h">
       <Filter>ForServer\JobQueue</Filter>
     </ClInclude>
-    <ClInclude Include="CGameManager.h">
+    <ClInclude Include="MatchState.h">
       <Filter>GameManager</Filter>
     </ClInclude>
   </ItemGroup>

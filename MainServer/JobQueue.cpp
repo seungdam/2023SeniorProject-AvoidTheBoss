@@ -7,25 +7,34 @@ ClientEventScheduler::ClientEventScheduler()
 	_CurrentTick = GetCurrentTick(); // 현재 틱 값 초기화
 }
 
+ClientEventScheduler::~ClientEventScheduler()
+{
+	Clear();
+}
+
 void ClientEventScheduler::PushTask(QueueEvent* task, float after)
 {
-	if (!task) return;
+	std::unique_ptr<QueueEvent> owner(task);
+	if (!owner) return;
 	_CurrentTick = GetCurrentTick();
 	task->generateTime = _CurrentTick + static_cast<int64>(after);
 	task->sequence = _nextSequence++;
 	_TaskQueue.push(task);
+	owner.release();
 }
 
 void ClientEventScheduler::PushTask(QueueEvent* task)
 {
-	if (!task) return;
+	std::unique_ptr<QueueEvent> owner(task);
+	if (!owner) return;
 	_CurrentTick = GetCurrentTick();
 	task->generateTime = _CurrentTick;
 	task->sequence = _nextSequence++;
 	_TaskQueue.push(task);
+	owner.release();
 }
 
-void ClientEventScheduler::DoTasks()
+void ClientEventScheduler::DoTasks(Room& room, MatchState& match)
 {
 	/// tick update
 	_CurrentTick = GetCurrentTick(); // 현재 틱값을 구한다.
@@ -35,14 +44,14 @@ void ClientEventScheduler::DoTasks()
 		QueueEvent* jobElem = _TaskQueue.top(); // 가장 우선적으로 나와야할 이벤트에 대해서
 		if (_CurrentTick < jobElem->generateTime) break;
 		_TaskQueue.pop();
-		jobElem->Task(); // 만약 호출할 시점이 됐다면 해당 잡을 수행하고 queue에서 제거
-		delete jobElem;
+		std::unique_ptr<QueueEvent> owner(jobElem);
+		owner->Task(room, match); // 만약 호출할 시점이 됐다면 해당 잡을 수행하고 queue에서 제거
 
 	}
 
 }
 
-void ClientEventScheduler::Clear()
+void ClientEventScheduler::Clear() noexcept
 {
 	while (!_TaskQueue.empty())
 	{
