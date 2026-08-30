@@ -36,6 +36,10 @@ namespace
 			return sizeof(S2C_LOGIN_OK);
 		case static_cast<uint8>(S_TITLE_PACKET_TYPE::LOGIN_FAIL):
 			return sizeof(S2C_LOGIN_FAIL);
+		case static_cast<uint8>(S_TITLE_PACKET_TYPE::RESUME_OK):
+			return sizeof(S2C_RESUME);
+		case static_cast<uint8>(S_TITLE_PACKET_TYPE::RESUME_FAIL):
+			return sizeof(S2C_RESUME_FAIL);
 
 		case static_cast<uint8>(S_ROOM_PACKET_TYPE::MK_RM_OK):
 		case static_cast<uint8>(S_ROOM_PACKET_TYPE::MK_RM_FAIL):
@@ -111,6 +115,20 @@ std::pair<int32, int32> ClientSession::GetIdentity()
 	return { _cid, _sid };
 }
 
+void ClientSession::ResetForReconnect(const SOCKET socket)
+{
+	{
+		std::unique_lock identityLock(_lock);
+		_resumeSid.store(_sid, std::memory_order_release);
+		_sock = socket;
+		_sid = -1;
+		_prevRemain = 0;
+		_stopping.store(false, std::memory_order_release);
+	}
+	std::lock_guard packetLock(_packetMutex);
+	_pendingPackets.clear();
+}
+
 bool ClientSession::QueuePacket(const char* packet, const std::size_t packetSize)
 {
 	std::lock_guard packetLock(_packetMutex);
@@ -148,7 +166,18 @@ void ClientSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 		SetSid(0);
 		if (!IsStopping())
 		{
-			if (DoRecv()) g_clientTestMode.OnConnected(*this); // Connect하고 Do recv 수행
+			if (DoRecv())
+			{
+				if (HasResumeToken())
+				{
+					C2S_RESUME resume{};
+					resume.size = sizeof(resume);
+					resume.type = static_cast<uint8>(C_TITLE_PACKET_TYPE::ACQ_RESUME);
+					resume.resumeToken = GetResumeToken();
+					if (!DoSend(&resume)) g_clientTestMode.OnProtocolFailure("failed to send resume request");
+				}
+				else g_clientTestMode.OnConnected(*this); // Connect하고 Do recv 수행
+			}
 			else g_clientTestMode.OnProtocolFailure("failed to start the first receive");
 		}
 	}
@@ -202,6 +231,8 @@ void ClientSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 				{
 					const auto* login = reinterpret_cast<const S2C_LOGIN_OK*>(p);
 					SetIdentity(login->cid, login->sid);
+					_resumeToken.store(login->resumeToken, std::memory_order_release);
+					_resumeSid.store(-1, std::memory_order_release);
 				}
 
 				if (!QueuePacket(p, cbPacketSize))
@@ -332,6 +363,31 @@ void ClientSession::ApplyPacket(char* packet)
 		mainGame.m_UIRenderer->m_LoginResult[1].m_hide = true;
 		mainGame.m_UIRenderer->m_LoginResult[2].m_hide = true;
 		g_clientTestMode.OnLoginOk(*this);
+	}
+	break;
+	case (uint8)S_TITLE_PACKET_TYPE::RESUME_OK:
+	{
+		auto* resume = reinterpret_cast<S2C_RESUME*>(packet);
+		if (resume->playerIndex >= PLAYERNUM) break;
+		if (resume->oldSid == GetResumeSid())
+		{
+			SetSid(resume->newSid);
+			_resumeSid.store(-1, std::memory_order_release);
+			CScene::m_sid = resume->newSid;
+		}
+		if (CPlayer* player = gs->GetScenePlayerByIdx(resume->playerIndex))
+			player->SetPlayerSid(resume->newSid);
+	}
+	break;
+	case (uint8)S_TITLE_PACKET_TYPE::RESUME_FAIL:
+	{
+		ClearResumeToken();
+		_resumeSid.store(-1, std::memory_order_release);
+		SetSid(-1);
+		CScene::m_sid = -1;
+		if (mainGame.m_curScene == static_cast<int32>(CGameFramework::SCENESTATE::INGAME))
+			gs->ResetGame();
+		mainGame.ChangeScene(CGameFramework::SCENESTATE::TITLE);
 	}
 	break;
 	case (uint8)S_TITLE_PACKET_TYPE::LOGIN_FAIL:

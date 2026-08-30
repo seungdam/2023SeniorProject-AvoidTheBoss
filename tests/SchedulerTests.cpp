@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "CJobQueue.h"
+#include "ClientEventScheduler.h"
 
 #include <iostream>
 #include <vector>
@@ -37,7 +37,7 @@ int main()
 		ordered.pop();
 	}
 
-	Scheduler scheduler;
+	ClientEventScheduler scheduler;
 	scheduler.PushTask(FrameEvent{ 1 }, 0.0f);
 	scheduler.PushTask(FrameEvent{ 2 }, 0.0f);
 	scheduler.PushTask(FrameEvent{ 3 }, 0.0f);

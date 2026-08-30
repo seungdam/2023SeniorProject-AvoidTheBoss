@@ -3,6 +3,7 @@
 #include "RoomCommand.h"
 
 #include <array>
+#include <chrono>
 #include <deque>
 #include <mutex>
 
@@ -13,10 +14,21 @@ class RoomManager;
 // 방은 호스트가 요청하는 순간 생성한다.
 class Room
 {
+	enum class ConnectionState : uint8
+	{
+		Connected,
+		Reconnecting,
+	};
+
 	struct RoomMember
 	{
 		int16 sid = -1;
 		bool bReady = false;
+		// ponytail: process-memory token only; replace with account-backed, persisted credentials when the identity DB exists.
+		uint64 resumeToken = 0;
+		uint64 generation = 0;
+		ConnectionState connection = ConnectionState::Connected;
+		std::chrono::steady_clock::time_point reconnectDeadline{};
 	};
 public:
 	Room();
@@ -24,6 +36,8 @@ public:
 	bool IsDestroyRoom() { return (_nMembers.load() == 0); } // false 반환 시 방 파괴 --> 호스트가 방을 나갔을 경우 파괴하도록함.
 	void UserOut(int32 sid);
 	bool UserIn(int32 sid);
+	void OnTransportDisconnected(int32 sid, uint64 resumeToken);
+	bool ResumeUser(int32 newSid, uint64 resumeToken);
 	void BroadCasting(void* packet);
 	void BroadCastingExcept(void* packet, int32 sid);
 	bool ProcessAttackEvent(const int32& frame, const int16& target) { return (_gameLogic._history.IsAttackAvailable(frame, target)); }
@@ -42,19 +56,24 @@ public:
 		std::shared_lock<std::shared_mutex> rll(_listLock);
 		for (int32 i = 0; i < PLAYERNUM; ++i)
 		{
-			if (_roomMembers[i].sid == sid) return i;
+			if (_roomMembers[i].sid == sid && _roomMembers[i].connection == ConnectionState::Connected) return i;
 		}
 		return -1;
 	};
+	bool IsCurrentMember(int32 sid, uint64 generation) const;
 
 	void InitGame();
 	void UpdateReady(int32 idx, bool val);
 	bool IsGameStartAvailable();
 private:
+	static constexpr auto ReconnectGracePeriod = std::chrono::seconds(30);
+	int32 GetMemberIndex(int32 sid, bool connectedOnly) const;
+	void ExpireReconnects();
+
 	friend class RoomManager;
 
 	CGameManager _gameLogic;
-	std::shared_mutex _listLock;
+	mutable std::shared_mutex _listLock;
 	std::array<RoomMember, PLAYERNUM> _roomMembers{};
 	uint8 _status = (int8)ROOM_STATUS::EMPTY; // 방 상태
 	int32 _roomNumber = 0; // 방번호
@@ -69,6 +88,8 @@ public:
 
 	void EnqueueCommand(RoomCommand command);
 	void ExitRoom(int32 sid, int32 rmNum);
+	void DisconnectSession(int32 sid, int32 rmNum, uint64 resumeToken);
+	void ResumeSession(int32 sid, uint64 resumeToken);
 	bool EnterRoom(int32 sid, int32 rmNum);
 	void CreateRoom(int32 sid);
 	void UpdateRooms();

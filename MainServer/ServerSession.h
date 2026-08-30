@@ -24,10 +24,13 @@ public:
 	bool DoRecv();
 	void DoSendLoginPacket(bool isSuccess);
 	void ProcessPacket(char*);
+	uint64 GetResumeToken() const noexcept { return _resumeToken.load(std::memory_order_acquire); }
+	void SetResumeToken(uint64 token) noexcept { _resumeToken.store(token, std::memory_order_release); }
 public:
 	std::atomic<int16> _myRoomNumber = -1;
 	int32 _curPage = 0;
 	int32 _cbPrevRemainPacket = 0;
+	std::atomic<uint64> _resumeToken = 0;
 };
 
 

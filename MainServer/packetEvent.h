@@ -11,8 +11,8 @@ public:
 	int64 generateTime = 0;
 	uint64 sequence = 0;
 	int32 _sid = -1;
-	// ponytail: room snapshot prevents cross-room dispatch; add a membership generation if leave/rejoin can happen before this queue drains.
 	int32 _roomNum = -1;
+	uint64 _memberGeneration = 0;
 public:
 	QueueEvent() {};
 	virtual ~QueueEvent() {};

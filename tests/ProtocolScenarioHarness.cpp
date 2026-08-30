@@ -54,10 +54,12 @@ namespace
     static_assert(sizeof(C2S_LOGIN) == 42);
     static_assert(sizeof(C2S_ROOM_EVENT) == 2);
     static_assert(sizeof(C2S_ROOM_ENTER) == 6);
+	static_assert(sizeof(C2S_RESUME) == 10);
     static_assert(sizeof(C2S_KEY) == 12);
     static_assert(sizeof(C2S_ATTACK) == 8);
     static_assert(sizeof(SC_EVENTPACKET) == 3);
-    static_assert(sizeof(S2C_LOGIN_OK) == 6);
+    static_assert(sizeof(S2C_LOGIN_OK) == 14);
+	static_assert(sizeof(S2C_RESUME) == 7);
     static_assert(sizeof(S2C_ROOM_INFO) == 14);
     static_assert(sizeof(S2C_GAMESTART) == 10);
     static_assert(sizeof(S2C_POS) == 12);
@@ -351,6 +353,14 @@ namespace
             std::lock_guard lock(sendMutex_);
             if (socket_ == INVALID_SOCKET || !SendAll(socket_, &packet, sizeof(T)))
                 throw std::runtime_error("bot" + std::to_string(index_) + " send failed: "
+                    + std::to_string(::WSAGetLastError()));
+        }
+
+        void SendBytes(const void* bytes, const int32 length)
+        {
+            std::lock_guard lock(sendMutex_);
+            if (socket_ == INVALID_SOCKET || !SendAll(socket_, bytes, length))
+                throw std::runtime_error("bot" + std::to_string(index_) + " raw send failed: "
                     + std::to_string(::WSAGetLastError()));
         }
 
@@ -660,6 +670,8 @@ namespace
         case static_cast<uint8>(S_TITLE_PACKET_TYPE::REG_OK): return sizeof(S2C_REG);
         case static_cast<uint8>(S_TITLE_PACKET_TYPE::LOGIN_OK): return sizeof(S2C_LOGIN_OK);
         case static_cast<uint8>(S_TITLE_PACKET_TYPE::LOGIN_FAIL): return sizeof(S2C_LOGIN_FAIL);
+		case static_cast<uint8>(S_TITLE_PACKET_TYPE::RESUME_OK): return sizeof(S2C_RESUME);
+		case static_cast<uint8>(S_TITLE_PACKET_TYPE::RESUME_FAIL): return sizeof(S2C_RESUME_FAIL);
         case static_cast<uint8>(S_ROOM_PACKET_TYPE::MK_RM_OK):
         case static_cast<uint8>(S_ROOM_PACKET_TYPE::MK_RM_FAIL):
         case static_cast<uint8>(S_ROOM_PACKET_TYPE::REP_EXIT_RM): return sizeof(S2C_ROOM_EVENT);
@@ -685,6 +697,8 @@ namespace
     {
         bool loginOk = false;
         int16 sid = -1;
+		uint64 resumeToken = 0;
+		bool resumeOk = false;
         bool createOk = false;
 		int createCount = 0;
         int16 enteredRoom = -1;
@@ -702,6 +716,7 @@ namespace
         std::array<int, kRosterSize> aliveEvents{};
         int attackAnimationPackets = 0;
         int bossWinEvents = 0;
+		int employeeWinEvents = 0;
     };
 
     struct ResultState
@@ -721,6 +736,10 @@ namespace
 		bool secondMatchStarted = false;
 		bool secondMatchFrame = false;
 		bool secondMatchAttack = false;
+		bool disconnectCleanup = false;
+		bool reconnectResume = false;
+		bool bossDisconnectEndsMatch = false;
+		bool reconnectTimeoutEjectsOnlyEmployee = false;
         std::uint64_t packets = 0;
     };
 
@@ -736,6 +755,7 @@ namespace
 
         void Run()
         {
+			VerifyMalformedPacketIsRejected();
             Log("connecting three protocol bots");
             for (int i = 0; i < kBotCount; ++i) ConnectWithRetry(i);
 
@@ -932,7 +952,44 @@ namespace
 					secondMatchAnimationBefore;
 			}, "match two authoritative attack ack/animation", 8s);
 			result_.secondMatchAttack = true;
-            Log("scenario passed");
+
+			Log("closing helper slot3 socket and resuming it with its in-memory token");
+			const int16 disconnectedSid = states_[2].sid;
+			const uint64 resumeToken = states_[2].resumeToken;
+			if (resumeToken == 0) throw std::runtime_error("LOGIN_OK did not supply a resume token");
+			expectedDisconnectBot_ = 2;
+			bots_[2]->Stop();
+			std::this_thread::sleep_for(250ms);
+			bots_[2] = std::make_unique<BotSession>(2, events_);
+			ConnectWithRetry(2);
+			SendResume(2, resumeToken);
+			PumpUntil([&]
+			{
+				return states_[2].resumeOk && states_[2].sid != disconnectedSid &&
+					states_[0].roster[3] == states_[2].sid && HasPosition(states_[2].sid);
+			}, "server rebound the disconnected employee within the reconnect grace period", 10s);
+			result_.reconnectResume = true;
+
+			Log("waiting for the resumed helper's second disconnect to expire after 30 seconds");
+			const int16 resumedSid = states_[2].sid;
+			expectedDisconnectBot_ = 2;
+			bots_[2]->Stop();
+			PumpUntil([&]
+			{
+				return OccupiedRoomSlots(0) == 3 &&
+					std::find(states_[0].roomSids.begin(), states_[0].roomSids.end(), resumedSid) == states_[0].roomSids.end();
+			}, "expired reconnect grace ejected only the disconnected employee", 35s);
+			result_.reconnectTimeoutEjectsOnlyEmployee = true;
+
+			Log("closing the boss socket; the running match must immediately award employees");
+			expectedDisconnectBot_ = 0;
+			bots_[0]->Stop();
+			PumpUntil([&]
+			{
+				return states_[1].employeeWinEvents > 0;
+			}, "boss disconnect immediately ended the match with EMP_WIN", 10s);
+			result_.bossDisconnectEndsMatch = true;
+			Log("scenario passed");
         }
 
         const ResultState& Result() const { return result_; }
@@ -994,6 +1051,15 @@ namespace
             bots_[bot]->SendPacket(packet);
         }
 
+		void SendResume(const int bot, const uint64 token)
+		{
+			C2S_RESUME packet{};
+			packet.size = sizeof(packet);
+			packet.type = static_cast<uint8>(C_TITLE_PACKET_TYPE::ACQ_RESUME);
+			packet.resumeToken = token;
+			bots_[bot]->SendPacket(packet);
+		}
+
         void SendKey(const int bot, const int slot, const uint8 key, const Vec2 look)
         {
             C2S_KEY packet{};
@@ -1050,11 +1116,24 @@ namespace
             if (!output) throw std::runtime_error("failed to write --room-file");
         }
 
-        void ProcessQueueEvent(const QueueEvent& event)
-        {
-            if (event.kind != QueueEventKind::Packet)
-            {
-                std::string message = "bot" + std::to_string(event.bot) + " ";
+		void ProcessQueueEvent(const QueueEvent& event)
+		{
+			if (event.bot == ignoredBot_)
+			{
+				if (event.kind != QueueEventKind::Packet && event.bot == expectedDisconnectBot_ &&
+					(event.kind == QueueEventKind::Disconnected || event.kind == QueueEventKind::SocketError))
+					expectedDisconnectBot_ = -1;
+				return;
+			}
+			if (event.kind != QueueEventKind::Packet)
+			{
+				if (event.bot == expectedDisconnectBot_ &&
+					(event.kind == QueueEventKind::Disconnected || event.kind == QueueEventKind::SocketError))
+				{
+					expectedDisconnectBot_ = -1;
+					return;
+				}
+				std::string message = "bot" + std::to_string(event.bot) + " ";
                 if (!event.message.empty()) message += event.message;
                 else if (event.kind == QueueEventKind::Disconnected) message += "disconnected";
                 else message += "network/protocol error";
@@ -1080,10 +1159,24 @@ namespace
                 const auto packet = Decode<S2C_LOGIN_OK>(event.packet);
                 state.loginOk = true;
                 state.sid = packet.sid;
+				state.resumeToken = packet.resumeToken;
                 break;
             }
             case static_cast<uint8>(S_TITLE_PACKET_TYPE::LOGIN_FAIL):
                 throw std::runtime_error("bot" + std::to_string(event.bot) + " login failed");
+			case static_cast<uint8>(S_TITLE_PACKET_TYPE::RESUME_OK):
+			{
+				const auto packet = Decode<S2C_RESUME>(event.packet);
+				if (packet.playerIndex >= kRosterSize)
+					throw std::runtime_error("server sent an invalid resumed player slot");
+				if (state.sid == packet.oldSid) state.sid = packet.newSid;
+				std::replace(state.roomSids.begin(), state.roomSids.end(), packet.oldSid, packet.newSid);
+				std::replace(state.roster.begin(), state.roster.end(), packet.oldSid, packet.newSid);
+				state.resumeOk = true;
+				break;
+			}
+			case static_cast<uint8>(S_TITLE_PACKET_TYPE::RESUME_FAIL):
+				throw std::runtime_error("server rejected a valid in-game resume token");
             case static_cast<uint8>(S_ROOM_PACKET_TYPE::MK_RM_OK):
                 state.createOk = true;
 				++state.createCount;
@@ -1159,6 +1252,7 @@ namespace
                 if (eventId >= firstAlive && eventId <= lastAlive)
                     ++state.aliveEvents[eventId - firstAlive];
                 if (eventId == static_cast<int>(EVENT_TYPE::BOSS_WIN)) ++state.bossWinEvents;
+				if (eventId == static_cast<int>(EVENT_TYPE::EMP_WIN)) ++state.employeeWinEvents;
                 break;
             }
             default:
@@ -1321,7 +1415,7 @@ namespace
             }
         }
 
-        void WaitHonestCooldown(const std::string& description, const int frames,
+		void WaitHonestCooldown(const std::string& description, const int frames,
             const Clock::duration duration)
         {
             const int32 startFrame = LatestFrame();
@@ -1332,7 +1426,28 @@ namespace
             {
                 return LatestFrame() >= startFrame + frames && Clock::now() - startTime >= duration;
             }, description, std::max(minimumTimeout, requestedTimeout));
-        }
+		}
+
+		void VerifyMalformedPacketIsRejected()
+		{
+			constexpr int MalformedBot = kBotCount;
+			BotSession probe(MalformedBot, events_);
+			std::string error;
+			while (Clock::now() < deadline_ && !probe.ConnectOnce(config_.host, config_.port, error))
+				std::this_thread::sleep_for(250ms);
+			if (!error.empty() && Clock::now() >= deadline_)
+				throw std::runtime_error("malformed-packet probe connection timed out: " + error);
+
+			ignoredBot_ = MalformedBot;
+			expectedDisconnectBot_ = MalformedBot;
+			const std::array<uint8, 2> malformedPacket{ 0, static_cast<uint8>(C_ROOM_PACKET_TYPE::ACQ_MK_RM) };
+			probe.SendBytes(malformedPacket.data(), static_cast<int32>(malformedPacket.size()));
+			PumpUntil([&] { return expectedDisconnectBot_ == -1; },
+				"server rejected a zero-length packet", 5s);
+			probe.Stop();
+			while (const auto event = events_.TryPop()) ProcessQueueEvent(*event);
+			ignoredBot_ = -1;
+		}
 
         Config config_;
         EventQueue events_;
@@ -1344,7 +1459,9 @@ namespace
         TelemetryTail telemetry_;
         Clock::time_point startedAt_;
         Clock::time_point deadline_;
-        ResultState result_;
+		ResultState result_;
+		int expectedDisconnectBot_ = -1;
+		int ignoredBot_ = -1;
     };
 
     void WriteResult(const std::filesystem::path& file, const std::string& status, const int exitCode,
@@ -1375,7 +1492,11 @@ namespace
 			<< "  \"second_match_started\": " << (result.secondMatchStarted ? "true" : "false") << ",\n"
 			<< "  \"second_match_frame\": " << (result.secondMatchFrame ? "true" : "false") << ",\n"
 			<< "  \"second_match_attack\": " << (result.secondMatchAttack ? "true" : "false") << ",\n"
-            << "  \"packets\": " << result.packets << "\n"
+			<< "  \"disconnect_cleanup\": " << (result.disconnectCleanup ? "true" : "false") << ",\n"
+			<< "  \"reconnect_resume\": " << (result.reconnectResume ? "true" : "false") << ",\n"
+			<< "  \"boss_disconnect_ends_match\": " << (result.bossDisconnectEndsMatch ? "true" : "false") << ",\n"
+			<< "  \"reconnect_timeout_ejects_only_employee\": " << (result.reconnectTimeoutEjectsOnlyEmployee ? "true" : "false") << ",\n"
+			<< "  \"packets\": " << result.packets << "\n"
             << "}\n";
     }
 }

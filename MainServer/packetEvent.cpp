@@ -6,7 +6,7 @@ void InteractionEvent::Task()
 	if (!ServerIocpCore._rmgr->IsValidRoom(_roomNum)) return;
 	const int32 roomNum = _roomNum;
 	Room& targetRoom = ServerIocpCore._rmgr->GetRoom(roomNum);
-	if (targetRoom.GetSidIndexBySid(_sid) < 0) return;
+	if (!targetRoom.IsCurrentMember(_sid, _memberGeneration)) return;
 	CGameManager& gm = targetRoom.GameLogic();
 	switch ((EVENT_TYPE)eventId)
 	{
@@ -194,7 +194,7 @@ void moveEvent::Task()
 	const int32 roomNum = _roomNum;
 	CGameManager& gm = ServerIocpCore._rmgr->GetRoom(roomNum).GameLogic();
 	Room& targetRoom = ServerIocpCore._rmgr->GetRoom(roomNum);
-	if (targetRoom.GetSidIndexBySid(_sid) < 0) return;
+	if (!targetRoom.IsCurrentMember(_sid, _memberGeneration)) return;
 	//SPlayer& targetPlayer = gm.GetPlayerBySid(_sid);
 
 	gm.GetPlayerBySid(_sid).SetDirection(_dir);
@@ -223,7 +223,7 @@ void AttackEvent::Task()
 
 	CGameManager& gm = ServerIocpCore._rmgr->GetRoom(roomNum).GameLogic();
 	Room& targetRoom = ServerIocpCore._rmgr->GetRoom(roomNum);
-	if (targetRoom.GetSidIndexBySid(_sid) < 0) return;
+	if (!targetRoom.IsCurrentMember(_sid, _memberGeneration)) return;
 	bool retVal = targetRoom.ProcessAttackEvent(_wf, _tidx);
 	SPlayer& emp = gm.GetPlayerByIdx(_tidx);
 

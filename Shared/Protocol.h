@@ -13,7 +13,8 @@ enum class C_TITLE_PACKET_TYPE : uint8
 {
 	ACQ_REG = 149,
 	ACQ_LOGIN = 150,
-	ACQ_LOGOUT = 151
+	ACQ_LOGOUT = 151,
+	ACQ_RESUME = 159,
 
 };
 
@@ -43,6 +44,8 @@ enum class S_TITLE_PACKET_TYPE : uint8
 	REG_OK = 149,
 	LOGIN_OK = 150,
 	LOGIN_FAIL = 151,
+	RESUME_OK = 159,
+	RESUME_FAIL = 160,
 };
 enum class S_ROOM_PACKET_TYPE : uint8
 {
@@ -174,6 +177,13 @@ struct C2S_LOGOUT
 	uint16 sid = -1;
 };
 
+struct C2S_RESUME
+{
+	uint8 size;
+	uint8 type;
+	uint64 resumeToken;
+};
+
 // ========== 클라이언트 방 관련 패킷 ============
 struct C2S_ROOM_EVENT // 생성, 나가기, 레디
 {
@@ -224,6 +234,7 @@ struct S2C_LOGIN_OK
 	uint8 type;
 	int16 sid;
 	int16 cid;
+	uint64 resumeToken;
 };
 
 struct S2C_REG
@@ -237,6 +248,21 @@ struct S2C_LOGIN_FAIL
 	uint8 size;
 	uint8 type;
 	int8 err_code; // 로그인 실패 사유
+};
+
+struct S2C_RESUME
+{
+	uint8 size;
+	uint8 type;
+	int16 oldSid;
+	int16 newSid;
+	uint8 playerIndex;
+};
+
+struct S2C_RESUME_FAIL
+{
+	uint8 size;
+	uint8 type;
 };
 
 // ==============  서버 게임 로직 패킷 ==============

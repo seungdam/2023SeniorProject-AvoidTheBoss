@@ -27,6 +27,11 @@ public:
 	void SetSid(int32 sid);
 	int32 GetSid();
 	std::pair<int32, int32> GetIdentity();
+	void ResetForReconnect(SOCKET socket);
+	bool HasResumeToken() const noexcept { return _resumeToken.load(std::memory_order_acquire) != 0; }
+	uint64 GetResumeToken() const noexcept { return _resumeToken.load(std::memory_order_acquire); }
+	int32 GetResumeSid() const noexcept { return _resumeSid.load(std::memory_order_acquire); }
+	void ClearResumeToken() noexcept { _resumeToken.store(0, std::memory_order_release); }
 	void RequestStop() { _stopping.store(true); }
 	bool IsStopping() const { return _stopping.load(); }
 	void Stop();
@@ -41,4 +46,6 @@ private:
 	std::mutex _packetMutex;
 	std::deque<std::vector<char>> _pendingPackets;
 	std::atomic_bool _stopping = false;
+	std::atomic<uint64> _resumeToken = 0;
+	std::atomic<int32> _resumeSid = -1;
 };

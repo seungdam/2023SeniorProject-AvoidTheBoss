@@ -24,8 +24,14 @@ public:
 	virtual bool Processing(uint32_t timelimit = INFINITE);
 	void Disconnect(int32 sid);
 private:
+	bool PrepareSocket(bool reconnect);
+	bool ReconnectIfDrained();
+	bool ScheduleReconnect();
+
 	ClientSession* _client;
 	SOCKADDR_IN _serveraddr;
+	bool _manualDisconnect = false;
+	bool _reconnectPending = false;
 
 };
 

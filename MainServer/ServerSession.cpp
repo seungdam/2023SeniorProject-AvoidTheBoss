@@ -21,6 +21,8 @@ namespace
 			return static_cast<uint8>(sizeof(C2S_LOGIN));
 		case static_cast<uint8>(C_TITLE_PACKET_TYPE::ACQ_LOGOUT):
 			return static_cast<uint8>(sizeof(C2S_LOGOUT));
+		case static_cast<uint8>(C_TITLE_PACKET_TYPE::ACQ_RESUME):
+			return static_cast<uint8>(sizeof(C2S_RESUME));
 		case static_cast<uint8>(C_ROOM_PACKET_TYPE::ACQ_MK_RM):
 		case static_cast<uint8>(C_ROOM_PACKET_TYPE::ACQ_EXIT_ROOM):
 		case static_cast<uint8>(C_ROOM_PACKET_TYPE::ACQ_READY):
@@ -41,6 +43,18 @@ namespace
 		default:
 			return 0;
 		}
+	}
+
+	uint64 GenerateResumeToken()
+	{
+		uint64 token = 0;
+		while (token == 0)
+		{
+			if (BCryptGenRandom(nullptr, reinterpret_cast<PUCHAR>(&token), sizeof(token),
+				BCRYPT_USE_SYSTEM_PREFERRED_RNG) < 0)
+				return 0;
+		}
+		return token;
 	}
 }
 
@@ -168,11 +182,20 @@ void ServerSession::DoSendLoginPacket(bool isSuccess)
 
 	if (isSuccess)
 	{
+		uint64 token = GetResumeToken();
+		if (token == 0) token = GenerateResumeToken();
+		if (token == 0)
+		{
+			DoSendLoginPacket(false);
+			return;
+		}
+		SetResumeToken(token);
 		S2C_LOGIN_OK loginOkPacket{};
 		loginOkPacket.size = sizeof(S2C_LOGIN_OK);
 		loginOkPacket.type = (uint8)S_TITLE_PACKET_TYPE::LOGIN_OK;
 		loginOkPacket.cid = _cid;
 		loginOkPacket.sid = _sid;
+		loginOkPacket.resumeToken = token;
 		DoSend(&loginOkPacket);
 	}
 	else
@@ -220,6 +243,17 @@ void ServerSession::ProcessPacket(char* packet)
 	case (uint8)C_TITLE_PACKET_TYPE::ACQ_LOGOUT:
 		ServerIocpCore.RequestRemoveSession(GetSid());
 		break;
+	case (uint8)C_TITLE_PACKET_TYPE::ACQ_RESUME:
+	{
+		const auto* resume = reinterpret_cast<C2S_RESUME*>(packet);
+		if (resume->resumeToken == 0)
+		{
+			ServerIocpCore.RequestRemoveSession(GetSid());
+			break;
+		}
+		ServerIocpCore._rmgr->EnqueueCommand({ RoomCommandType::Resume, _sid, -1, false, resume->resumeToken });
+	}
+	break;
 
 		// ======== 방 시스템 패킷
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_ENTER_RM:

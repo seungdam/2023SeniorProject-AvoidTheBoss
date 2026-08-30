@@ -25,19 +25,52 @@ CCIocpCore::~CCIocpCore()
 
 void CCIocpCore::InitConnect(const char* address)
 {
-
-		_client->SetSock(SocketUtil::CreateSocket());
-		_client->SetIdentity(-1, -1);
-		ASSERT_CRASH(_client->GetSock() != INVALID_SOCKET);
 		_serveraddr.sin_family = AF_INET;
-		_serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
-		_serveraddr.sin_port = htons(0);
-		ASSERT_CRASH(::bind(_client->GetSock(), reinterpret_cast<sockaddr*>(&_serveraddr), sizeof(_serveraddr)) != SOCKET_ERROR);
 		inet_pton(AF_INET, address, &_serveraddr.sin_addr);
 		_serveraddr.sin_port = htons(PORTNUM);
-		ASSERT_CRASH(Register(static_cast<IocpObject*>(_client)));
+		ASSERT_CRASH(PrepareSocket(false));
+}
 
+bool CCIocpCore::PrepareSocket(const bool reconnect)
+{
+	if (!_client) return false;
+	const SOCKET socket = SocketUtil::CreateSocket();
+	if (socket == INVALID_SOCKET) return false;
 
+	if (reconnect) _client->ResetForReconnect(socket);
+	else
+	{
+		_client->SetSock(socket);
+		_client->SetIdentity(-1, -1);
+	}
+
+	SOCKADDR_IN localAddress{};
+	localAddress.sin_family = AF_INET;
+	localAddress.sin_addr.s_addr = htonl(INADDR_ANY);
+	localAddress.sin_port = htons(0);
+	if (::bind(socket, reinterpret_cast<sockaddr*>(&localAddress), sizeof(localAddress)) == SOCKET_ERROR ||
+		!Register(static_cast<IocpObject*>(_client)))
+	{
+		_client->Stop();
+		return false;
+	}
+	return true;
+}
+
+bool CCIocpCore::ReconnectIfDrained()
+{
+	if (!_reconnectPending || !_client || _manualDisconnect || _client->PendingIO() != 0) return false;
+	_reconnectPending = false;
+	if (!PrepareSocket(true)) return false;
+	DoConnect(nullptr);
+	return true;
+}
+
+bool CCIocpCore::ScheduleReconnect()
+{
+	if (_manualDisconnect || !_client) return false;
+	_reconnectPending = true;
+	return ReconnectIfDrained();
 }
 
 void CCIocpCore::DoConnect(void* loginInfo)
@@ -60,8 +93,8 @@ void CCIocpCore::DoConnect(void* loginInfo)
 			{
 				_client->CompleteIO();
 				delete _connectEvent;
-				std::cout << "Time Out\n";
-				DoConnect(nullptr);
+				_client->Stop();
+				ScheduleReconnect();
 			}
 			else if (errorCode != WSA_IO_PENDING)
 			{
@@ -69,8 +102,8 @@ void CCIocpCore::DoConnect(void* loginInfo)
 				delete _connectEvent;
 				std::cout << errorCode << std::endl;
 				std::cout << "Connect Error" << std::endl;
-
-				Disconnect(0);
+				_client->Stop();
+				ScheduleReconnect();
 			}
 
 		}
@@ -90,7 +123,7 @@ bool CCIocpCore::Processing(uint32_t timelimit)
 		{
 			if (!_client || !_client->IsStopping()) return false;
 			_client->Stop();
-			return _client->PendingIO() > 0;
+			return _client->PendingIO() > 0 || ScheduleReconnect();
 		}
 
 		ClientSession* session = static_cast<ClientSession*>(iocpObject);
@@ -105,24 +138,20 @@ bool CCIocpCore::Processing(uint32_t timelimit)
 			case WSAECONNREFUSED:
 				if (iocpEvent && iocpEvent->_comp == EventType::Connect)
 					delete static_cast<ConnectEvent*>(iocpEvent);
-				if (session->IsStopping()) return session->PendingIO() > 0;
-
-				std::cout << "Check The Server On... Retry Connecting\n";
-				DoConnect(nullptr);
-				return true;
+				else if (iocpEvent && iocpEvent->_comp == EventType::Send)
+					delete static_cast<SendEvent*>(iocpEvent);
+				session->Stop();
+				return session->PendingIO() > 0 || ScheduleReconnect();
 			case WAIT_TIMEOUT: // time_limit이 INFINITE가 아닌 경우 ==> 나중에 다중 접속 시, 접속 시간에 따라 지정 가능
 				return false;
 			default:
-				// TODO : 로그 찍기
-			{
 				std::cout << ::WSAGetLastError() << "\n";
 				if (iocpEvent && iocpEvent->_comp == EventType::Connect)
 					delete static_cast<ConnectEvent*>(iocpEvent);
 				else if (iocpEvent && iocpEvent->_comp == EventType::Send)
 					delete static_cast<SendEvent*>(iocpEvent);
 				session->Stop();
-			}
-			return session->PendingIO() > 0;
+				return session->PendingIO() > 0 || ScheduleReconnect();
 			}
 		}
 
@@ -132,13 +161,13 @@ bool CCIocpCore::Processing(uint32_t timelimit)
 			//Disconnect
 			if (iocpEvent->_comp == EventType::Send) delete static_cast<SendEvent*>(iocpEvent);
 			session->Stop();
-			return session->PendingIO() > 0;
+			return session->PendingIO() > 0 || ScheduleReconnect();
 		}
 		iocpObject->Processing(iocpEvent, numOfBytes); // 성공하면 전반적인 프로세싱을 시작해보자;
 		if (session->IsStopping())
 		{
 			session->Stop();
-			return session->PendingIO() > 0;
+			return session->PendingIO() > 0 || ScheduleReconnect();
 		}
 		return true;
 
@@ -149,6 +178,7 @@ void CCIocpCore::Disconnect(int32 sid = 0)
 	std::cout << "Disconnect Client" << std::endl;
 	if (_client != nullptr)
 	{
+		_manualDisconnect = true;
 		_client->RequestStop();
 		::PostQueuedCompletionStatus(_hIocp, 0, 0, nullptr);
 	}

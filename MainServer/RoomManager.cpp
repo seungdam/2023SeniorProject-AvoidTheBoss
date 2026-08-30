@@ -23,7 +23,7 @@ Room::~Room()
 
 void Room::UserOut(int32 sid)
 {
-	int idx = 0;
+	int idx = -1;
 	bool removed = false;
 
 	{
@@ -33,9 +33,11 @@ void Room::UserOut(int32 sid)
 		{
 			if (sid == _roomMembers[i].sid)
 			{
-				_roomMembers[i].sid = -1;
-				_roomMembers[i].bReady = false;
+				const uint64 nextGeneration = _roomMembers[i].generation + 1;
+				_roomMembers[i] = {};
+				_roomMembers[i].generation = nextGeneration;
 				if (_nMembers) _nMembers.fetch_sub(1);
+				idx = i;
 				removed = true;
 				break;
 			}
@@ -45,10 +47,11 @@ void Room::UserOut(int32 sid)
 
 	if (_status == (uint8)ROOM_STATUS::INGAME)
 	{
-		_gameLogic.GetPlayerBySid(sid).SetVelocity(XMFLOAT3(0, 0, 0)); // 속도 0
-		idx = _gameLogic.GetPlayerBySid(sid).m_idx; /// 인덱스 가져오기
-		_gameLogic.GetPlayerBySid(sid).m_hide = true; // 업데이트 false로
-		_gameLogic.GetPlayerBySid(sid).SetBehavior(PLAYER_BEHAVIOR::CRAWL);
+		SPlayer& player = _gameLogic.GetPlayerBySid(sid);
+		player.SetVelocity(XMFLOAT3(0, 0, 0)); // 속도 0
+		idx = player.m_idx; /// 인덱스 가져오기
+		player.m_hide = true; // 업데이트 false로
+		player.SetBehavior(PLAYER_BEHAVIOR::CRAWL);
 
 		if (_gameLogic._gState == GAMESTATE::IN_GAME)
 		{
@@ -68,12 +71,13 @@ void Room::UserOut(int32 sid)
 					// cList Lock 쓰기 호출
 					std::unique_lock<std::shared_mutex> wll(_listLock);
 
-					for (int i = 0; i < PLAYERNUM; ++i)
-					{
-						members[i] = _roomMembers[i].sid;
-						_roomMembers[i].sid = -1;
-						_roomMembers[i].bReady = false;
-					}
+				for (int i = 0; i < PLAYERNUM; ++i)
+				{
+					members[i] = _roomMembers[i].sid;
+					const uint64 nextGeneration = _roomMembers[i].generation + 1;
+					_roomMembers[i] = {};
+					_roomMembers[i].generation = nextGeneration;
+				}
 				}
 				_nMembers.store(0);
 				_status = (uint8)ROOM_STATUS::EMPTY;
@@ -112,8 +116,12 @@ void Room::UserOut(int32 sid)
 			_status = (uint8)ROOM_STATUS::EMPTY;
 			{
 				std::unique_lock<std::shared_mutex> wll(_listLock);
-				for (auto& i : _roomMembers) i.sid = -1;
-				for (auto& i : _roomMembers) i.bReady = false;
+				for (auto& i : _roomMembers)
+				{
+					const uint64 nextGeneration = i.generation + 1;
+					i = {};
+					i.generation = nextGeneration;
+				}
 			}
 			std::cout << "Destroy Room\n";
 		}
@@ -126,10 +134,109 @@ void Room::UserOut(int32 sid)
 	if (const auto session = ServerIocpCore.FindSession(sid)) session->_myRoomNumber.store(-1);
 }
 
+int32 Room::GetMemberIndex(const int32 sid, const bool connectedOnly) const
+{
+	std::shared_lock lock(_listLock);
+	for (int32 i = 0; i < PLAYERNUM; ++i)
+	{
+		if (_roomMembers[i].sid != sid) continue;
+		if (!connectedOnly || _roomMembers[i].connection == ConnectionState::Connected) return i;
+	}
+	return -1;
+}
+
+bool Room::IsCurrentMember(const int32 sid, const uint64 generation) const
+{
+	std::shared_lock lock(_listLock);
+	for (const RoomMember& member : _roomMembers)
+	{
+		if (member.sid == sid && member.connection == ConnectionState::Connected && member.generation == generation)
+			return true;
+	}
+	return false;
+}
+
+void Room::OnTransportDisconnected(const int32 sid, const uint64 resumeToken)
+{
+	const int32 idx = GetMemberIndex(sid, true);
+	if (idx < 0 || _status != static_cast<uint8>(ROOM_STATUS::INGAME) || idx == 0 || resumeToken == 0)
+	{
+		UserOut(sid);
+		return;
+	}
+
+	{
+		std::unique_lock lock(_listLock);
+		RoomMember& member = _roomMembers[idx];
+		if (member.sid != sid || member.connection != ConnectionState::Connected || member.resumeToken != resumeToken)
+			return;
+		member.connection = ConnectionState::Reconnecting;
+		member.reconnectDeadline = std::chrono::steady_clock::now() + ReconnectGracePeriod;
+		++member.generation;
+	}
+
+	_gameLogic.GetPlayerBySid(sid).SetVelocity(XMFLOAT3(0, 0, 0));
+}
+
+bool Room::ResumeUser(const int32 newSid, const uint64 resumeToken)
+{
+	const auto session = ServerIocpCore.FindSession(newSid);
+	if (!session) return false;
+
+	int32 idx = -1;
+	int16 oldSid = -1;
+	{
+		std::unique_lock lock(_listLock);
+		for (int32 i = 1; i < PLAYERNUM; ++i)
+		{
+			RoomMember& member = _roomMembers[i];
+			if (member.connection != ConnectionState::Reconnecting || member.resumeToken != resumeToken) continue;
+			if (std::chrono::steady_clock::now() >= member.reconnectDeadline) return false;
+			idx = i;
+			oldSid = member.sid;
+			member.sid = static_cast<int16>(newSid);
+			member.connection = ConnectionState::Connected;
+			member.reconnectDeadline = {};
+			++member.generation;
+			break;
+		}
+	}
+
+	if (idx < 0) return false;
+	_gameLogic.SetPlayerSidAndIdx(newSid, idx);
+	session->_myRoomNumber.store(static_cast<int16>(_roomNumber));
+	session->SetResumeToken(resumeToken);
+
+	S2C_RESUME packet{};
+	packet.size = sizeof(packet);
+	packet.type = static_cast<uint8>(S_TITLE_PACKET_TYPE::RESUME_OK);
+	packet.oldSid = oldSid;
+	packet.newSid = static_cast<int16>(newSid);
+	packet.playerIndex = static_cast<uint8>(idx);
+	BroadCasting(&packet);
+	return true;
+}
+
+void Room::ExpireReconnects()
+{
+	std::array<int32, PLAYERNUM> expired{};
+	int32 count = 0;
+	const auto now = std::chrono::steady_clock::now();
+	{
+		std::shared_lock lock(_listLock);
+		for (const RoomMember& member : _roomMembers)
+		{
+			if (member.connection == ConnectionState::Reconnecting && now >= member.reconnectDeadline)
+				expired[count++] = member.sid;
+		}
+	}
+	for (int32 i = 0; i < count; ++i) UserOut(expired[i]);
+}
+
 bool Room::UserIn(int32 sid)
 {
 	const auto session = ServerIocpCore.FindSession(sid);
-	if (!session) return false;
+	if (!session || session->GetResumeToken() == 0) return false;
 
 	S2C_ROOM_ENTER packet;
 	packet.size = sizeof(S2C_ROOM_ENTER);
@@ -152,13 +259,19 @@ bool Room::UserIn(int32 sid)
 		{
 			//cList Lock 쓰기 호출
 			std::unique_lock<std::shared_mutex> wll(_listLock);
-			_nMembers.fetch_add(1);
 			// 빈 배열 자리에다가 정보 채우기
 			for (int k = 0; k < PLAYERNUM; ++k)
 			{
 				if (-1 == _roomMembers[k].sid)
 				{
-					_roomMembers[k].sid = sid;
+					RoomMember& member = _roomMembers[k];
+					member.sid = static_cast<int16>(sid);
+					member.bReady = false;
+					member.resumeToken = session->GetResumeToken();
+					member.connection = ConnectionState::Connected;
+					member.reconnectDeadline = {};
+					++member.generation;
+					_nMembers.fetch_add(1);
 					break;
 				}
 			}
@@ -190,9 +303,9 @@ void Room::BroadCasting(void* packet) // 방에 속하는 클라이언트에게�
 	// cList Lock 읽기 호출
 	std::shared_lock<std::shared_mutex> rll(_listLock);
 
-	for (auto i : _roomMembers)
+	for (const RoomMember& i : _roomMembers)
 	{
-		if (-1 == i.sid) continue;
+		if (-1 == i.sid || i.connection != ConnectionState::Connected) continue;
 		else
 		{
 
@@ -210,9 +323,9 @@ void Room::BroadCastingExcept(void* packet, int32 sid) // 방에 속하는 클�
 	// cList Lock 읽기 호출
 	std::shared_lock<std::shared_mutex> rll(_listLock);
 
-	for (auto i : _roomMembers)
+	for (const RoomMember& i : _roomMembers)
 	{
-		if (-1 == i.sid || sid == i.sid) continue;
+		if (-1 == i.sid || sid == i.sid || i.connection != ConnectionState::Connected) continue;
 		else
 		{
 			const auto session = ServerIocpCore.FindSession(i.sid);
@@ -227,6 +340,8 @@ void Room::BroadCastingExcept(void* packet, int32 sid) // 방에 속하는 클�
 // 방에 있는 유저에 대한 게임 로직 업데이트 진행
 void Room::Update()
 {
+	if (_status != (int8)ROOM_STATUS::INGAME) return;
+	ExpireReconnects();
 	if (_status != (int8)ROOM_STATUS::INGAME) return;
 	_timer.Tick(60.f);
 	_gameLogic.Update(_timer.GetTimeElapsed());
@@ -276,9 +391,14 @@ void Room::Update()
 		BroadCasting(&packet);
 		std::cout << "Normal Game END\n";
 
-		for (auto& i : _roomMembers)
+		std::array<int32, PLAYERNUM> memberSids{};
 		{
-			if (i.sid != -1) UserOut(i.sid);
+			std::shared_lock lock(_listLock);
+			for (int i = 0; i < PLAYERNUM; ++i) memberSids[i] = _roomMembers[i].sid;
+		}
+		for (const int32 memberSid : memberSids)
+		{
+			if (memberSid != -1) UserOut(memberSid);
 		}
 
 		_gameLogic.ResetGame();
@@ -288,15 +408,35 @@ void Room::Update()
 void Room::AddEvent(QueueEvent* qe, float after)
 {
 	if (!qe) return;
-	qe->_roomNum = _roomNumber;
-	_gameLogic.AddEventAfterTime(after, qe);
+	{
+		std::shared_lock lock(_listLock);
+		for (const RoomMember& member : _roomMembers)
+		{
+			if (member.sid != qe->_sid || member.connection != ConnectionState::Connected) continue;
+			qe->_roomNum = _roomNumber;
+			qe->_memberGeneration = member.generation;
+			_gameLogic.AddEventAfterTime(after, qe);
+			return;
+		}
+	}
+	delete qe;
 }
 
 void Room::AddEvent(QueueEvent* qe)
 {
 	if (!qe) return;
-	qe->_roomNum = _roomNumber;
-	_gameLogic.AddEvent(qe);
+	{
+		std::shared_lock lock(_listLock);
+		for (const RoomMember& member : _roomMembers)
+		{
+			if (member.sid != qe->_sid || member.connection != ConnectionState::Connected) continue;
+			qe->_roomNum = _roomNumber;
+			qe->_memberGeneration = member.generation;
+			_gameLogic.AddEvent(qe);
+			return;
+		}
+	}
+	delete qe;
 }
 void Room::SendRoomListPacket()
 {
@@ -418,6 +558,13 @@ void RoomManager::ExecuteCommand(const RoomCommand& command)
 		if (IsValidRoom(command.roomNum))
 			ExitRoom(command.sid, command.roomNum);
 		return;
+	case RoomCommandType::Disconnected:
+		if (IsValidRoom(command.roomNum))
+			DisconnectSession(command.sid, command.roomNum, command.resumeToken);
+		return;
+	case RoomCommandType::Resume:
+		ResumeSession(command.sid, command.resumeToken);
+		return;
 	case RoomCommandType::SetReady:
 	{
 		const auto session = ServerIocpCore.FindSession(command.sid);
@@ -500,4 +647,35 @@ void RoomManager::ExitRoom(int32 sid, int32 rmNum)
 {
 	if (!IsValidRoom(rmNum)) return;
 	_rooms[rmNum].UserOut(sid);
+}
+
+void RoomManager::DisconnectSession(const int32 sid, const int32 rmNum, const uint64 resumeToken)
+{
+	if (!IsValidRoom(rmNum)) return;
+	_rooms[rmNum].OnTransportDisconnected(sid, resumeToken);
+}
+
+void RoomManager::ResumeSession(const int32 sid, const uint64 resumeToken)
+{
+	bool resumed = false;
+	if (resumeToken != 0)
+	{
+		for (Room& room : _rooms)
+		{
+			if (room.ResumeUser(sid, resumeToken))
+			{
+				resumed = true;
+				break;
+			}
+		}
+	}
+
+	if (resumed) return;
+	if (const auto session = ServerIocpCore.FindSession(sid))
+	{
+		S2C_RESUME_FAIL packet{};
+		packet.size = sizeof(packet);
+		packet.type = static_cast<uint8>(S_TITLE_PACKET_TYPE::RESUME_FAIL);
+		session->DoSend(&packet);
+	}
 }
