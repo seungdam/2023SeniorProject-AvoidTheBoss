@@ -8,6 +8,42 @@
 using namespace std;
 // =========== 서버 세션 ============
 
+namespace
+{
+	constexpr auto PacketHeaderSize = sizeof(uint8) * 2;
+
+	uint8 ExpectedClientPacketSize(const uint8 type)
+	{
+		switch (type)
+		{
+		case static_cast<uint8>(C_TITLE_PACKET_TYPE::ACQ_REG):
+		case static_cast<uint8>(C_TITLE_PACKET_TYPE::ACQ_LOGIN):
+			return static_cast<uint8>(sizeof(C2S_LOGIN));
+		case static_cast<uint8>(C_TITLE_PACKET_TYPE::ACQ_LOGOUT):
+			return static_cast<uint8>(sizeof(C2S_LOGOUT));
+		case static_cast<uint8>(C_ROOM_PACKET_TYPE::ACQ_MK_RM):
+		case static_cast<uint8>(C_ROOM_PACKET_TYPE::ACQ_EXIT_ROOM):
+		case static_cast<uint8>(C_ROOM_PACKET_TYPE::ACQ_READY):
+		case static_cast<uint8>(C_ROOM_PACKET_TYPE::ACQ_READY_CANCEL):
+			return static_cast<uint8>(sizeof(C2S_ROOM_EVENT));
+		case static_cast<uint8>(C_ROOM_PACKET_TYPE::ACQ_ENTER_RM):
+			return static_cast<uint8>(sizeof(C2S_ROOM_ENTER));
+		case static_cast<uint8>(C_GAME_PACKET_TYPE::CKEY):
+			return static_cast<uint8>(sizeof(C2S_KEY));
+		case static_cast<uint8>(C_GAME_PACKET_TYPE::CROT):
+			return static_cast<uint8>(sizeof(C2S_ROTATE));
+		case static_cast<uint8>(C_GAME_PACKET_TYPE::CCHAT):
+			return static_cast<uint8>(sizeof(_CHAT));
+		case static_cast<uint8>(C_GAME_PACKET_TYPE::CATTACK):
+			return static_cast<uint8>(sizeof(C2S_ATTACK));
+		case static_cast<uint8>(SC_GAME_PACKET_TYPE::GAMEEVENT):
+			return static_cast<uint8>(sizeof(SC_EVENTPACKET));
+		default:
+			return 0;
+		}
+	}
+}
+
 void LoginProcess(ServerSession* s, std::wstring sqlexec)
 {
 
@@ -40,25 +76,39 @@ void ServerSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 	if (EventType::Recv == iocpEvent->_comp)
 	{
 		auto* rev = static_cast<RecvEvent*>(iocpEvent);
-		auto remain_data = numOfBytes + _prev_remain;
+		auto cbRemainBytes = numOfBytes + _cbPrevRemainPacket;
+		if (cbRemainBytes < 0 || cbRemainBytes > BUFSIZE)
+		{
+			ServerIocpCore.RequestRemoveSession(GetSid());
+			return;
+		}
 		auto* p = rev->_rbuf;
-		while (remain_data > 0)
+		while (cbRemainBytes >= PacketHeaderSize)
 		{
-			uint8 packet_size = p[0];
-			if (packet_size <= remain_data)
+			const auto packetSize = static_cast<uint8>(p[0]);
+			const auto expectedSize = ExpectedClientPacketSize(static_cast<uint8>(p[1]));
+			if (packetSize < PacketHeaderSize || expectedSize == 0 || packetSize != expectedSize)
 			{
-				ProcessPacket(p);
-				p = p + packet_size;
-				remain_data = remain_data - packet_size;
+				ServerIocpCore.RequestRemoveSession(GetSid());
+				return;
 			}
-			else break;
+			if (packetSize > cbRemainBytes) break;
+
+			ProcessPacket(p);
+			p += packetSize;
+			cbRemainBytes -= packetSize;
 		}
-		_prev_remain = remain_data;
-		if (remain_data > 0)
+		if (cbRemainBytes == BUFSIZE)
 		{
-			memcpy(rev->_rbuf, p, remain_data);
+			ServerIocpCore.RequestRemoveSession(GetSid());
+			return;
 		}
-		DoRecv();
+		_cbPrevRemainPacket = cbRemainBytes;
+		if (cbRemainBytes > 0)
+		{
+			memmove(rev->_rbuf, p, cbRemainBytes);
+		}
+		if (!DoRecv()) ServerIocpCore.RequestRemoveSession(GetSid());
 	}
 }
 
@@ -66,19 +116,19 @@ bool ServerSession::DoSend(void* packet)
 {
 	DWORD sendLen(0);
 	DWORD flag(0);
-	SendEvent* sev = new SendEvent(reinterpret_cast<char*>(packet));
+	auto* sev = new SendEvent(reinterpret_cast<char*>(packet));
 	sev->_sid = _sid;
 	std::shared_lock socketLock(_lock);
 	if (_sock == INVALID_SOCKET) { delete sev; return false; }
 	BeginIO();
 	if (WSASend(_sock, &sev->_sWsaBuf, 1, &sendLen, flag, static_cast<LPWSAOVERLAPPED>(sev), NULL) == SOCKET_ERROR)
 	{
-		int32 errcode = WSAGetLastError();
+		auto errCode = WSAGetLastError();
 		if (WSAGetLastError() != WSA_IO_PENDING)
 		{
 			CompleteIO();
 			delete sev;
-			cout << "Send Error " << errcode << "\n";
+			cout << "Send Error " << errCode << "\n";
 			return false;
 		}
 
@@ -88,11 +138,12 @@ bool ServerSession::DoSend(void* packet)
 
 bool ServerSession::DoRecv()
 {
+	if (_cbPrevRemainPacket < 0 || _cbPrevRemainPacket >= BUFSIZE) return false;
 	_rev.Init();
 	_rev._sid = _sid;
 	_rev._cid = _cid;
-	_rev._rWsaBuf.buf = _rev._rbuf + _prev_remain;
-	_rev._rWsaBuf.len = BUFSIZE - _prev_remain;
+	_rev._rWsaBuf.buf = _rev._rbuf + _cbPrevRemainPacket;
+	_rev._rWsaBuf.len = BUFSIZE - _cbPrevRemainPacket;
 	DWORD recvBytes(0);
 	DWORD flag(0);
 	std::shared_lock socketLock(_lock);
@@ -101,11 +152,11 @@ bool ServerSession::DoRecv()
 
 	if (WSARecv(_sock, &_rev._rWsaBuf, 1, &recvBytes, &flag, static_cast<LPWSAOVERLAPPED>(&_rev), NULL) == SOCKET_ERROR)
 	{
-		int32 errcode = WSAGetLastError();
+		auto errCode = WSAGetLastError();
 		if (WSAGetLastError() != WSA_IO_PENDING)
 		{
 			CompleteIO();
-			cout << "Recv Error " << errcode << "\n";
+			cout << "Recv Error " << errCode << "\n";
 			return false;
 		}
 	}
@@ -135,9 +186,9 @@ void ServerSession::DoSendLoginPacket(bool isSuccess)
 
 void ServerSession::ProcessPacket(char* packet)
 {
-	const auto getCurrentRoom = [this]() -> Room*
+	const auto GetCurrentRoom = [this]() -> Room*
 	{
-		const int32 roomNum = _myRm.load();
+		const auto roomNum = _myRoomNumber.load();
 		if (!ServerIocpCore._rmgr->IsValidRoom(roomNum)) return nullptr;
 		Room& room = ServerIocpCore._rmgr->GetRoom(roomNum);
 		return room.GetSidIndexBySid(_sid) >= 0 ? &room : nullptr;
@@ -156,15 +207,18 @@ void ServerSession::ProcessPacket(char* packet)
 			DoSendLoginPacket(true);
 		}
 		break;
-		case (uint8)C_TITLE_PACKET_TYPE::ACQ_REG:
+	case (uint8)C_TITLE_PACKET_TYPE::ACQ_REG:
 		{
 			auto* lp  = reinterpret_cast<C2S_LOGIN*>(packet);
 			std::wstring sqlExec(L"EXEC update_user_status ");
 			sqlExec.append(lp->name);
 			sqlExec.append(L", ");
 			sqlExec.append(lp->pw);
-			//RegisterProcess(this, sqlExec);
-		}
+		//RegisterProcess(this, sqlExec);
+	}
+	break;
+	case (uint8)C_TITLE_PACKET_TYPE::ACQ_LOGOUT:
+		ServerIocpCore.RequestRemoveSession(GetSid());
 		break;
 
 		// ======== 방 시스템 패킷
@@ -191,17 +245,17 @@ void ServerSession::ProcessPacket(char* packet)
 		}
 		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_EXIT_ROOM:
-			ServerIocpCore._rmgr->EnqueueCommand({ RoomCommandType::Exit, _sid, _myRm.load() });
+			ServerIocpCore._rmgr->EnqueueCommand({ RoomCommandType::Exit, _sid, _myRoomNumber.load() });
 		break;
 
 		case (uint8)C_GAME_PACKET_TYPE::CKEY:
 		{
-			Room* room = getCurrentRoom();
+			auto* room = GetCurrentRoom();
 			if (!room) break;
 			// 키 패킷 처리
-			C2S_KEY* movePacket = reinterpret_cast<C2S_KEY*>(packet);
-			moveEvent* mv = new moveEvent(_sid, movePacket->key, XMFLOAT3{ movePacket->x,0,movePacket->z });
-			QueueEvent* me = static_cast<QueueEvent*>(mv);
+			auto* movePacket = reinterpret_cast<C2S_KEY*>(packet);
+			auto* mv = new moveEvent(_sid, movePacket->key, XMFLOAT3{ movePacket->x,0,movePacket->z });
+			auto* me = static_cast<QueueEvent*>(mv);
 
 			// 서버키 패킷 전송
 			S2C_KEY packet;
@@ -218,7 +272,7 @@ void ServerSession::ProcessPacket(char* packet)
 		break;
 		case (uint8)C_GAME_PACKET_TYPE::CROT:
 		{
-			Room* room = getCurrentRoom();
+			Room* room = GetCurrentRoom();
 			if (!room) break;
 			C2S_ROTATE* rotatePacket = reinterpret_cast<C2S_ROTATE*>(packet);
 			S2C_ROTATE packet;
@@ -232,7 +286,7 @@ void ServerSession::ProcessPacket(char* packet)
 		break;
 		case (uint8)C_GAME_PACKET_TYPE::CCHAT:
 		{
-			Room* room = getCurrentRoom();
+			Room* room = GetCurrentRoom();
 			if (!room) break;
 
 			_CHAT* cp = reinterpret_cast<_CHAT*>(packet);
@@ -246,16 +300,16 @@ void ServerSession::ProcessPacket(char* packet)
 
 		case (uint8)C_GAME_PACKET_TYPE::CATTACK:
 		{
-			Room* room = getCurrentRoom();
+			auto* room = GetCurrentRoom();
 			if (!room) break;
-			C2S_ATTACK* ap = reinterpret_cast<C2S_ATTACK*>(packet);
+			auto* ap = reinterpret_cast<C2S_ATTACK*>(packet);
 			if (ap->tidx < 0 || ap->tidx >= PLAYERNUM)
 			{
 				ServerIocpCore.RequestRemoveSession(_sid);
 				break;
 			}
 
-			AttackEvent* ape = new AttackEvent();
+			auto* ape = new AttackEvent();
 			ape->_sid = _sid;
 			ape->_tidx = ap->tidx;
 			ape->_wf = ap->wf;
@@ -264,10 +318,10 @@ void ServerSession::ProcessPacket(char* packet)
 			break;
 		case (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT:
 		{
-			Room* room = getCurrentRoom();
+			auto* room = GetCurrentRoom();
 			if (!room) break;
-			SC_EVENTPACKET* ep = reinterpret_cast<SC_EVENTPACKET*>(packet);
-			InteractionEvent* swev = new InteractionEvent();
+			auto* ep = reinterpret_cast<SC_EVENTPACKET*>(packet);
+			auto* swev = new InteractionEvent();
 			swev->eventId = ep->eventId;
 			std::cout << "EVENT ID : " << (int32)swev->eventId << "\n";
  			swev->_sid = _sid;

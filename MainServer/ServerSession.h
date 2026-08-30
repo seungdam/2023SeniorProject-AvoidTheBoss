@@ -25,9 +25,9 @@ public:
 	void DoSendLoginPacket(bool isSuccess);
 	void ProcessPacket(char*);
 public:
-	std::atomic<int16> _myRm = -1;
+	std::atomic<int16> _myRoomNumber = -1;
 	int32 _curPage = 0;
-	int32 _prev_remain = 0;
+	int32 _cbPrevRemainPacket = 0;
 };
 
 
