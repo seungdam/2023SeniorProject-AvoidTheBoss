@@ -10,7 +10,7 @@
 // 이벤트 처리관련 헤더
 #include "IocpEvent.h"
 #include "ClientPacketEvent.h"
-#include "CJobQueue.h"
+#include "ClientEventScheduler.h"
 // 객체 관련 헤더
 #include "CBullet.h"
 #include "CBoss.h"
@@ -157,70 +157,70 @@ void ClientSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 	{
 		if (IsStopping()) break;
 		RecvEvent* rev = static_cast<RecvEvent*>(iocpEvent);
-		if (numOfBytes < 0 || _prev_remain < 0 || _prev_remain > BUFSIZE || numOfBytes > BUFSIZE - _prev_remain)
+		if (numOfBytes < 0 || _prevRemain < 0 || _prevRemain > BUFSIZE || numOfBytes > BUFSIZE - _prevRemain)
 		{
 			std::cerr << "Invalid receive buffer state\n";
-			_prev_remain = 0;
+			_prevRemain = 0;
 			RequestStop();
 			return;
 		}
 
-		int remain_data = numOfBytes + _prev_remain;
+		auto remainBytes = numOfBytes + _prevRemain;
 		char* p = rev->_rbuf;
-		while (remain_data >= PacketHeaderSize)
+		while (remainBytes >= PacketHeaderSize)
 		{
-			const uint8 packet_size = static_cast<uint8>(p[0]);
-			const uint8 packet_type = static_cast<uint8>(p[1]);
+			const auto cbPacketSize = static_cast<uint8>(p[0]);
+			const auto packetType = static_cast<uint8>(p[1]);
 
-			if (packet_size < PacketHeaderSize)
+			if (cbPacketSize < PacketHeaderSize)
 			{
-				std::cerr << "Rejected packet: invalid size " << static_cast<int32>(packet_size) << "\n";
-				_prev_remain = 0;
+				std::cerr << "Rejected packet: invalid size " << static_cast<int32>(cbPacketSize) << "\n";
+				_prevRemain = 0;
 				RequestStop();
 				return;
 			}
 
-			if (packet_size > remain_data) break;
+			if (cbPacketSize > remainBytes) break;
 
-			const std::size_t expected_size = GetExpectedServerPacketSize(packet_type);
+			const std::size_t expected_size = GetExpectedServerPacketSize(packetType);
 			if (expected_size == 0)
 			{
-				std::cerr << "Ignored unknown packet type " << static_cast<int32>(packet_type) << "\n";
+				std::cerr << "Ignored unknown packet type " << static_cast<int32>(packetType) << "\n";
 			}
-			else if (packet_size != expected_size)
+			else if (cbPacketSize != expected_size)
 			{
-				std::cerr << "Rejected packet type " << static_cast<int32>(packet_type)
+				std::cerr << "Rejected packet type " << static_cast<int32>(packetType)
 					<< ": expected " << expected_size
-					<< " bytes, received " << static_cast<int32>(packet_size) << "\n";
-				_prev_remain = 0;
+					<< " bytes, received " << static_cast<int32>(cbPacketSize) << "\n";
+				_prevRemain = 0;
 				RequestStop();
 				return;
 			}
 			else
 			{
-				if (packet_type == static_cast<uint8>(S_TITLE_PACKET_TYPE::LOGIN_OK))
+				if (packetType == static_cast<uint8>(S_TITLE_PACKET_TYPE::LOGIN_OK))
 				{
 					const auto* login = reinterpret_cast<const S2C_LOGIN_OK*>(p);
 					SetIdentity(login->cid, login->sid);
 				}
 
-				if (!QueuePacket(p, packet_size))
+				if (!QueuePacket(p, cbPacketSize))
 				{
 					::OutputDebugStringA("[Network] Pending packet queue overflow\n");
 					std::cerr << "Pending packet queue overflow\n";
-					_prev_remain = 0;
+					_prevRemain = 0;
 					RequestStop();
 					return;
 				}
 			}
 
-			p += packet_size;
-			remain_data -= packet_size;
+			p += cbPacketSize;
+			remainBytes -= cbPacketSize;
 		}
-		_prev_remain = remain_data;
-		if (remain_data > 0)
+		_prevRemain = remainBytes;
+		if (remainBytes > 0)
 		{
-			memmove(rev->_rbuf, p, remain_data);
+			memmove(rev->_rbuf, p, remainBytes);
 		}
 		if (!IsStopping()) DoRecv();
 	}
@@ -269,8 +269,8 @@ bool ClientSession::DoRecv()
 	_rev._cid = cid;
 	DWORD recvBytes(0);
 	DWORD flag(0);
-	_rev._rWsaBuf.buf = _rev._rbuf + _prev_remain;
-	_rev._rWsaBuf.len = BUFSIZE - _prev_remain;
+	_rev._rWsaBuf.buf = _rev._rbuf + _prevRemain;
+	_rev._rWsaBuf.len = BUFSIZE - _prevRemain;
 	std::shared_lock socketLock(_lock);
 	if (_sock == INVALID_SOCKET) return false;
 	BeginIO();

@@ -7,7 +7,7 @@
 #include <vector>
 
 class IocpEvent;
-class Scheduler;
+class ClientEventScheduler;
 
 class ClientSession : public BaseSession
 {
@@ -32,7 +32,7 @@ public:
 	void Stop();
 public:
 	int16 _myRm = -1;
-	int32 _prev_remain = 0;
+	int32 _prevRemain = 0;
 	int16  _loginOk = -3;
 private:
 	bool QueuePacket(const char* packet, std::size_t packetSize);

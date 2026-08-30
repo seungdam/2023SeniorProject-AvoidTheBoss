@@ -37,12 +37,12 @@ using JobPriorityQueue = std::priority_queue<
 	std::vector<ScheduledClientEvent>,
 	JobComparator>;
 
-class Scheduler
+class ClientEventScheduler
 {
 public:
 	using Clock = std::chrono::steady_clock;
 
-	Scheduler();
+	ClientEventScheduler();
 	void Reset() noexcept;
 	void PushTask(ClientEvent event, float afterMilliseconds);
 	void DoTasks();

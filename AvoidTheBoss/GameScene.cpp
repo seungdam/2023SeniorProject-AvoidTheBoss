@@ -10,7 +10,7 @@
 
 //네트워크 관련
 #include "clientIocpCore.h"
-#include "CJobQueue.h"
+#include "ClientEventScheduler.h"
 
 // 객체 관련
 #include "CBullet.h"
@@ -28,7 +28,7 @@
 CGameScene::CGameScene()
 {
 	_currentFrame = 0;
-	_jobQueue = new Scheduler();
+	_jobQueue = new ClientEventScheduler();
 }
 
 CGameScene::~CGameScene()

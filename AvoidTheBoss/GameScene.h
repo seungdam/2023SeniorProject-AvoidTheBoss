@@ -10,7 +10,7 @@
 #include "GameUiSnapshot.h"
 
 
-class Scheduler;
+class ClientEventScheduler;
 class CGenerator;
 class CSound;
 
@@ -90,7 +90,7 @@ public:
 	bool _employeeExitReady = false;
 
 public:
-	Scheduler* _jobQueue;
+	ClientEventScheduler* _jobQueue;
 public:
 	XMFLOAT3 _clearPoints[3];
 public:
