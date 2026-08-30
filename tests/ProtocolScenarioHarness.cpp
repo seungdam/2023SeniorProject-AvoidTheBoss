@@ -45,6 +45,9 @@ namespace
     constexpr uint8 kKeyForward = 0x01;
     constexpr int kBotCount = 3;
     constexpr int kRosterSize = 4;
+	constexpr int kLobbyBurstPairs = 256;
+	constexpr int kInGameReadyBurstPairs = 64;
+	constexpr int kPreStartKeyPackets = 42;
     constexpr float kBossClientRayLimit = 5.0f;
     constexpr float kRescueClientDistance = 1.5f;
     constexpr int kHonestCooldownFrames = 35;
@@ -699,14 +702,18 @@ namespace
         int16 sid = -1;
 		uint64 resumeToken = 0;
 		bool resumeOk = false;
+		bool resumeRejected = false;
         bool createOk = false;
 		int createCount = 0;
         int16 enteredRoom = -1;
 		int roomEntryCount = 0;
         bool roomInfoSeen = false;
         std::array<int16, kRosterSize> roomSids{ -1, -1, -1, -1 };
+		std::array<bool, kRosterSize> roomReady{};
         bool gameStarted = false;
 		int gameStartCount = 0;
+		int stalePreStartKeyPackets = 0;
+		int readyResponseCount = 0;
 		int roomListNumber = -1;
 		int roomMembers = -1;
         std::array<int16, kRosterSize> roster{ -1, -1, -1, -1 };
@@ -736,6 +743,8 @@ namespace
 		bool secondMatchStarted = false;
 		bool secondMatchFrame = false;
 		bool secondMatchAttack = false;
+		bool preStartStaleGameRejected = false;
+		bool boundResumeRejected = false;
 		bool disconnectCleanup = false;
 		bool reconnectResume = false;
 		bool bossDisconnectEndsMatch = false;
@@ -798,13 +807,76 @@ namespace
             PumpUntil([&] { return states_[2].enteredRoom == result_.room && OccupiedRoomSlots(0) == 4; },
                 "bot2 entering as slot3", 15s);
 
-            for (int i = 0; i < kBotCount; ++i) SendRoomEvent(i, C_ROOM_PACKET_TYPE::ACQ_READY);
+			Log("sending 1024 interleaved lobby Ready/ReadyCancel packets");
+			for (int i = 0; i < kLobbyBurstPairs; ++i)
+			{
+				SendRoomEvent(0, C_ROOM_PACKET_TYPE::ACQ_READY);
+				SendRoomEvent(1, C_ROOM_PACKET_TYPE::ACQ_READY);
+				SendRoomEvent(0, C_ROOM_PACKET_TYPE::ACQ_READY_CANCEL);
+				SendRoomEvent(1, C_ROOM_PACKET_TYPE::ACQ_READY_CANCEL);
+			}
+
+			SendRoomEvent(0, C_ROOM_PACKET_TYPE::ACQ_READY);
+			SendRoomEvent(1, C_ROOM_PACKET_TYPE::ACQ_READY);
+			PumpUntil([&]
+			{
+				bool finalBotFound = false;
+				for (int slot = 0; slot < kRosterSize; ++slot)
+				{
+					if (states_[2].roomSids[slot] < 0) return false;
+					if (states_[2].roomSids[slot] == states_[2].sid)
+					{
+						finalBotFound = true;
+						if (states_[2].roomReady[slot]) return false;
+					}
+					else if (!states_[2].roomReady[slot]) return false;
+				}
+				return finalBotFound;
+			}, "only bot2 remaining unready", 15s);
+
+			const auto finalSlot = std::find(states_[2].roomSids.begin(), states_[2].roomSids.end(), states_[2].sid);
+			if (finalSlot == states_[2].roomSids.end())
+				throw std::runtime_error("bot2 is absent from the pre-start room roster");
+			SendPreStartKeysThenReady(2,
+				static_cast<int>(std::distance(states_[2].roomSids.begin(), finalSlot)));
             PumpUntil([&]
             {
                 return std::all_of(states_.begin(), states_.end(), [](const BotState& state) { return state.gameStarted; });
             }, "GAME_START on all bots (DUT must also be ready)", 45s);
             ValidateRoster();
             result_.gameStarted = true;
+
+			std::array<int, kBotCount> readyResponsesBefore{};
+			std::array<int, kBotCount> gameStartsBefore{};
+			for (int i = 0; i < kBotCount; ++i)
+			{
+				readyResponsesBefore[i] = states_[i].readyResponseCount;
+				gameStartsBefore[i] = states_[i].gameStartCount;
+			}
+			const int32 readyGuardFrame = LatestFrame();
+			for (int i = 0; i < kInGameReadyBurstPairs; ++i)
+			{
+				SendRoomEvent(0, C_ROOM_PACKET_TYPE::ACQ_READY_CANCEL);
+				SendRoomEvent(0, C_ROOM_PACKET_TYPE::ACQ_READY);
+			}
+			expectedResumeFailureBot_ = 0;
+			SendResume(0, states_[1].resumeToken);
+			PumpUntil([&] { return states_[0].resumeRejected; },
+				"in-game Ready burst command barrier", 10s);
+			PumpUntil([&] { return LatestFrame() >= readyGuardFrame + 10; },
+				"in-game Ready rejection observation window", 5s);
+			for (int i = 0; i < kBotCount; ++i)
+			{
+				if (states_[i].readyResponseCount != readyResponsesBefore[i])
+					throw std::runtime_error("in-game Ready/ReadyCancel produced a lobby response");
+				if (states_[i].gameStartCount != gameStartsBefore[i])
+					throw std::runtime_error("in-game Ready/ReadyCancel restarted the match");
+			}
+			Log("validated in-game Ready/ReadyCancel rejection");
+			if (states_[0].stalePreStartKeyPackets != 0)
+				throw std::runtime_error("a pre-start CKEY executed after GAME_START");
+			result_.preStartStaleGameRejected = true;
+			Log("validated pre-start CKEY match lease rejection");
 
             PumpUntil([&]
             {
@@ -953,13 +1025,20 @@ namespace
 			}, "match two authoritative attack ack/animation", 8s);
 			result_.secondMatchAttack = true;
 
-			Log("closing helper slot3 socket and resuming it with its in-memory token");
+			Log("verifying that an already room-bound session cannot claim another resume token");
+			expectedResumeFailureBot_ = 1;
+			SendResume(1, states_[2].resumeToken);
+			PumpUntil([&] { return states_[1].resumeRejected; },
+				"server rejected a resume attempt from an already room-bound session", 5s);
+			ValidateRoster();
+			result_.boundResumeRejected = true;
+
+			Log("closing helper slot3 socket and immediately resuming it with its in-memory token");
 			const int16 disconnectedSid = states_[2].sid;
 			const uint64 resumeToken = states_[2].resumeToken;
 			if (resumeToken == 0) throw std::runtime_error("LOGIN_OK did not supply a resume token");
 			expectedDisconnectBot_ = 2;
 			bots_[2]->Stop();
-			std::this_thread::sleep_for(250ms);
 			bots_[2] = std::make_unique<BotSession>(2, events_);
 			ConnectWithRetry(2);
 			SendResume(2, resumeToken);
@@ -1072,6 +1151,29 @@ namespace
             bots_[bot]->SendPacket(packet);
         }
 
+		void SendPreStartKeysThenReady(const int bot, const int slot)
+		{
+			constexpr std::size_t payloadSize = kPreStartKeyPackets * sizeof(C2S_KEY) + sizeof(C2S_ROOM_EVENT);
+			static_assert(payloadSize <= BUFSIZE);
+			std::array<uint8, payloadSize> payload{};
+			std::size_t offset = 0;
+			C2S_KEY key{};
+			key.size = sizeof(key);
+			key.type = static_cast<uint8>(C_GAME_PACKET_TYPE::CKEY);
+			key.z = 1.0f;
+			key.idx = static_cast<int8>(slot);
+			for (int i = 0; i < kPreStartKeyPackets; ++i)
+			{
+				std::memcpy(payload.data() + offset, &key, sizeof(key));
+				offset += sizeof(key);
+			}
+			C2S_ROOM_EVENT ready{};
+			ready.size = sizeof(ready);
+			ready.type = static_cast<uint8>(C_ROOM_PACKET_TYPE::ACQ_READY);
+			std::memcpy(payload.data() + offset, &ready, sizeof(ready));
+			bots_[bot]->SendBytes(payload.data(), static_cast<int32>(payload.size()));
+		}
+
         void SendAttack(const int targetSlot)
         {
             const int32 frame = LatestFrame();
@@ -1176,7 +1278,11 @@ namespace
 				break;
 			}
 			case static_cast<uint8>(S_TITLE_PACKET_TYPE::RESUME_FAIL):
-				throw std::runtime_error("server rejected a valid in-game resume token");
+				if (event.bot != expectedResumeFailureBot_)
+					throw std::runtime_error("server rejected a valid in-game resume token");
+				state.resumeRejected = true;
+				expectedResumeFailureBot_ = -1;
+				break;
             case static_cast<uint8>(S_ROOM_PACKET_TYPE::MK_RM_OK):
                 state.createOk = true;
 				++state.createCount;
@@ -1196,9 +1302,21 @@ namespace
             {
                 const auto packet = Decode<S2C_ROOM_INFO>(event.packet);
                 std::copy(std::begin(packet.sids), std::end(packet.sids), state.roomSids.begin());
+				std::copy(std::begin(packet.rd), std::end(packet.rd), state.roomReady.begin());
                 state.roomInfoSeen = true;
                 break;
             }
+			case static_cast<uint8>(S_ROOM_PACKET_TYPE::REP_READY):
+			case static_cast<uint8>(S_ROOM_PACKET_TYPE::REP_READY_CANCEL):
+			{
+				const auto packet = Decode<S2C_ROOM_READY>(event.packet);
+				const auto member = std::find(state.roomSids.begin(), state.roomSids.end(), packet.sid);
+				if (member != state.roomSids.end())
+					state.roomReady[std::distance(state.roomSids.begin(), member)] =
+						type == static_cast<uint8>(S_ROOM_PACKET_TYPE::REP_READY);
+				++state.readyResponseCount;
+				break;
+			}
 			case static_cast<uint8>(S_ROOM_PACKET_TYPE::UPDATE_LIST):
 			{
 				const auto packet = Decode<S2C_ROOM_LIST>(event.packet);
@@ -1226,6 +1344,13 @@ namespace
                 positions_[packet.sid] = { packet.x, packet.z };
                 break;
             }
+			case static_cast<uint8>(S_GAME_PACKET_TYPE::SKEY):
+			{
+				const auto packet = Decode<S2C_KEY>(event.packet);
+				if (state.gameStarted && packet.sid == states_[2].sid)
+					++state.stalePreStartKeyPackets;
+				break;
+			}
             case static_cast<uint8>(S_GAME_PACKET_TYPE::FRAME):
             {
                 const auto packet = Decode<S2C_FRAMEPACKET>(event.packet);
@@ -1461,6 +1586,7 @@ namespace
         Clock::time_point deadline_;
 		ResultState result_;
 		int expectedDisconnectBot_ = -1;
+		int expectedResumeFailureBot_ = -1;
 		int ignoredBot_ = -1;
     };
 
@@ -1492,6 +1618,8 @@ namespace
 			<< "  \"second_match_started\": " << (result.secondMatchStarted ? "true" : "false") << ",\n"
 			<< "  \"second_match_frame\": " << (result.secondMatchFrame ? "true" : "false") << ",\n"
 			<< "  \"second_match_attack\": " << (result.secondMatchAttack ? "true" : "false") << ",\n"
+			<< "  \"pre_start_stale_game_rejected\": " << (result.preStartStaleGameRejected ? "true" : "false") << ",\n"
+			<< "  \"bound_resume_rejected\": " << (result.boundResumeRejected ? "true" : "false") << ",\n"
 			<< "  \"disconnect_cleanup\": " << (result.disconnectCleanup ? "true" : "false") << ",\n"
 			<< "  \"reconnect_resume\": " << (result.reconnectResume ? "true" : "false") << ",\n"
 			<< "  \"boss_disconnect_ends_match\": " << (result.bossDisconnectEndsMatch ? "true" : "false") << ",\n"

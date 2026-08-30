@@ -55,10 +55,10 @@ set_target_properties(SharedRuntime PROPERTIES
 
 add_library(CoreEngine STATIC
     MainServer/AcceptManager.cpp
-    MainServer/CGameManager.cpp
     MainServer/CollisionDetector.cpp
         MainServer/ServerIocpCore.cpp
     MainServer/JobQueue.cpp
+    MainServer/MatchState.cpp
     MainServer/packetEvent.cpp
     MainServer/RoomManager.cpp
 		MainServer/ServerSession.cpp
@@ -272,18 +272,30 @@ set_target_properties(ServerEventSchedulerTests PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
 )
 
+add_executable(RoomCommandQueueTests
+	tests/RoomCommandQueueTests.cpp
+)
+target_include_directories(RoomCommandQueueTests PRIVATE MainServer)
+target_link_libraries(RoomCommandQueueTests PRIVATE SharedHeaders)
+set_target_properties(RoomCommandQueueTests PROPERTIES
+	JOB_POOL_LINK msvc_link_pool
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
+)
+
 if(BUILD_TESTING)
 	add_test(NAME ProjectileLogicTests COMMAND ProjectileLogicTests)
 	add_test(NAME GameObjectOwnershipTests COMMAND GameObjectOwnershipTests)
 	add_test(NAME PlayerStateTests COMMAND PlayerStateTests)
 	add_test(NAME SchedulerTests COMMAND SchedulerTests)
 	add_test(NAME ServerEventSchedulerTests COMMAND ServerEventSchedulerTests)
+	add_test(NAME RoomCommandQueueTests COMMAND RoomCommandQueueTests)
 	set_tests_properties(
 		ProjectileLogicTests
 		GameObjectOwnershipTests
 		PlayerStateTests
 		SchedulerTests
 		ServerEventSchedulerTests
+		RoomCommandQueueTests
 		PROPERTIES LABELS unit
 	)
 endif()
