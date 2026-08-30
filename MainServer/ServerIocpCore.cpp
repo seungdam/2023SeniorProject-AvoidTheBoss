@@ -80,10 +80,11 @@ void ServerIocpCore::DrainRemovedSessions()
 
 	for (const auto& [sid, session] : ready)
 	{
-		const auto roomNum = session->_myRm.load();
+		const auto roomNum = session->_myRoomNumber.load();
 		if (_rmgr->IsValidRoom(roomNum))
 		{
-			_rmgr->EnqueueCommand({ RoomCommandType::Exit, sid, roomNum });
+			_rmgr->EnqueueCommand({ RoomCommandType::Disconnected, sid, roomNum, false,
+				session->GetResumeToken() });
 		}
 		std::unique_lock lock(_lock);
 		const auto it = _clients.find(sid);

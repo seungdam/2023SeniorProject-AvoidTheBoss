@@ -24,6 +24,7 @@ Room::~Room()
 void Room::UserOut(int32 sid)
 {
 	int idx = 0;
+	bool removed = false;
 
 	{
 		// cList Lock 쓰기 호출
@@ -33,11 +34,14 @@ void Room::UserOut(int32 sid)
 			if (sid == _roomMembers[i].sid)
 			{
 				_roomMembers[i].sid = -1;
-				_roomMembers[i].isReady = false;
-				if (_memCnt) _memCnt.fetch_sub(1);
+				_roomMembers[i].bReady = false;
+				if (_nMembers) _nMembers.fetch_sub(1);
+				removed = true;
+				break;
 			}
 		}
 	}
+	if (!removed) return;
 
 	if (_status == (uint8)ROOM_STATUS::INGAME)
 	{
@@ -59,19 +63,25 @@ void Room::UserOut(int32 sid)
 				BroadCastingExcept(&packet, sid);
 
 
+				std::array<int16, PLAYERNUM> members{};
 				{
 					// cList Lock 쓰기 호출
 					std::unique_lock<std::shared_mutex> wll(_listLock);
 
-
 					for (int i = 0; i < PLAYERNUM; ++i)
 					{
+						members[i] = _roomMembers[i].sid;
 						_roomMembers[i].sid = -1;
-						_roomMembers[i].isReady = false;
+						_roomMembers[i].bReady = false;
 					}
 				}
-				_memCnt.store(0);
+				_nMembers.store(0);
 				_status = (uint8)ROOM_STATUS::EMPTY;
+				for (const int16 memberSid : members)
+				{
+					if (const auto member = ServerIocpCore.FindSession(memberSid))
+						member->_myRoomNumber.store(-1);
+				}
 				std::cout << "STRANGE GAME END\n";
 				return;
 			}
@@ -103,7 +113,7 @@ void Room::UserOut(int32 sid)
 			{
 				std::unique_lock<std::shared_mutex> wll(_listLock);
 				for (auto& i : _roomMembers) i.sid = -1;
-				for (auto& i : _roomMembers) i.isReady = false;
+				for (auto& i : _roomMembers) i.bReady = false;
 			}
 			std::cout << "Destroy Room\n";
 		}
@@ -113,13 +123,13 @@ void Room::UserOut(int32 sid)
 
 	SendRoomInfoPacket();
 
-	if (const auto session = ServerIocpCore.FindSession(sid)) session->_myRm = -1;
+	if (const auto session = ServerIocpCore.FindSession(sid)) session->_myRoomNumber.store(-1);
 }
 
-void Room::UserIn(int32 sid)
+bool Room::UserIn(int32 sid)
 {
 	const auto session = ServerIocpCore.FindSession(sid);
-	if (!session) return;
+	if (!session) return false;
 
 	S2C_ROOM_ENTER packet;
 	packet.size = sizeof(S2C_ROOM_ENTER);
@@ -134,16 +144,15 @@ void Room::UserIn(int32 sid)
 		packet.rmNum = -1;
 		packet.type = (uint8)S_ROOM_PACKET_TYPE::REP_ENTER_FAIL;
 		session->DoSend(&packet);
+		return false;
 	}
 	else if (_status == (int8)ROOM_STATUS::NOT_FULL) // 아니면 접속 성공
 	{
-		packet.rmNum = _rmNum;
-		session->_myRm = _rmNum;
-		session->DoSend(&packet);
+		packet.rmNum = _roomNumber;
 		{
 			//cList Lock 쓰기 호출
 			std::unique_lock<std::shared_mutex> wll(_listLock);
-			_memCnt.fetch_add(1);
+			_nMembers.fetch_add(1);
 			// 빈 배열 자리에다가 정보 채우기
 			for (int k = 0; k < PLAYERNUM; ++k)
 			{
@@ -156,11 +165,11 @@ void Room::UserIn(int32 sid)
 			std::cout << "LEFT USER SID LIST [";
 			for (auto i : _roomMembers)  std::cout << (int32)i.sid << "|";
 			std::cout << " ]\n";
-
-			SendRoomListPacket();
-
 		}
-		if (_memCnt == PLAYERNUM)
+		session->_myRoomNumber.store(static_cast<int16>(_roomNumber));
+		session->DoSend(&packet);
+		SendRoomListPacket();
+		if (_nMembers == PLAYERNUM)
 		{
 			_status = (int8)ROOM_STATUS::FULL;
 		}
@@ -170,9 +179,10 @@ void Room::UserIn(int32 sid)
 	SendRoomInfoPacket();
 	// 갱신할 방 리스트 정보와 방 정보를 보낸다.
 
-	std::cout << "RM [" << _rmNum << "][" << _memCnt.load() << "/4]" << std::endl;
+	std::cout << "RM [" << _roomNumber << "][" << _nMembers.load() << "/4]" << std::endl;
 
 	// 갱신하는걸 보내줄지 말지 미정
+	return true;
 }
 
 void Room::BroadCasting(void* packet) // 방에 속하는 클라이언트에게만 전달하기
@@ -277,11 +287,15 @@ void Room::Update()
 
 void Room::AddEvent(QueueEvent* qe, float after)
 {
+	if (!qe) return;
+	qe->_roomNum = _roomNumber;
 	_gameLogic.AddEventAfterTime(after, qe);
 }
 
 void Room::AddEvent(QueueEvent* qe)
 {
+	if (!qe) return;
+	qe->_roomNum = _roomNumber;
 	_gameLogic.AddEvent(qe);
 }
 void Room::SendRoomListPacket()
@@ -290,8 +304,8 @@ void Room::SendRoomListPacket()
 	S2C_ROOM_LIST rmpacket; // 로비에서 리스트를 갱신하기 위한 패킷
 	rmpacket.size = sizeof(S2C_ROOM_LIST);
 	rmpacket.type = (int8)S_ROOM_PACKET_TYPE::UPDATE_LIST;
-	rmpacket.member = _memCnt.load();
-	rmpacket.rmNum = _rmNum;
+	rmpacket.member = _nMembers.load();
+	rmpacket.rmNum = _roomNumber;
 
 	ServerIocpCore.BroadCastingAll(&rmpacket);
 
@@ -306,7 +320,7 @@ void Room::SendRoomInfoPacket()
 		for (int i = 0; i < PLAYERNUM; ++i)
 		{
 			rmifpacket.sids[i] = _roomMembers[i].sid;
-			rmifpacket.rd[i] = _roomMembers[i].isReady;
+			rmifpacket.rd[i] = _roomMembers[i].bReady;
 		}
 
 	}
@@ -336,8 +350,8 @@ void Room::InitGame()
 		std::cout << "]\n";
 
 		{
-			shared_lock<std::shared_mutex> rl(_listLock);
-			for (auto& i : _roomMembers) i.isReady = false;
+			std::unique_lock<std::shared_mutex> rl(_listLock);
+			for (auto& i : _roomMembers) i.bReady = false;
 		}
 		_gameLogic.InitGame();
 		_timer.Reset();
@@ -346,7 +360,8 @@ void Room::InitGame()
 }
 void Room::UpdateReady(int32 idx, bool val)
 {
-	_roomMembers[idx].isReady = val;
+	std::unique_lock<std::shared_mutex> lock(_listLock);
+	_roomMembers[idx].bReady = val;
 }
 
 bool Room::IsGameStartAvailable()
@@ -355,7 +370,7 @@ bool Room::IsGameStartAvailable()
 
 	 {
 		 shared_lock<std::shared_mutex> rl(_listLock);
-		 for (int i = 0; i < 4; ++i) if (_roomMembers[i].isReady) ++cnt;
+		 for (int i = 0; i < 4; ++i) if (_roomMembers[i].bReady) ++cnt;
 		 return (PLAYERNUM == cnt);
 	 }
 }
@@ -365,9 +380,9 @@ bool Room::IsGameStartAvailable()
 // ============================
 void RoomManager::Init()
 {
-	for (int i = 0; i < _maxRoomCapacity; ++i)
+	for (int i = 0; i < RoomCapacity; ++i)
 	{
-		_rooms[i]._rmNum = i;
+		_rooms[i]._roomNumber = i;
 	}
 }
 
@@ -400,18 +415,17 @@ void RoomManager::ExecuteCommand(const RoomCommand& command)
 		EnterRoom(command.sid, command.roomNum);
 		return;
 	case RoomCommandType::Exit:
-	{
-		const auto session = ServerIocpCore.FindSession(command.sid);
-		if (!session || session->_myRm < 0) return;
-		ExitRoom(command.sid, session->_myRm);
+		if (IsValidRoom(command.roomNum))
+			ExitRoom(command.sid, command.roomNum);
 		return;
-	}
 	case RoomCommandType::SetReady:
 	{
 		const auto session = ServerIocpCore.FindSession(command.sid);
-		if (!session || session->_myRm < 0) return;
+		if (!session) return;
+		const int32 roomNum = session->_myRoomNumber.load();
+		if (!IsValidRoom(roomNum)) return;
 
-		Room& room = GetRoom(session->_myRm);
+		Room& room = GetRoom(roomNum);
 		const int32 idx = room.GetSidIndexBySid(command.sid);
 		if (idx < 0) return;
 
@@ -430,9 +444,16 @@ void RoomManager::ExecuteCommand(const RoomCommand& command)
 	}
 }
 
-void RoomManager::EnterRoom(int32 sid,int16 rmNum)
+bool RoomManager::EnterRoom(int32 sid, int32 rmNum)
 {
-	_rooms[rmNum].UserIn(sid);
+	if (!IsValidRoom(rmNum))
+	{
+		ServerIocpCore.RequestRemoveSession(sid);
+		return false;
+	}
+	const auto session = ServerIocpCore.FindSession(sid);
+	if (!session || session->_myRoomNumber.load() != -1) return false;
+	return _rooms[rmNum].UserIn(sid);
 }
 void RoomManager::CreateRoom(int32 sid)
 {
@@ -441,37 +462,42 @@ void RoomManager::CreateRoom(int32 sid)
 	S2C_ROOM_EVENT packet;
 	packet.size = sizeof(S2C_ROOM_EVENT);
 
-	if (_roomCnt.load() >= _maxRoomCapacity)
+	if (session->_myRoomNumber.load() != -1)
 	{
 		packet.type = (uint8)S_ROOM_PACKET_TYPE::MK_RM_FAIL;
 		session->DoSend(&packet);
 		return;
 	}
-	for (int i = 0; i < 100; ++i)
+	for (int i = 0; i < RoomCapacity; ++i)
 	{
 		if (_rooms[i]._status == (int8)ROOM_STATUS::EMPTY)
 		{
 			_rooms[i]._status = (int8)ROOM_STATUS::NOT_FULL;
-			EnterRoom(sid, i);
-			_roomCnt.fetch_add(1);
-			break;
+			if (EnterRoom(sid, i))
+			{
+				packet.type = (uint8)S_ROOM_PACKET_TYPE::MK_RM_OK;
+				session->DoSend(&packet);
+				return;
+			}
+			_rooms[i]._status = (int8)ROOM_STATUS::EMPTY;
 		}
 	}
 
-	packet.type = (uint8)S_ROOM_PACKET_TYPE::MK_RM_OK;
+	packet.type = (uint8)S_ROOM_PACKET_TYPE::MK_RM_FAIL;
 	session->DoSend(&packet);
 }
 void RoomManager::UpdateRooms()
 {
 	DrainCommands();
 
-	for (int i = 0; i < _maxRoomCapacity; ++i)
+	for (int i = 0; i < RoomCapacity; ++i)
 	{
 		if (_rooms[i]._status != (int8)ROOM_STATUS::INGAME) continue;
 		_rooms[i].Update();
 	}
 }
-void RoomManager::ExitRoom(int32 sid, int16 rmNum)
+void RoomManager::ExitRoom(int32 sid, int32 rmNum)
 {
+	if (!IsValidRoom(rmNum)) return;
 	_rooms[rmNum].UserOut(sid);
 }

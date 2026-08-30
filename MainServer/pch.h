@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <bcrypt.h>
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>

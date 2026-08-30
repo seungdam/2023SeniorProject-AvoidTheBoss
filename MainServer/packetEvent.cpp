@@ -3,11 +3,11 @@
 #include "CGameManager.h"
 void InteractionEvent::Task()
 {
-	const auto session = ServerIocpCore.FindSession(_sid);
-	if (!session || session->_myRm < 0) return;
-	int16 roomNum = session->_myRm;
+	if (!ServerIocpCore._rmgr->IsValidRoom(_roomNum)) return;
+	const int32 roomNum = _roomNum;
 	Room& targetRoom = ServerIocpCore._rmgr->GetRoom(roomNum);
-	CGameManager& gm = targetRoom._gameLogic;
+	if (targetRoom.GetSidIndexBySid(_sid) < 0) return;
+	CGameManager& gm = targetRoom.GameLogic();
 	switch ((EVENT_TYPE)eventId)
 	{
 		//============= 스위치 관련 이벤트 ===================
@@ -190,11 +190,11 @@ void InteractionEvent::Task()
 void moveEvent::Task()
 {
 	// to do move Player in gameLogic
-	const auto session = ServerIocpCore.FindSession(_sid);
-	if (!session || session->_myRm < 0) return;
-	int16 roomNum = session->_myRm;
-	CGameManager& gm = ServerIocpCore._rmgr->GetRoom(roomNum)._gameLogic;
+	if (!ServerIocpCore._rmgr->IsValidRoom(_roomNum)) return;
+	const int32 roomNum = _roomNum;
+	CGameManager& gm = ServerIocpCore._rmgr->GetRoom(roomNum).GameLogic();
 	Room& targetRoom = ServerIocpCore._rmgr->GetRoom(roomNum);
+	if (targetRoom.GetSidIndexBySid(_sid) < 0) return;
 	//SPlayer& targetPlayer = gm.GetPlayerBySid(_sid);
 
 	gm.GetPlayerBySid(_sid).SetDirection(_dir);
@@ -218,12 +218,13 @@ void moveEvent::Task()
 
 void AttackEvent::Task()
 {
-	const auto session = ServerIocpCore.FindSession(_sid);
-	if (!session || session->_myRm < 0) return;
-	int16 roomNum = session->_myRm;
+	if (!ServerIocpCore._rmgr->IsValidRoom(_roomNum)) return;
+	const int32 roomNum = _roomNum;
 
-	CGameManager& gm = ServerIocpCore._rmgr->GetRoom(roomNum)._gameLogic;
-	bool retVal = ServerIocpCore._rmgr->GetRoom(roomNum).ProcessAttackEvent(_wf, _tidx);
+	CGameManager& gm = ServerIocpCore._rmgr->GetRoom(roomNum).GameLogic();
+	Room& targetRoom = ServerIocpCore._rmgr->GetRoom(roomNum);
+	if (targetRoom.GetSidIndexBySid(_sid) < 0) return;
+	bool retVal = targetRoom.ProcessAttackEvent(_wf, _tidx);
 	SPlayer& emp = gm.GetPlayerByIdx(_tidx);
 
 
@@ -236,7 +237,7 @@ void AttackEvent::Task()
 		epacket.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
 		epacket.eventId = (int32)EVENT_TYPE::ATTACKED_PLAYER_ONE + (int32)_tidx;
 
-		ServerIocpCore._rmgr->GetRoom(roomNum).BroadCasting(&epacket);
+		targetRoom.BroadCasting(&epacket);
 
 
 	}

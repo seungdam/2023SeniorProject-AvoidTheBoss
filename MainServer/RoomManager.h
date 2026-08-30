@@ -16,30 +16,26 @@ class Room
 	struct RoomMember
 	{
 		int16 sid = -1;
-		bool isReady = false;
+		bool bReady = false;
 	};
 public:
 	Room();
 	~Room();
-	bool IsDestroyRoom() { return (_memCnt.load() == 0); } // false 반환 시 방 파괴 --> 호스트가 방을 나갔을 경우 파괴하도록함.
+	bool IsDestroyRoom() { return (_nMembers.load() == 0); } // false 반환 시 방 파괴 --> 호스트가 방을 나갔을 경우 파괴하도록함.
 	void UserOut(int32 sid);
-	void UserIn(int32 sid);
+	bool UserIn(int32 sid);
 	void BroadCasting(void* packet);
 	void BroadCastingExcept(void* packet, int32 sid);
 	bool ProcessAttackEvent(const int32& frame, const int16& target) { return (_gameLogic._history.IsAttackAvailable(frame, target)); }
-	//CGameManager& GetGameManager() { return _gameLogic; }
 	void Update();
 	void AddEvent(QueueEvent* packet, float after); // 이벤트 패킷이 들어오면 큐에다가 추가를 할 것이다.
 	void AddEvent(QueueEvent* qe);
-	void StartGame()
-	{
-		_timer.Reset();
-	}
+	void StartGame() { _timer.Reset(); }
 
 	void SendRoomListPacket();
 	void SendRoomInfoPacket();
 	CGameManager& GameLogic() noexcept { return _gameLogic; }
-	int32 GetMemberCount() const noexcept { return _memCnt.load(); }
+	int32 GetMemberCount() const noexcept { return _nMembers.load(); }
 
 	int32 GetSidIndexBySid(int32 sid)
 	{
@@ -61,20 +57,22 @@ private:
 	std::shared_mutex _listLock;
 	std::array<RoomMember, PLAYERNUM> _roomMembers{};
 	uint8 _status = (int8)ROOM_STATUS::EMPTY; // 방 상태
-	int32 _rmNum = 0; // 방번호
-	Atomic<int32> _memCnt = 0;
+	int32 _roomNumber = 0; // 방번호
+	Atomic<int32> _nMembers = 0;
 	Timer _timer;
 };
 
 class RoomManager
 {
-
 public:
+	static constexpr int32 RoomCapacity = 100;
+
 	void EnqueueCommand(RoomCommand command);
-	void ExitRoom(int32 sid, int16 rmNum);
-	void EnterRoom(int32 sid, int16 rmNum);
+	void ExitRoom(int32 sid, int32 rmNum);
+	bool EnterRoom(int32 sid, int32 rmNum);
 	void CreateRoom(int32 sid);
 	void UpdateRooms();
+	bool IsValidRoom(int32 rmNum) const noexcept { return rmNum >= 0 && rmNum < RoomCapacity; }
 	Room& GetRoom(int32 rmNum) { return _rooms[rmNum]; }
 	void Init();
 
@@ -82,12 +80,7 @@ private:
 	void DrainCommands();
 	void ExecuteCommand(const RoomCommand& command);
 
-public:
-	Room _rooms[100];
-	Atomic<int32> _roomCnt = 0; // 현재 방 개수;
-	int32 _maxRoomCapacity = 100;
-
-private:
+	std::array<Room, RoomCapacity> _rooms{};
 	std::mutex _commandLock;
 	std::deque<RoomCommand> _commands;
 };
