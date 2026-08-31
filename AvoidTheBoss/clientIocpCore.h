@@ -18,7 +18,7 @@ public:
 	CCIocpCore();
 	~CCIocpCore();
 	void InitConnect(const char* address);
-	void DoConnect(void* loginInfo);
+	void DoConnect();
 	void DoSend(void* packet) { _client->DoSend(packet); }
 	void DispatchPackets() { if (_client) _client->DispatchPackets(); }
 	virtual bool Processing(uint32_t timelimit = INFINITE);

@@ -62,7 +62,7 @@ bool CCIocpCore::ReconnectIfDrained()
 	if (!_reconnectPending || !_client || _manualDisconnect || _client->PendingIO() != 0) return false;
 	_reconnectPending = false;
 	if (!PrepareSocket(true)) return false;
-	DoConnect(nullptr);
+	DoConnect();
 	return true;
 }
 
@@ -73,17 +73,15 @@ bool CCIocpCore::ScheduleReconnect()
 	return ReconnectIfDrained();
 }
 
-void CCIocpCore::DoConnect(void* loginInfo)
+void CCIocpCore::DoConnect()
 {
 
 	if (!_client) return;
 		_client->SetSid(0);
-		DWORD sendBytes(0);
-		DWORD sendLength = BUFSIZE / 2;
 		ConnectEvent* _connectEvent = new ConnectEvent();
 		_client->BeginIO();
-		//memcpy(_connectEvent->_buf, loginInfo, BUFSIZE / 2);
-		bool retVal = SocketUtil::ConnectEx(_client->GetSock(), reinterpret_cast<sockaddr*>(&_serveraddr), sizeof(_serveraddr), _connectEvent->_buf, (BUFSIZE / 2) - 1, NULL,
+		bool retVal = SocketUtil::ConnectEx(_client->GetSock(), reinterpret_cast<sockaddr*>(&_serveraddr),
+			sizeof(_serveraddr), nullptr, 0, nullptr,
 			static_cast<LPWSAOVERLAPPED>(_connectEvent));
 
 		if (!retVal)
