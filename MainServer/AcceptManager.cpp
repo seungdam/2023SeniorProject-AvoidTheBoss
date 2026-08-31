@@ -4,7 +4,6 @@
 
 
 #include "IocpCore.h"
-#include "RoomManager.h"
 #include "ServerSessionManager.h"
 #include "ServerSession.h"
 #include "IocpEvent.h"
@@ -24,8 +23,8 @@ public:
 	std::array<char, 2 * AddressBytes> addressBuffer{};
 };
 
-AcceptManager::AcceptManager(IocpCore& iocpCore, ServerSessionManager& sessions, RoomManager& rooms)
-	: _iocpCore(iocpCore), _sessions(sessions), _rooms(rooms)
+AcceptManager::AcceptManager(IocpCore& iocpCore, ServerSessionManager& sessions)
+	: _iocpCore(iocpCore), _sessions(sessions)
 {
 }
 

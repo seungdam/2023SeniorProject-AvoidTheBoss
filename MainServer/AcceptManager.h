@@ -1,17 +1,18 @@
 ﻿#pragma once
 #include "IocpObject.h"
+#include <atomic>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 class IocpCore;
-class RoomManager;
 class ServerSessionManager;
 // AcceptEx lifecycle and accepted-socket activation boundary.
 
 class AcceptManager : public IocpObject
 {
 public:
-	AcceptManager(IocpCore& iocpCore, ServerSessionManager& sessions, RoomManager& rooms);
+	AcceptManager(IocpCore& iocpCore, ServerSessionManager& sessions);
 	~AcceptManager();
 public:
 	// Accept를 받을 준비를 진행해라
