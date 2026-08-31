@@ -5,8 +5,13 @@
 #include <fstream>
 #include <string>
 
-OcTree* BoxTree = nullptr;
 int32 OcTree::_maxLevel = 3;
+
+OcTree::~OcTree()
+{
+	for (OcTree* child : _childTree) delete child;
+	delete _node;
+}
 
 
 

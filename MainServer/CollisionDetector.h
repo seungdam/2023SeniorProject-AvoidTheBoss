@@ -80,6 +80,9 @@ public:
 
 		if (_curLevel == _maxLevel) _node = new LeafNode();
 	};
+	~OcTree();
+	OcTree(const OcTree&) = delete;
+	OcTree& operator=(const OcTree&) = delete;
 	void ReadBoundingBoxInfoFromFile(const char*);
 	void AddBoundingBox(DirectX::BoundingBox aabb);
 	void BuildTree();
@@ -87,6 +90,4 @@ public:
 	bool CheckCollision(DirectX::BoundingSphere& playerBox, XMFLOAT3& playerPos);
 	bool CheckRayCollision(Ray& ray);
 };
-
-extern class OcTree* BoxTree;
 

@@ -3,6 +3,8 @@
 // 오직 위치 정보만 가지고 있는 플레이어 클래스
 // 렌더링과 관련된 정보 X
 
+class OcTree;
+
 class SPlayer
 {
 public:
@@ -93,8 +95,8 @@ public:
 
 	void ProcessInput(const int16& input, const XMFLOAT3& lookVec);
 	void Move(const int16& dwDirection, float fDistance);
-	void Update(float fTimeElapsed);
-	void LateUpdate(float fTimeElapsed);
+	void Update(float fTimeElapsed, OcTree& collisionTree);
+	void LateUpdate(float fTimeElapsed, OcTree& collisionTree);
 
 	void ResetState();
 };

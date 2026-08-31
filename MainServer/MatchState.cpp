@@ -4,7 +4,8 @@
 
 #include <stdexcept>
 
-MatchState::MatchState()
+MatchState::MatchState(OcTree& collisionTree)
+	: _collisionTree(collisionTree)
 {
 	_jobQueue = std::make_unique<ClientEventScheduler>();
 }
@@ -108,7 +109,7 @@ void MatchState::Update(Room& room, const float elapsedTime)
 	if (_state != GAMESTATE::IN_GAME) return;
 	_jobQueue->DoTasks(room, *this);
 	for (SPlayer& player : _players)
-		if (!player.m_hide) player.Update(elapsedTime);
+		if (!player.m_hide) player.Update(elapsedTime, _collisionTree);
 }
 
 void MatchState::LateUpdate(const float elapsedTime)
@@ -116,7 +117,7 @@ void MatchState::LateUpdate(const float elapsedTime)
 	if (_state != GAMESTATE::IN_GAME) return;
 	int32 activeGeneratorCount = 0;
 	for (SPlayer& player : _players)
-		if (!player.m_hide) player.LateUpdate(elapsedTime);
+		if (!player.m_hide) player.LateUpdate(elapsedTime, _collisionTree);
 	for (const SGenerator& generator : _generators)
 		if (generator._IsActive) ++activeGeneratorCount;
 	if (activeGeneratorCount >= GENCNT) _exitReady = true;

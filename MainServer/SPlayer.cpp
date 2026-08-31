@@ -1,7 +1,6 @@
 ﻿#include "pch.h"
 #include "SPlayer.h"
 #include "CollisionDetector.h"
-#include "ServerIocpCore.h"
 
 SPlayer::SPlayer()
 {
@@ -67,19 +66,19 @@ void SPlayer::Move(const int16& dwDirection, float fDistance)
 
 }
 
-void SPlayer::Update(float fTimeElapsed)
+void SPlayer::Update(float fTimeElapsed, OcTree& collisionTree)
 {
 	//플레이어를 속도 벡터 만큼 실제로 이동한다(카메라도 이동될 것이다).
 
 	XMFLOAT3 xmf3Velocity = Vector3::ScalarProduct(m_xmf3Velocity, fTimeElapsed, false);
 	m_xmf3Position = Vector3::Add(m_xmf3Position, xmf3Velocity);
-	LateUpdate(fTimeElapsed);
+	LateUpdate(fTimeElapsed, collisionTree);
 }
 
-void SPlayer::LateUpdate(float fTimeElapsed)
+void SPlayer::LateUpdate(float fTimeElapsed, OcTree& collisionTree)
 {
 	m_playerBV.Center = GetPosition();
-	BoxTree->CheckCollision(m_playerBV, m_xmf3Position);
+	collisionTree.CheckCollision(m_playerBV, m_xmf3Position);
 }
 
 void SPlayer::ResetState()

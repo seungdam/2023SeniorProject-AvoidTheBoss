@@ -9,6 +9,7 @@
 #include "../Shared/Runtime/GameTimer.h"
 
 class ClientEventScheduler;
+class OcTree;
 class Room;
 class QueueEvent;
 class InteractionEvent;
@@ -46,7 +47,7 @@ struct MatchPlayerDeparture
 class MatchState
 {
 public:
-	MatchState();
+	explicit MatchState(OcTree& collisionTree);
 	~MatchState();
 
 	uint64 Start(const std::array<int16, PLAYERNUM>& playerSids);
@@ -77,6 +78,7 @@ private:
 	GAMESTATE CheckGameState();
 
 	bool _exitReady = false;
+	OcTree& _collisionTree;
 	std::array<SPlayer, PLAYERNUM> _players{};
 	std::array<SGenerator, GENCNT> _generators{};
 	GAMESTATE _state = GAMESTATE::NONE;
