@@ -1,10 +1,6 @@
 ﻿#include "pch.h"
 #include "SocketUtil.h"
 #include "ServerSession.h"
-#include "SPlayer.h"
-#include "ServerIocpCore.h"
-#include "JobQueue.h"
-#include "RoomCommand.h"
 using namespace std;
 // =========== 서버 세션 ============
 
@@ -69,8 +65,10 @@ void RegisterProcess(ServerSession* s, std::wstring sqlexec)
 
 }
 
-ServerSession::ServerSession()
+ServerSession::ServerSession(ServerSessionRoutes routes)
+	: _routes(std::move(routes))
 {
+	ASSERT_CRASH(_routes.requestRemove && _routes.enqueueLobby && _routes.enqueueGame);
 	_sock = SocketUtil::CreateSocket();
 }
 
@@ -89,7 +87,12 @@ void ServerSession::OnIocpError(IocpEvent* iocpEvent, const int32 errCode)
 {
 	[[maybe_unused]] const auto keepAlive = shared_from_this();
 	BaseSession::OnIocpError(iocpEvent, errCode);
-	ServerIocpCore.RequestRemoveSession(GetSid());
+	RequestRemoval();
+}
+
+void ServerSession::RequestRemoval()
+{
+	_routes.requestRemove(GetSid());
 }
 
 void ServerSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
@@ -100,7 +103,7 @@ void ServerSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 		auto cbRemainBytes = numOfBytes + _cbPrevRemainPacket;
 		if (cbRemainBytes < 0 || cbRemainBytes > BUFSIZE)
 		{
-			ServerIocpCore.RequestRemoveSession(GetSid());
+			RequestRemoval();
 			return;
 		}
 		auto* p = rev->_rbuf;
@@ -110,7 +113,7 @@ void ServerSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 			const auto expectedSize = ExpectedClientPacketSize(static_cast<uint8>(p[1]));
 			if (packetSize < PacketHeaderSize || expectedSize == 0 || packetSize != expectedSize)
 			{
-				ServerIocpCore.RequestRemoveSession(GetSid());
+				RequestRemoval();
 				return;
 			}
 			if (packetSize > cbRemainBytes) break;
@@ -121,7 +124,7 @@ void ServerSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 		}
 		if (cbRemainBytes == BUFSIZE)
 		{
-			ServerIocpCore.RequestRemoveSession(GetSid());
+			RequestRemoval();
 			return;
 		}
 		_cbPrevRemainPacket = cbRemainBytes;
@@ -129,7 +132,7 @@ void ServerSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 		{
 			memmove(rev->_rbuf, p, cbRemainBytes);
 		}
-		if (!DoRecv()) ServerIocpCore.RequestRemoveSession(GetSid());
+		if (!DoRecv()) RequestRemoval();
 	}
 }
 
@@ -218,14 +221,13 @@ void ServerSession::ProcessPacket(char* packet)
 {
 	const auto EnqueueLobby = [this](LobbyCommand command)
 	{
-		if (!ServerIocpCore._rmgr->EnqueueLobbyCommand(std::move(command)))
-			ServerIocpCore.RequestRemoveSession(_sid);
+		if (!_routes.enqueueLobby(std::move(command))) RequestRemoval();
 	};
 
 	const auto EnqueueGamePacket = [this, packet]()
 	{
 		const GameBinding binding = GetGameBinding();
-		if (!ServerIocpCore._rmgr->IsValidRoom(binding.roomNumber)) return;
+		if (IsSessionUnbound(binding.roomNumber)) return;
 
 		GameCommand command{};
 		command.sid = _sid;
@@ -234,11 +236,11 @@ void ServerSession::ProcessPacket(char* packet)
 		command.packetSize = static_cast<uint8>(packet[0]);
 		if (command.packetSize > command.packet.size())
 		{
-			ServerIocpCore.RequestRemoveSession(_sid);
+			RequestRemoval();
 			return;
 		}
 		memcpy(command.packet.data(), packet, command.packetSize);
-		(void)ServerIocpCore._rmgr->EnqueueGameCommand(std::move(command));
+		(void)_routes.enqueueGame(std::move(command));
 	};
 
 	switch ((uint8)packet[1])
@@ -265,14 +267,14 @@ void ServerSession::ProcessPacket(char* packet)
 	}
 	break;
 	case (uint8)C_TITLE_PACKET_TYPE::ACQ_LOGOUT:
-		ServerIocpCore.RequestRemoveSession(GetSid());
+		RequestRemoval();
 		break;
 	case (uint8)C_TITLE_PACKET_TYPE::ACQ_RESUME:
 	{
 		const auto* resume = reinterpret_cast<C2S_RESUME*>(packet);
 		if (resume->resumeToken == 0)
 		{
-			ServerIocpCore.RequestRemoveSession(GetSid());
+			RequestRemoval();
 			break;
 		}
 		EnqueueLobby({ LobbyCommandType::Resume, _sid, -1, false, resume->resumeToken });

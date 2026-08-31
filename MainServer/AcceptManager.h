@@ -1,32 +1,41 @@
 ﻿#pragma once
 #include "IocpObject.h"
+#include <memory>
+#include <vector>
 
-class AcceptEvent;
-// Accept를 진행할 싱글톤 객체 (Listener)
+class IocpCore;
+class RoomManager;
+class ServerSessionManager;
+// AcceptEx lifecycle and accepted-socket activation boundary.
 
 class AcceptManager : public IocpObject
 {
 public:
-	AcceptManager() = default;
+	AcceptManager(IocpCore& iocpCore, ServerSessionManager& sessions, RoomManager& rooms);
 	~AcceptManager();
 public:
 	// Accept를 받을 준비를 진행해라
 	bool InitAccept();
 	void CloseSocket();
 private:
+	class PendingAcceptEvent;
+
 	// 수신관련 진행
-	void RegisterAccept(AcceptEvent* acceptEvent);
-	void ProcessAccept(AcceptEvent* acceptEvent);
-	int32 GetNewSessionIdx();
+	bool RegisterAccept(PendingAcceptEvent& acceptEvent);
+	void ProcessAccept(PendingAcceptEvent& acceptEvent);
 public: // 인터페이스 구현할 예정
 	// 상속하고 있는 iocObject의 추상 함수들을 오버라이딩
 	HANDLE GetHandle() const noexcept override;
-	virtual void Processing(class IocpEvent* iocpEvent, int32 numOfBytes = 0) override;
-public:
-	SOCKET _listenSock = INVALID_SOCKET;
-	std::vector<AcceptEvent*> _acceptEvents;
+	void Processing(class IocpEvent* iocpEvent, int32 numOfBytes = 0) override;
+	void OnIocpError(class IocpEvent* iocpEvent, int32 errCode) override;
 
-	int32 maxAcceptCnt = 1000;
-	Atomic<int32> curAcceptCnt = 0;
+private:
+	static constexpr int32 MaxAcceptCount = 1000;
+
+	SOCKET _listenSock = INVALID_SOCKET;
+	std::vector<std::unique_ptr<PendingAcceptEvent>> _acceptEvents;
+	IocpCore& _iocpCore;
+	ServerSessionManager& _sessions;
+	RoomManager& _rooms;
 };
 

@@ -3,14 +3,23 @@
 #include "IocpEvent.h"
 #include "BaseSession.h"
 #include "MatchLease.h"
+#include "RoomCommand.h"
 
 #include <atomic>
+#include <functional>
 #include <memory>
 #include <mutex>
 
 // 서버에서 클라이언트 소켓을 관리할 클래스
 // 마찬가지로 Iocp에 등록할 대상이기 때문에 IocpObject에 해당된다
 
+
+struct ServerSessionRoutes
+{
+	std::function<void(int32)> requestRemove;
+	std::function<bool(LobbyCommand)> enqueueLobby;
+	std::function<bool(GameCommand)> enqueueGame;
+};
 
 class ServerSession : public BaseSession, public std::enable_shared_from_this<ServerSession>
 {
@@ -21,7 +30,7 @@ public:
 		MatchLease lease{};
 	};
 
-	ServerSession();
+	explicit ServerSession(ServerSessionRoutes routes);
 	virtual ~ServerSession();
 public:
 	// 세션 인터페이스
@@ -77,6 +86,9 @@ public:
 	int32 _cbPrevRemainPacket = 0;
 
 private:
+	void RequestRemoval();
+
+	ServerSessionRoutes _routes;
 	mutable std::mutex _bindingLock;
 	GameBinding _gameBinding{};
 	bool _retired = false;
