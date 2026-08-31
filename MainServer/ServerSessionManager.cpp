@@ -35,10 +35,21 @@ std::optional<int32> ServerSessionManager::ActivateSession(
 	const int32 sid = _nextSessionId.fetch_add(1, std::memory_order_relaxed);
 	session->SetIdentity(sid, sid);
 
-	std::unique_lock lock(_lock);
-	if (_retiredSessions.contains(sid) || !_activeSessions.emplace(sid, session).second)
-		return std::nullopt;
-	return sid;
+	{
+		std::unique_lock lock(_lock);
+		if (!_accepting || _retiredSessions.contains(sid)) return std::nullopt;
+
+		const auto [active, inserted] = _activeSessions.emplace(sid, session);
+		if (!inserted) return std::nullopt;
+
+		if (_lobbyCommands.TryEnqueue({ LobbyCommandType::SessionConnected, sid })) return sid;
+		_activeSessions.erase(active);
+	}
+
+	// Admission failed before the first receive was posted; reject the socket
+	// without publishing a Disconnected command for a session the room domain never observed.
+	session->Disconnect();
+	return std::nullopt;
 }
 
 std::shared_ptr<ServerSession> ServerSessionManager::FindSession(const int32 sid) const
@@ -70,6 +81,20 @@ void ServerSessionManager::RequestRemoveSession(const int32 sid)
 	DrainRetiredSessions();
 }
 
+void ServerSessionManager::BeginShutdown()
+{
+	std::vector<int32> activeSessionIds;
+	{
+		std::unique_lock lock(_lock);
+		if (!_accepting) return;
+		_accepting = false;
+		activeSessionIds.reserve(_activeSessions.size());
+		for (const auto& [sid, session] : _activeSessions) activeSessionIds.push_back(sid);
+	}
+
+	for (const int32 sid : activeSessionIds) RequestRemoveSession(sid);
+}
+
 void ServerSessionManager::DrainRetiredSessions()
 {
 	std::vector<std::shared_ptr<ServerSession>> released;
@@ -86,6 +111,12 @@ void ServerSessionManager::DrainRetiredSessions()
 			it = _retiredSessions.erase(it);
 		}
 	}
+}
+
+bool ServerSessionManager::IsDrained() const
+{
+	std::shared_lock lock(_lock);
+	return _activeSessions.empty() && _retiredSessions.empty();
 }
 
 void ServerSessionManager::BroadcastAll(void* packet) const

@@ -21,7 +21,9 @@ public:
 	std::optional<int32> ActivateSession(const std::shared_ptr<ServerSession>& session);
 	std::shared_ptr<ServerSession> FindSession(int32 sid) const;
 	void RequestRemoveSession(int32 sid);
+	void BeginShutdown();
 	void DrainRetiredSessions();
+	bool IsDrained() const;
 	void BroadcastAll(void* packet) const;
 
 private:
@@ -32,6 +34,7 @@ private:
 	GameCommandQueue& _gameCommands;
 	std::atomic<int32> _nextSessionId = 0;
 	mutable std::shared_mutex _lock;
+	bool _accepting = true;
 	std::unordered_map<int32, std::shared_ptr<ServerSession>> _activeSessions;
 	std::unordered_map<int32, std::shared_ptr<ServerSession>> _retiredSessions;
 };

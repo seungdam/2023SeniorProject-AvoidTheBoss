@@ -31,6 +31,7 @@ AcceptManager::AcceptManager(IocpCore& iocpCore, ServerSessionManager& sessions,
 
 AcceptManager::~AcceptManager()
 {
+	ASSERT_CRASH(IsDrained());
 	SocketUtil::Close(_listenSock);
 }
 
@@ -42,17 +43,26 @@ HANDLE AcceptManager::GetHandle() const noexcept
 void AcceptManager::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 {
 	// iocpEvent를 복원한다.
-	ASSERT_CRASH(iocpEvent->_comp == EventType::Accept);
+	ASSERT_CRASH(iocpEvent && iocpEvent->_comp == EventType::Accept);
 	auto& acceptEvent = *static_cast<PendingAcceptEvent*>(iocpEvent);
 	ProcessAccept(acceptEvent);
+	(void)RegisterAccept(acceptEvent);
+}
+
+void AcceptManager::OnIocpCompletion(IocpEvent* iocpEvent, uint32_t bytes)
+{
+	ASSERT_CRASH(iocpEvent && iocpEvent->_comp == EventType::Accept);
+	FinishAccept();
 }
 
 void AcceptManager::OnIocpError(IocpEvent* iocpEvent, int32 errCode)
 {
+	ASSERT_CRASH(iocpEvent && iocpEvent->_comp == EventType::Accept);
 	if (!iocpEvent || iocpEvent->_comp != EventType::Accept) return;
 	auto& acceptEvent = *static_cast<PendingAcceptEvent*>(iocpEvent);
 	acceptEvent.session.reset();
-	if (_listenSock != INVALID_SOCKET) (void)RegisterAccept(acceptEvent);
+	(void)RegisterAccept(acceptEvent);
+	FinishAccept();
 }
 
 
@@ -76,27 +86,45 @@ bool AcceptManager::InitAccept()
 
 	if (SocketUtil::Listen(_listenSock) == false)
 		return false;
+	{
+		std::lock_guard lock(_acceptMutex);
+		_accepting = true;
+	}
 
 	int32 registeredAccepts = 0;
 	for (int32 i = 0; i < MaxAcceptCount; ++i)
 	{
 		auto acceptEvent = std::make_unique<PendingAcceptEvent>();
-		if (RegisterAccept(*acceptEvent)) ++registeredAccepts;
+		auto& event = *acceptEvent;
 		_acceptEvents.push_back(std::move(acceptEvent));
+		if (RegisterAccept(event)) ++registeredAccepts;
 	}
 
-	return registeredAccepts > 0;
+	if (registeredAccepts > 0) return true;
+	StopAccepting();
+	return false;
 }
 
-void AcceptManager::CloseSocket()
+void AcceptManager::StopAccepting() noexcept
 {
+	std::lock_guard lock(_acceptMutex);
+	_accepting = false;
 	SocketUtil::Close(_listenSock);
+}
+
+bool AcceptManager::IsDrained() const noexcept
+{
+	std::lock_guard lock(_acceptMutex);
+	return !_accepting && _outstandingAccepts.load(std::memory_order_acquire) == 0;
 }
 
 // Accept Event를 걸어줘 Iocp에서 처리할 수 있는 일감을 던져주는 역할을 수행한다.
 // SocketUtil::AcceptEx를 여기서 사용할 것임.
 bool AcceptManager::RegisterAccept(PendingAcceptEvent& acceptEvent)
 {
+	std::lock_guard lock(_acceptMutex);
+	if (!_accepting || _listenSock == INVALID_SOCKET) return false;
+
 	acceptEvent.Init();
 	acceptEvent.session = _sessions.AcquireSession();
 
@@ -106,6 +134,7 @@ bool AcceptManager::RegisterAccept(PendingAcceptEvent& acceptEvent)
 	// 2. 클라 소켓
 	// 3. 초기 수신 데이터는 사용하지 않음: 첫 패킷은 일반 WSARecv에서 처리한다.
 	// 4. 5. 원격 주소와 로컬 주소를 담기 위한 버퍼 사이즈로 SOCKADDR_IN + 16 크기로 고정됨
+	_outstandingAccepts.fetch_add(1, std::memory_order_relaxed);
 	const bool retVal = SocketUtil::AcceptEx(_listenSock, acceptEvent.session->GetSock(),
 		acceptEvent.addressBuffer.data(), 0,
 		PendingAcceptEvent::AddressBytes, PendingAcceptEvent::AddressBytes, OUT &recvBytes,
@@ -117,6 +146,7 @@ bool AcceptManager::RegisterAccept(PendingAcceptEvent& acceptEvent)
 		if (errorCode != WSA_IO_PENDING)
 		{
 			acceptEvent.session.reset();
+			FinishAccept();
 			std::cout << "Accept Error " << errorCode << std::endl;
 			return false;
 		}
@@ -133,47 +163,28 @@ void AcceptManager::ProcessAccept(PendingAcceptEvent& acceptEvent)
 	auto session = std::move(acceptEvent.session);
 	ASSERT_CRASH(session);
 
-
-	//클라이언트 소켓과 서버 리슨 소켓과 옵션을 동일하게 맞춰준다.
-
-	if (false == SocketUtil::SetUpdateAcceptSocket(session->GetSock(), _listenSock))
+	std::optional<int32> sid;
 	{
-		session.reset();
-		(void)RegisterAccept(acceptEvent);
-		return;
-	}
-	if (!_iocpCore.Register(session.get()))
-	{
-		session.reset();
-		(void)RegisterAccept(acceptEvent);
-		return;
-	}
+		std::lock_guard lock(_acceptMutex);
+		if (!_accepting || _listenSock == INVALID_SOCKET) return;
 
-	// Publish only after IOCP association; no session I/O is posted before activation.
-	const std::optional<int32> sid = _sessions.ActivateSession(session);
+		// 클라이언트 소켓과 서버 리슨 소켓과 옵션을 동일하게 맞춰준다.
+		if (!SocketUtil::SetUpdateAcceptSocket(session->GetSock(), _listenSock)) return;
+		if (!_iocpCore.Register(session.get())) return;
+
+		// Publish only after IOCP association; no session I/O is posted before activation.
+		sid = _sessions.ActivateSession(session);
+	}
 	if (!sid)
 	{
-		session.reset();
-		(void)RegisterAccept(acceptEvent);
 		return;
 	}
 	std::cout << *sid << " Accept Success\n";
-
-
-	S2C_ROOM_LIST packet;
-	packet.size = sizeof(S2C_ROOM_LIST);
-	packet.type = (uint8)S_ROOM_PACKET_TYPE::UPDATE_LIST;
-	for (int32 i = 0; i < 5; ++i)
-	{
-		packet.member = _rooms.GetRoom(session->_curPage * 5 + i).GetMemberCount();
-		packet.rmNum = session->_curPage * 5 + i;
-		if (!session->DoSend(&packet))
-		{
-			_sessions.RequestRemoveSession(*sid);
-			(void)RegisterAccept(acceptEvent);
-			return;
-		}
-	}
 	if (!session->DoRecv()) _sessions.RequestRemoveSession(*sid);
-	(void)RegisterAccept(acceptEvent); // 다시 acceptEvent를 등록한다.
+}
+
+void AcceptManager::FinishAccept() noexcept
+{
+	const uint32 previous = _outstandingAccepts.fetch_sub(1, std::memory_order_acq_rel);
+	ASSERT_CRASH(previous > 0);
 }
