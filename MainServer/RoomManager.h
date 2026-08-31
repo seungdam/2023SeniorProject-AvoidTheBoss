@@ -4,10 +4,13 @@
 
 #include <array>
 #include <chrono>
+#include <deque>
 
 
 class QueueEvent;
 class RoomManager;
+class ServerSessionManager;
+class OcTree;
 class InteractionEvent;
 class moveEvent;
 class AttackEvent;
@@ -32,7 +35,7 @@ class Room
 		std::chrono::steady_clock::time_point reconnectDeadline{};
 	};
 public:
-	Room();
+	Room(ServerSessionManager& sessions, OcTree& collisionTree, int32 roomNumber);
 	~Room();
 	bool IsDestroyRoom() { return (_nMembers.load() == 0); } // false 반환 시 방 파괴 --> 호스트가 방을 나갔을 경우 파괴하도록함.
 	void UserOut(int32 sid);
@@ -74,6 +77,7 @@ private:
 	friend class moveEvent;
 	friend class AttackEvent;
 
+	ServerSessionManager& _sessions;
 	MatchState _matchState;
 	mutable std::shared_mutex _listLock;
 	std::array<RoomMember, PLAYERNUM> _roomMembers{};
@@ -87,23 +91,16 @@ class RoomManager
 public:
 	static constexpr int32 RoomCapacity = 100;
 
-	[[nodiscard]] bool EnqueueLobbyCommand(LobbyCommand command);
-	[[nodiscard]] bool EnqueueGameCommand(GameCommand command);
+	RoomManager(ServerSessionManager& sessions, LobbyCommandQueue& lobbyCommands,
+		GameCommandQueue& gameCommands, OcTree& collisionTree);
 	void ExitRoom(int32 sid, int32 rmNum);
 	void DisconnectSession(int32 sid, uint64 resumeToken);
 	void ResumeSession(int32 sid, uint64 resumeToken);
 	bool EnterRoom(int32 sid, int32 rmNum);
 	void CreateRoom(int32 sid);
 	void UpdateRooms();
-	bool IsValidRoom(int32 rmNum) const noexcept { return rmNum >= 0 && rmNum < RoomCapacity; }
-	Room& GetRoom(int32 rmNum) { return _rooms[rmNum]; }
-	void Init();
 
 private:
-	// ponytail: one bounded queue per domain fits the current 100 rooms × 4 members;
-	// add per-room/per-match queues only when profiling proves either dispatcher is saturated.
-	static constexpr std::size_t MaxPendingLobbyCommands = 4096;
-	static constexpr std::size_t MaxPendingGameCommands = 4096;
 	static constexpr std::size_t MaxLobbyCommandsPerUpdate = 512;
 	static constexpr std::size_t MaxGameCommandsPerUpdate = 512;
 
@@ -111,9 +108,13 @@ private:
 	void DrainGameCommands();
 	void ExecuteLobbyCommand(const LobbyCommand& command);
 	void ExecuteGameCommand(const GameCommand& command);
+	void SendInitialRoomList(int32 sid);
+	bool IsValidRoom(int32 rmNum) const noexcept { return rmNum >= 0 && rmNum < RoomCapacity; }
+	Room& GetRoom(int32 rmNum) { return _rooms[rmNum]; }
 
-	std::array<Room, RoomCapacity> _rooms{};
-	LobbyCommandQueue _lobbyCommands{ MaxPendingLobbyCommands };
-	GameCommandQueue _gameCommands{ MaxPendingGameCommands };
+	ServerSessionManager& _sessions;
+	LobbyCommandQueue& _lobbyCommands;
+	GameCommandQueue& _gameCommands;
+	std::deque<Room> _rooms;
 };
 

@@ -42,7 +42,7 @@ public:
 	bool DoSend(void* packet);
 	bool DoRecv();
 	void DoSendLoginPacket(bool isSuccess);
-	void ProcessPacket(char*);
+	[[nodiscard]] bool ProcessPacket(char*);
 	uint64 GetResumeToken() const noexcept { return _resumeToken.load(std::memory_order_acquire); }
 	void SetResumeToken(uint64 token) noexcept { _resumeToken.store(token, std::memory_order_release); }
 	int32 GetRoomNumber() const

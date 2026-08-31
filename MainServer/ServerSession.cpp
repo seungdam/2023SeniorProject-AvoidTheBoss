@@ -118,7 +118,7 @@ void ServerSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 			}
 			if (packetSize > cbRemainBytes) break;
 
-			ProcessPacket(p);
+			if (!ProcessPacket(p)) return;
 			p += packetSize;
 			cbRemainBytes -= packetSize;
 		}
@@ -217,17 +217,19 @@ void ServerSession::DoSendLoginPacket(bool isSuccess)
 	}
 }
 
-void ServerSession::ProcessPacket(char* packet)
+bool ServerSession::ProcessPacket(char* packet)
 {
-	const auto EnqueueLobby = [this](LobbyCommand command)
+	const auto EnqueueLobby = [this](LobbyCommand command) -> bool
 	{
-		if (!_routes.enqueueLobby(std::move(command))) RequestRemoval();
+		if (_routes.enqueueLobby(std::move(command))) return true;
+		RequestRemoval();
+		return false;
 	};
 
-	const auto EnqueueGamePacket = [this, packet]()
+	const auto EnqueueGamePacket = [this, packet]() -> bool
 	{
 		const GameBinding binding = GetGameBinding();
-		if (IsSessionUnbound(binding.roomNumber)) return;
+		if (IsSessionUnbound(binding.roomNumber)) return true;
 
 		GameCommand command{};
 		command.sid = _sid;
@@ -237,10 +239,12 @@ void ServerSession::ProcessPacket(char* packet)
 		if (command.packetSize > command.packet.size())
 		{
 			RequestRemoval();
-			return;
+			return false;
 		}
 		memcpy(command.packet.data(), packet, command.packetSize);
-		(void)_routes.enqueueGame(std::move(command));
+		if (_routes.enqueueGame(std::move(command))) return true;
+		RequestRemoval();
+		return false;
 	};
 
 	switch ((uint8)packet[1])
@@ -255,7 +259,7 @@ void ServerSession::ProcessPacket(char* packet)
 			//LoginProcess(this, sqlExec);
 			DoSendLoginPacket(true);
 		}
-		break;
+		return true;
 	case (uint8)C_TITLE_PACKET_TYPE::ACQ_REG:
 		{
 			auto* lp  = reinterpret_cast<C2S_LOGIN*>(packet);
@@ -263,60 +267,55 @@ void ServerSession::ProcessPacket(char* packet)
 			sqlExec.append(lp->name);
 			sqlExec.append(L", ");
 			sqlExec.append(lp->pw);
-		//RegisterProcess(this, sqlExec);
-	}
-	break;
+			//RegisterProcess(this, sqlExec);
+		}
+		return true;
 	case (uint8)C_TITLE_PACKET_TYPE::ACQ_LOGOUT:
 		RequestRemoval();
-		break;
+		return false;
 	case (uint8)C_TITLE_PACKET_TYPE::ACQ_RESUME:
 	{
 		const auto* resume = reinterpret_cast<C2S_RESUME*>(packet);
 		if (resume->resumeToken == 0)
 		{
 			RequestRemoval();
-			break;
+			return false;
 		}
-		EnqueueLobby({ LobbyCommandType::Resume, _sid, -1, false, resume->resumeToken });
+		return EnqueueLobby({ LobbyCommandType::Resume, _sid, -1, false, resume->resumeToken });
 	}
-	break;
 
 		// ======== 방 시스템 패킷
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_ENTER_RM:
 		{
 			auto* rep = reinterpret_cast<C2S_ROOM_ENTER*>(packet);
-			EnqueueLobby(
+			return EnqueueLobby(
 				{ LobbyCommandType::Enter, _sid, rep->rmNum });
 		}
-		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_MK_RM:
 		{
-			EnqueueLobby({ LobbyCommandType::Create, _sid });
+			return EnqueueLobby({ LobbyCommandType::Create, _sid });
 		}
-		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_READY:
 		{
-			EnqueueLobby({ LobbyCommandType::SetReady, _sid, -1, true });
+			return EnqueueLobby({ LobbyCommandType::SetReady, _sid, -1, true });
 		}
-		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_READY_CANCEL:
 		{
-			EnqueueLobby({ LobbyCommandType::SetReady, _sid, -1, false });
+			return EnqueueLobby({ LobbyCommandType::SetReady, _sid, -1, false });
 		}
-		break;
 		case (uint8)C_ROOM_PACKET_TYPE::ACQ_EXIT_ROOM:
-			EnqueueLobby({ LobbyCommandType::Exit, _sid, GetRoomNumber() });
+			if (!EnqueueLobby({ LobbyCommandType::Exit, _sid, GetRoomNumber() })) return false;
 			ClearRoomBinding();
-		break;
+			return true;
 
 		case (uint8)C_GAME_PACKET_TYPE::CKEY:
 		case (uint8)C_GAME_PACKET_TYPE::CROT:
 		case (uint8)C_GAME_PACKET_TYPE::CCHAT:
 		case (uint8)C_GAME_PACKET_TYPE::CATTACK:
 		case (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT:
-			EnqueueGamePacket();
-			break;
+			return EnqueueGamePacket();
 
 	}
+	return true;
 }
 

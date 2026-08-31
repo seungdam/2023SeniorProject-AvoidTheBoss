@@ -7,8 +7,6 @@
 
 #include <cstring>
 
-class BaseSession;
-
 //==========================
 //        IOCP EVENT TYPE
 // =========================
@@ -36,20 +34,6 @@ public:
 	EventType _comp;
 };
 
-
-//AcceptEx 함수 인자와 관련된 정보들을 추가로 가지고 있어야한다.
-// 주의 ! virtual 소멸자를 사용하지 않는다.
-// offset 메모리가 다른 값으로 채워질 수 있기 때문이다.
-
-// ==== 서버 연결 관련 이벤트 ====
-class AcceptEvent : public IocpEvent
-{
-public:
-	AcceptEvent() : IocpEvent(EventType::Accept) { Init(); };
-public:
-	BaseSession* _session = nullptr;
-	char _buf[BUFSIZE / 2] = {};
-};
 
 class ConnectEvent : public IocpEvent
 {

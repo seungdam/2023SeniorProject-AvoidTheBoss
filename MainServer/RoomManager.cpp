@@ -1,6 +1,6 @@
 ﻿#include "pch.h"
 #include "RoomManager.h"
-#include "ServerIocpCore.h"
+#include "ServerSessionManager.h"
 #include "ServerSession.h"
 #include "JobQueue.h"
 
@@ -13,9 +13,9 @@ using namespace std;
 //    2. 읽는 경우 : 방에 있는 유저에게 브로드 캐스팅 진행하는 경우 cList를 탐색할 때
 
 //=============================
-Room::Room()
+Room::Room(ServerSessionManager& sessions, OcTree& collisionTree, const int32 roomNumber)
+	: _sessions(sessions), _matchState(collisionTree), _roomNumber(roomNumber)
 {
-
 }
 
 Room::~Room()
@@ -45,7 +45,7 @@ void Room::UserOut(int32 sid)
 		}
 	}
 	if (!removed) return;
-	if (const auto session = ServerIocpCore.FindSession(sid)) session->ClearRoomBinding();
+	if (const auto session = _sessions.FindSession(sid)) session->ClearRoomBinding();
 
 	if (_status == (uint8)ROOM_STATUS::INGAME)
 	{
@@ -79,7 +79,7 @@ void Room::UserOut(int32 sid)
 				_status = (uint8)ROOM_STATUS::EMPTY;
 				for (const int16 memberSid : members)
 				{
-					if (const auto member = ServerIocpCore.FindSession(memberSid))
+					if (const auto member = _sessions.FindSession(memberSid))
 						member->ClearRoomBinding();
 				}
 				std::cout << "STRANGE GAME END\n";
@@ -184,7 +184,7 @@ void Room::OnTransportDisconnected(const int32 sid, const uint64 resumeToken)
 
 bool Room::ResumeUser(const int32 newSid, const uint64 resumeToken)
 {
-	const auto session = ServerIocpCore.FindSession(newSid);
+	const auto session = _sessions.FindSession(newSid);
 	if (!session || !IsSessionUnbound(session->GetRoomNumber()) ||
 		_status != static_cast<uint8>(ROOM_STATUS::INGAME)) return false;
 
@@ -220,10 +220,10 @@ bool Room::ResumeUser(const int32 newSid, const uint64 resumeToken)
 
 	if (replaceConnectedSession && oldSid != newSid)
 	{
-		if (const auto oldSession = ServerIocpCore.FindSession(oldSid))
+		if (const auto oldSession = _sessions.FindSession(oldSid))
 		{
 			oldSession->ClearRoomBinding();
-			ServerIocpCore.RequestRemoveSession(oldSid);
+			_sessions.RequestRemoveSession(oldSid);
 		}
 	}
 
@@ -255,7 +255,7 @@ void Room::ExpireReconnects()
 
 bool Room::UserIn(int32 sid)
 {
-	const auto session = ServerIocpCore.FindSession(sid);
+	const auto session = _sessions.FindSession(sid);
 	if (!session || session->GetResumeToken() == 0) return false;
 
 	S2C_ROOM_ENTER packet;
@@ -343,7 +343,7 @@ void Room::BroadCasting(void* packet) // 방에 속하는 클라이언트에게�
 
 	for (int32 i = 0; i < count; ++i)
 	{
-		const auto session = ServerIocpCore.FindSession(memberSids[i]);
+		const auto session = _sessions.FindSession(memberSids[i]);
 		if (session) session->DoSend(packet);
 	}
 }
@@ -363,7 +363,7 @@ void Room::BroadCastingExcept(void* packet, int32 sid) // 방에 속하는 클�
 
 	for (int32 i = 0; i < count; ++i)
 	{
-		const auto session = ServerIocpCore.FindSession(memberSids[i]);
+		const auto session = _sessions.FindSession(memberSids[i]);
 		if (session) session->DoSend(packet);
 	}
 }
@@ -490,7 +490,7 @@ void Room::ProcessGamePacket(const GameCommand& command)
 		const auto* attackPacket = reinterpret_cast<const C2S_ATTACK*>(packet);
 		if (attackPacket->tidx < 0 || attackPacket->tidx >= PLAYERNUM)
 		{
-			ServerIocpCore.RequestRemoveSession(sid);
+			_sessions.RequestRemoveSession(sid);
 			return;
 		}
 		auto* event = new AttackEvent();
@@ -524,7 +524,7 @@ void Room::SendRoomListPacket()
 	rmpacket.member = _nMembers.load();
 	rmpacket.rmNum = _roomNumber;
 
-	ServerIocpCore.BroadCastingAll(&rmpacket);
+	_sessions.BroadcastAll(&rmpacket);
 
 }
 void Room::SendRoomInfoPacket()
@@ -568,7 +568,7 @@ void Room::InitGame()
 		_status = (uint8)ROOM_STATUS::INGAME;
 		for (const int16 playerSid : playerSids)
 		{
-			if (const auto session = ServerIocpCore.FindSession(playerSid))
+			if (const auto session = _sessions.FindSession(playerSid))
 				(void)session->BindMatch(matchGeneration);
 		}
 		BroadCasting(&packet);
@@ -606,22 +606,12 @@ bool Room::IsGameStartAvailable()
 // ======= RoomManager ========
 
 // ============================
-void RoomManager::Init()
+RoomManager::RoomManager(ServerSessionManager& sessions, LobbyCommandQueue& lobbyCommands,
+	GameCommandQueue& gameCommands, OcTree& collisionTree)
+	: _sessions(sessions), _lobbyCommands(lobbyCommands), _gameCommands(gameCommands)
 {
-	for (int i = 0; i < RoomCapacity; ++i)
-	{
-		_rooms[i]._roomNumber = i;
-	}
-}
-
-bool RoomManager::EnqueueLobbyCommand(LobbyCommand command)
-{
-	return _lobbyCommands.TryEnqueue(std::move(command));
-}
-
-bool RoomManager::EnqueueGameCommand(GameCommand command)
-{
-	return _gameCommands.TryEnqueue(std::move(command));
+	for (int32 roomNumber = 0; roomNumber < RoomCapacity; ++roomNumber)
+		_rooms.emplace_back(sessions, collisionTree, roomNumber);
 }
 
 void RoomManager::DrainLobbyCommands()
@@ -642,6 +632,9 @@ void RoomManager::ExecuteLobbyCommand(const LobbyCommand& command)
 {
 	switch (command.type)
 	{
+	case LobbyCommandType::SessionConnected:
+		SendInitialRoomList(command.sid);
+		return;
 	case LobbyCommandType::Create:
 		CreateRoom(command.sid);
 		return;
@@ -660,7 +653,7 @@ void RoomManager::ExecuteLobbyCommand(const LobbyCommand& command)
 		return;
 	case LobbyCommandType::SetReady:
 	{
-		const auto session = ServerIocpCore.FindSession(command.sid);
+		const auto session = _sessions.FindSession(command.sid);
 		if (!session) return;
 		const int32 roomNum = session->GetRoomNumber();
 		if (!IsValidRoom(roomNum)) return;
@@ -682,10 +675,32 @@ void RoomManager::ExecuteLobbyCommand(const LobbyCommand& command)
 	}
 }
 
+void RoomManager::SendInitialRoomList(const int32 sid)
+{
+	const auto session = _sessions.FindSession(sid);
+	if (!session) return;
+
+	S2C_ROOM_LIST packet{};
+	packet.size = sizeof(packet);
+	packet.type = static_cast<uint8>(S_ROOM_PACKET_TYPE::UPDATE_LIST);
+	for (int32 i = 0; i < 5; ++i)
+	{
+		const int32 roomNumber = session->_curPage * 5 + i;
+		if (!IsValidRoom(roomNumber)) return;
+		packet.member = GetRoom(roomNumber).GetMemberCount();
+		packet.rmNum = roomNumber;
+		if (!session->DoSend(&packet))
+		{
+			_sessions.RequestRemoveSession(sid);
+			return;
+		}
+	}
+}
+
 void RoomManager::ExecuteGameCommand(const GameCommand& command)
 {
 	if (!IsValidRoom(command.roomNum)) return;
-	const auto session = ServerIocpCore.FindSession(command.sid);
+	const auto session = _sessions.FindSession(command.sid);
 	if (!session) return;
 	const ServerSession::GameBinding binding = session->GetGameBinding();
 	if (binding.roomNumber != command.roomNum ||
@@ -697,16 +712,16 @@ bool RoomManager::EnterRoom(int32 sid, int32 rmNum)
 {
 	if (!IsValidRoom(rmNum))
 	{
-		ServerIocpCore.RequestRemoveSession(sid);
+		_sessions.RequestRemoveSession(sid);
 		return false;
 	}
-	const auto session = ServerIocpCore.FindSession(sid);
+	const auto session = _sessions.FindSession(sid);
 	if (!session || !IsSessionUnbound(session->GetRoomNumber())) return false;
 	return _rooms[rmNum].UserIn(sid);
 }
 void RoomManager::CreateRoom(int32 sid)
 {
-	const auto session = ServerIocpCore.FindSession(sid);
+	const auto session = _sessions.FindSession(sid);
 	if (!session) return;
 	S2C_ROOM_EVENT packet;
 	packet.size = sizeof(S2C_ROOM_EVENT);
@@ -775,7 +790,7 @@ void RoomManager::ResumeSession(const int32 sid, const uint64 resumeToken)
 	}
 
 	if (resumed) return;
-	if (const auto session = ServerIocpCore.FindSession(sid))
+	if (const auto session = _sessions.FindSession(sid))
 	{
 		S2C_RESUME_FAIL packet{};
 		packet.size = sizeof(packet);

@@ -12,6 +12,7 @@
 
 enum class LobbyCommandType : uint8
 {
+	SessionConnected,
 	Create,
 	Enter,
 	SetReady,
@@ -72,9 +73,15 @@ public:
 		return drained;
 	}
 
+	[[nodiscard]] bool Empty() const
+	{
+		std::lock_guard lock(_lock);
+		return _commands.empty();
+	}
+
 private:
 	const std::size_t _capacity;
-	std::mutex _lock;
+	mutable std::mutex _lock;
 	std::deque<LobbyCommand> _commands;
 };
 
@@ -104,8 +111,14 @@ public:
 		return drained;
 	}
 
+	[[nodiscard]] bool Empty() const
+	{
+		std::lock_guard lock(_lock);
+		return _commands.empty();
+	}
+
 private:
 	const std::size_t _capacity;
-	std::mutex _lock;
+	mutable std::mutex _lock;
 	std::deque<GameCommand> _commands;
 };
