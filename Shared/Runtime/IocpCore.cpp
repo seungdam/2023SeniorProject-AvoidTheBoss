@@ -25,6 +25,11 @@ bool IocpCore::Register(IocpObject* iocpObj)
 	// 키값으로 자기자신을 등록한다. 포인터의 크기는 똑같으니까~
 }
 
+bool IocpCore::PostWakeup() const noexcept
+{
+	return ::PostQueuedCompletionStatus(_hIocp, 0, 0, nullptr) != FALSE;
+}
+
 bool IocpCore::Processing(uint32_t time_limit) // worker thread 기능 완료된 비동기 통지 명령들을 받아와 적절하게 처리한다.
 {
 	auto numOfBytes =	(DWORD)0; // 몇 바이트가 전송되었는가?
