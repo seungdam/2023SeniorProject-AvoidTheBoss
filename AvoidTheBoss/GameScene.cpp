@@ -1,15 +1,15 @@
 #include "pch.h"
 #include "DXSampleHelper.h"
 #include "GameScene.h"
-#include "GameFramework.h"
+#include "ClientNetworker.h"
+#include "GameCore.h"
+#include "OtherScenes.h"
 #include "UIManager.h"
-#include "SceneManager.h"
 #include "InputManager.h"
 #include "SoundManager.h"
 #include "CSound.h"
 
 //네트워크 관련
-#include "clientIocpCore.h"
 #include "ClientEventScheduler.h"
 
 // 객체 관련
@@ -25,10 +25,11 @@
 
 #define MAPVOLUME 50
 
-CGameScene::CGameScene()
+CGameScene::CGameScene(atb::GameCore& gameCore, atb::ClientNetworker& networker, UIManager& ui)
+	: _gameCore(gameCore), _networker(networker), _ui(ui)
 {
 	_currentFrame = 0;
-	_jobQueue = new ClientEventScheduler();
+	_jobQueue = new ClientEventScheduler(this);
 }
 
 CGameScene::~CGameScene()
@@ -98,11 +99,9 @@ void CGameScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM 
 			/*‘F1’ 키를 누르면 1인칭 카메라, ‘F3’ 키를 누르면 3인칭 카메라로 변경한다.*/
 		case VK_F9:
 			//“F9” 키가 눌려지면 윈도우 모드와 전체화면 모드의 전환을 처리한다.
-			//mainGame.ChangeSwapChainState();
 			break;
 		case VK_F1:
-			mainGame.m_activeDelay = !mainGame.m_activeDelay;
-			if (!mainGame.m_activeDelay) _jobQueue->Clear();
+			if (!_gameCore.TogglePacketDelay()) _jobQueue->Clear();
 			break;
 		}
 		break;
@@ -259,11 +258,11 @@ void CGameScene::BuildObjects(ID3D12Device5* pd3dDevice,ID3D12GraphicsCommandLis
 	{
 		if (i == (int)(CHARACTER_TYPE::BOSS))
 		{
-			_players[i] = new CBoss(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
+			_players[i] = new CBoss(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, *this);
 		}
 		else
 		{
-			_players[i] = new CEmployee(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, (CHARACTER_TYPE)(i));
+			_players[i] = new CEmployee(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, (CHARACTER_TYPE)(i), *this);
 		}
 		_players[i]->SetPlayerIndex(i);
 	}
@@ -377,14 +376,14 @@ void CGameScene::ProcessInput(HWND& hWnd)
 	// 이동 키 입력에 변화가 있거나 키 입력 중 회전을 수행하는 경우에만.. 이동 관련 패킷을 전송한다.
 	if (_lastKeyInput != keyInput || (keyInput && cxDelta != 0))
 	{
-		C2S_KEY packet; // 키 입력 + 방향 정보를 보낸다.
+		C2S_KEY packet{}; // 키 입력 + 방향 정보를 보낸다.
 		packet.size = sizeof(C2S_KEY);
 		packet.type = (uint8)C_GAME_PACKET_TYPE::CKEY;
 		packet.key = keyInput;
 		const XMFLOAT3 look = localPlayer->GetLookVector();
 		packet.x = look.x;
 		packet.z = look.z;
-		clientCore.DoSend(&packet);
+		_networker.Send(&packet);
 	}
 	_lastKeyInput = keyInput;
 }
@@ -416,7 +415,7 @@ void CGameScene::Update(HWND& hWnd)
 
 
 
-	mainGame.m_UIRenderer->UpdateGameSceneUI(CreateUiSnapshot());
+	_ui.UpdateGameSceneUI(CreateUiSnapshot());
 
 	if (_employeeExitReady) ExitReady();
 	// 평균 프레임 레이트 출력
@@ -751,7 +750,6 @@ bool CGameScene::ApplyInteraction(const uint8 eventId)
 
 void CGameScene::ApplyWorldFrame(const int32 worldFrame) noexcept
 {
-	mainGame.m_curFrame = worldFrame;
 	_currentFrame = worldFrame;
 }
 
@@ -790,7 +788,7 @@ void CGameScene::HandleGeneratorActivated(const int32 index, const bool notifySe
 		packet.type = static_cast<uint8>(SC_GAME_PACKET_TYPE::GAMEEVENT);
 		packet.size = sizeof(SC_EVENTPACKET);
 		packet.eventId = static_cast<uint8>(EVENT_TYPE::SWITCH_ONE_ACTIVATE_EVENT) + index;
-		clientCore.DoSend(&packet);
+		_networker.Send(&packet);
 
 		CPlayer* localPlayer = GetLocalPlayer();
 		if (localPlayer && localPlayer->GetPlayerType() == PLAYER_TYPE::EMPLOYEE)
@@ -843,6 +841,23 @@ bool CGameScene::InitGame(const S2C_GAMESTART* packet, int32 sid)
 void CGameScene::AddEvent(ClientEvent event, const float afterMilliseconds)
 {
 	_jobQueue->PushTask(std::move(event), afterMilliseconds);
+}
+
+bool CGameScene::SendPacket(void* packet)
+{
+	return _networker.Send(packet);
+}
+
+bool CGameScene::IsActive() const noexcept
+{
+	return _gameCore.CurrentScene() == atb::SceneId::InGame;
+}
+
+void CGameScene::SetEmployeeResultStats(const int32 activeGeneratorCount, const int32 deathCount) noexcept
+{
+	if (!_resultScene) return;
+	_resultScene->m_activeCnt = activeGeneratorCount;
+	_resultScene->m_deadCnt = deathCount;
 }
 
 void CGameScene::ExitReady()
@@ -919,7 +934,7 @@ bool CGameScene::ResetGame()
 	XMFLOAT3 cameraOffset = Vector3::Subtract(_camera.GetPosition(), expectedCameraPosition);
 	assert(Vector3::Length(cameraOffset) < 0.0001f);
 	assert(_camera.GetMode() == FIRST_PERSON_CAMERA);
-	assert(mainGame.m_curFrame.load() == 0 && _currentFrame == 0);
+	assert(_currentFrame == 0);
 	const auto* bullet = static_cast<const CBoss*>(_players[0])->_bullet;
 	assert(!bullet || !bullet->GetOnShoot());
 	assert(!bullet || !bullet->GetHitEffect() || !bullet->GetHitEffect()->GetOnHit());

@@ -1,36 +1,43 @@
 ﻿#pragma once
+#include "SceneId.h"
+
 class CSound;
 class CScene;
+class UIManager;
+
+namespace atb
+{
+class ClientNetworker;
+class GameCore;
+}
 
 class SceneManager
 {
 public:
-	enum class SCENESTATE { TITLE = 0, LOBBY = 1, ROOM = 2, INGAME = 3, RESULT = 4 };
-	static constexpr int32 SceneCount = 5;
-protected:
+	static constexpr int32 SceneCount = atb::SceneIndex(atb::SceneId::Count);
 
-	CScene* m_pScenes[SceneCount]{};
-public:
 	SceneManager() = default;
 	~SceneManager();
 
-	void Render(ID3D12GraphicsCommandList4* pd3dCommandList, int32, bool);
-	void Update(HWND& hWnd, int32);
-	void Animate(int32);
-	void ProcessInput(HWND& hWnd, int32);
+	void Render(ID3D12GraphicsCommandList4* pd3dCommandList, atb::SceneId scene, bool);
+	void Update(HWND& hWnd, atb::SceneId scene);
+	void Animate(atb::SceneId scene);
+	void ProcessInput(HWND& hWnd, atb::SceneId scene);
 
 
-	void BuildScene(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList);
+	void BuildScene(
+		ID3D12Device5* pd3dDevice,
+		ID3D12GraphicsCommandList4* pd3dCommandList,
+		atb::GameCore& gameCore,
+		atb::ClientNetworker& networker,
+		UIManager& ui);
 	void ReleaseUpBuffers();
 	void ReleaseScene();
 
+private:
+	friend class atb::GameCore;
+	CScene* GetScene(atb::SceneId scene) const noexcept;
 
-	void ResetScene();
-	CScene* ChangeScene(int32 idx);
-	CScene* GetSceneByIdx(int32 idx)
-	{
-		assert(idx >= 0 && idx < SceneCount);
-		return (idx >= 0 && idx < SceneCount) ? m_pScenes[idx] : nullptr;
-	}
+	CScene* m_pScenes[SceneCount]{};
 };
 

@@ -12,13 +12,21 @@
 
 class ClientEventScheduler;
 class CGenerator;
+class CResultScene;
 class CSound;
+class UIManager;
+
+namespace atb
+{
+class ClientNetworker;
+class GameCore;
+}
 
 class CGameScene : public CScene
 {
 	friend class ClientSession;
 public:
-	CGameScene();
+	CGameScene(atb::GameCore& gameCore, atb::ClientNetworker& networker, UIManager& ui);
 	~CGameScene();
 	virtual void InitScene() { _timer.Reset(); }
 	//씬에서 마우스와 키보드 메시지를 처리한다.
@@ -54,23 +62,32 @@ public: // 오승담 작성 함수
 	bool ApplyPlayerAnimation(int32 playerIndex, uint8 track);
 	bool ApplyInteraction(uint8 eventId);
 	void ApplyWorldFrame(int32 worldFrame) noexcept;
+	[[nodiscard]] int32 CurrentWorldFrame() const noexcept { return _currentFrame; }
 
 	bool InitGame(const S2C_GAMESTART* packet, int32 sid);
 
 	void StopTimer() { _timer.Stop(); }
 	void StartTimer() { _timer.Start(); }
 	void AddEvent(ClientEvent event, float afterMilliseconds);
+	bool SendPacket(void* packet);
+	[[nodiscard]] bool IsActive() const noexcept;
 
 	void ExitReady();
 
 	bool ResetGame();
+	void SetResultScene(CResultScene& resultScene) noexcept { _resultScene = &resultScene; }
+	void SetEmployeeResultStats(int32 activeGeneratorCount, int32 deathCount) noexcept;
 public:
 	WCHAR _frameTextBuffer[20];
 	//마지막으로 마우스 버튼을 클릭할 때의 마우스 커서의 위치이다.
 	POINT _oldCursorPosition;
 private:
+	atb::GameCore& _gameCore;
+	atb::ClientNetworker& _networker;
+	UIManager& _ui;
 	Timer _timer;
 	CCamera _camera;
+	CResultScene* _resultScene = nullptr;
 // ========== 서버 처리를 위해 사용하는 변수들 ==============
 public:
 	// 씬에 있는 오브젝트 관련 변수

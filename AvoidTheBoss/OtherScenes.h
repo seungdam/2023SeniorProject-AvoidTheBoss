@@ -1,5 +1,14 @@
 ﻿#pragma once
 #include "CScene.h"
+#include "GameUiSnapshot.h"
+
+class UIManager;
+
+namespace atb
+{
+class ClientNetworker;
+class GameCore;
+}
 
 const int32 MAX_ROOM = 100;
 
@@ -18,7 +27,8 @@ public:
 	int32	 m_selected_rm = -1;
 	CPlayer* m_player = NULL;
 public:
-	CLobbyScene() {}
+	CLobbyScene(atb::GameCore& gameCore, atb::ClientNetworker& networker, UIManager& ui)
+		: _gameCore(gameCore), _networker(networker), _ui(ui) {}
 	~CLobbyScene() {}
 	virtual void BuildObjects(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList);
 	virtual void ProcessInput(HWND& hWnd);
@@ -32,13 +42,17 @@ public:
 
 	void ChangePage(int32);
 	void UpdateRoomText(int32, int32);
+	[[nodiscard]] LobbyUiSnapshot CreateUiSnapshot() const;
 	void UpdateRoomStatus(int32 rn, int32 mem)
 	{
 		m_rooms[rn].member = mem;
 		for (int i = 0; i < 5; ++i)UpdateRoomText(i, -1);
 	};
-	Room& GetRoom(int32 rm) { return m_rooms[rm]; }
-	int32 GetCurPage() { return m_curPage; };
+
+private:
+	atb::GameCore& _gameCore;
+	atb::ClientNetworker& _networker;
+	UIManager& _ui;
 };
 
 class CTitleScene : public CScene
@@ -52,7 +66,8 @@ class CTitleScene : public CScene
 public:
 	std::mutex loginLock;
 	bool m_login = false;
-	CTitleScene() {}
+	CTitleScene(atb::GameCore& gameCore, atb::ClientNetworker& networker, UIManager& ui)
+		: _gameCore(gameCore), _networker(networker), _ui(ui) {}
 	~CTitleScene() {}
 
 	virtual void ReleaseUploadBuffers() {};
@@ -63,6 +78,10 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pCamera, bool);
 	virtual void MouseAction(const POINT& mp) override;
 
+private:
+	atb::GameCore& _gameCore;
+	atb::ClientNetworker& _networker;
+	UIManager& _ui;
 };
 
 class CRoomScene : public CScene
@@ -77,7 +96,8 @@ public:
 	std::mutex m_memLock;
 	int32 m_rmnum = 0;
 public:
-	CRoomScene()
+	CRoomScene(atb::GameCore& gameCore, atb::ClientNetworker& networker, UIManager& ui)
+		: _gameCore(gameCore), _networker(networker), _ui(ui)
 	{
 		for (auto& i : m_members) i.isReady = false;
 	}
@@ -86,6 +106,7 @@ public:
 	virtual void BuildObjects(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList);
 	virtual void ProcessInput(HWND& hWnd);
 	virtual void Update(HWND& hWnd);
+	[[nodiscard]] RoomUiSnapshot CreateUiSnapshot();
 	virtual void UpdateReady(int32 sid, bool val)
 	{
 		for (auto& i : m_members)
@@ -97,6 +118,11 @@ public:
 	virtual void ReleaseObjects() {}
 	virtual void Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pCamera,bool);
 	virtual void MouseAction(const POINT& mp) override;
+
+private:
+	atb::GameCore& _gameCore;
+	atb::ClientNetworker& _networker;
+	UIManager& _ui;
 };
 
 class CResultScene : public CScene
@@ -119,14 +145,20 @@ public:
 	float m_showTime = 4.0f; // 결과창 보여주는 시각
 
 public:
-	CResultScene() {}
+	CResultScene(atb::GameCore& gameCore, UIManager& ui)
+		: _gameCore(gameCore), _ui(ui) {}
 	~CResultScene() {}
 	virtual void BuildObjects(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList) {};
 	virtual void ProcessInput(HWND& hWnd) {};
 	virtual void Update(HWND& hWnd);
+	[[nodiscard]] ResultUiSnapshot CreateUiSnapshot() const noexcept;
 	virtual void ReleaseUploadBuffers() {};
 	virtual void ReleaseObjects() {}
 	virtual void Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pCamera, bool bRaster) {};
 
 	virtual void MouseAction(const POINT& mp) override {};
+
+private:
+	atb::GameCore& _gameCore;
+	UIManager& _ui;
 };

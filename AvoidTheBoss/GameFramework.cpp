@@ -1,40 +1,31 @@
 #include "pch.h"
 #include "GameFramework.h"
 
-#include "CEmployee.h"
 #include "ClientTestMode.h"
-#include "GameScene.h"
-#include "SceneManager.h"
 #include "SoundManager.h"
 #include "UIManager.h"
-#include "clientIocpCore.h"
 
 CGameFramework mainGame;
 
 CGameFramework::CGameFramework()
 {
-	m_curScene = static_cast<int32>(SCENESTATE::TITLE);
 	SoundManager::GetInstance();
 }
 
 CGameFramework::~CGameFramework() = default;
 
-CScene* CGameFramework::GetSceneByIdx(const int32 index) const noexcept
-{
-	return m_SceneManager ? m_SceneManager->GetSceneByIdx(index) : nullptr;
-}
-
 bool CGameFramework::OnCreate(HINSTANCE hInstance, const int showCommand)
 {
-	m_window.Initialize(
+	_window.Initialize(
 		hInstance,
 		[this](HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			return OnProcessingWindowMessage(window, message, wParam, lParam);
 		});
-	m_d3d12Renderer.Initialize(m_window.Handle());
+	_d3d12Renderer.Initialize(_window.Handle());
 	BuildScenes();
-	m_window.Show(showCommand);
+	_window.Show(showCommand);
+	_networker.Initialize("127.0.0.1");
 
 #ifdef _WITH_SWAPCHAIN_FULLSCREEN_STATE
 	ChangeSwapChainState();
@@ -44,11 +35,13 @@ bool CGameFramework::OnCreate(HINSTANCE hInstance, const int showCommand)
 
 void CGameFramework::OnDestroy()
 {
-	if (m_d3d12Renderer.IsInitialized())
+	_networker.Shutdown();
+
+	if (_d3d12Renderer.IsInitialized())
 	{
 		try
 		{
-			m_d3d12Renderer.WaitForGpuComplete();
+			_d3d12Renderer.WaitForGpuComplete();
 		}
 		catch (...)
 		{
@@ -59,7 +52,7 @@ void CGameFramework::OnDestroy()
 	SoundManager::GetInstance().SoundRelease();
 	ReleaseScenes();
 	FinalizeClientTest();
-	m_d3d12Renderer.Shutdown();
+	_d3d12Renderer.Shutdown();
 
 #if defined(_DEBUG)
 	ComPtr<IDXGIDebug1> dxgiDebug;
@@ -70,121 +63,87 @@ void CGameFramework::OnDestroy()
 	}
 #endif
 
-	m_window.Shutdown();
+	_window.Shutdown();
 	g_clientTestMode.OnCleanupSequenceCompleted();
 }
 
 bool CGameFramework::ProcessWindowMessages()
 {
-	return m_window.ProcessMessages();
+	return _window.ProcessMessages();
 }
 
 int CGameFramework::ExitCode() const noexcept
 {
-	return m_window.ExitCode();
+	return _window.ExitCode();
 }
 
 void CGameFramework::BuildScenes()
 {
-	auto* commandList = m_d3d12Renderer.BeginResourceUpload();
-	auto backBuffers = m_d3d12Renderer.BackBuffers();
-	m_d2dRenderer.Initialize(
-		m_d3d12Renderer.Device(),
-		m_d3d12Renderer.CommandQueue(),
+	auto* commandList = _d3d12Renderer.BeginResourceUpload();
+	auto backBuffers = _d3d12Renderer.BackBuffers();
+	_d2dRenderer.Initialize(
+		_d3d12Renderer.Device(),
+		_d3d12Renderer.CommandQueue(),
 		backBuffers);
 
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] UI initialization begin\n");
 #endif
-	m_UIRenderer = new UIManager(
-		m_d2dRenderer.Context(),
-		m_d2dRenderer.WriteFactory(),
-		m_d3d12Renderer.Width(),
-		m_d3d12Renderer.Height());
+	_uiRenderer = new UIManager(
+		_d2dRenderer.Context(),
+		_d2dRenderer.WriteFactory(),
+		_d3d12Renderer.Width(),
+		_d3d12Renderer.Height());
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] UI initialization complete\n");
 #endif
 
-	m_SceneManager = new SceneManager();
-	m_SceneManager->BuildScene(m_d3d12Renderer.Device(), commandList);
-	m_d3d12Renderer.SubmitResourceUploadAndWait();
-	m_SceneManager->ReleaseUpBuffers();
+	_gameCore.Initialize(_d3d12Renderer.Device(), commandList, _networker, *_uiRenderer);
+	_packetDispatcher = std::make_unique<atb::ClientPacketDispatcher>(_gameCore, *_uiRenderer);
+	_d3d12Renderer.SubmitResourceUploadAndWait();
+	_gameCore.ReleaseUploadBuffers();
 }
 
 void CGameFramework::ReleaseScenes()
 {
-	delete m_UIRenderer;
-	m_UIRenderer = nullptr;
-	m_d2dRenderer.Shutdown();
-
-	delete m_SceneManager;
-	m_SceneManager = nullptr;
+	_packetDispatcher.reset();
+	_gameCore.Shutdown();
+	delete _uiRenderer;
+	_uiRenderer = nullptr;
+	_d2dRenderer.Shutdown();
 }
 
 void CGameFramework::ProcessInput()
 {
-	HWND window = m_window.Handle();
-	m_SceneManager->ProcessInput(window, m_curScene);
+	_gameCore.ProcessInput(_window.Handle());
 }
 
 void CGameFramework::UpdateObject()
 {
-	HWND window = m_window.Handle();
-	m_SceneManager->Update(window, m_curScene);
+	_gameCore.Update(_window.Handle());
 }
 
 void CGameFramework::AnimateObjects()
 {
-	m_SceneManager->Animate(m_curScene);
+	_gameCore.Animate();
 }
 
 void CGameFramework::FrameAdvance()
 {
 	// Packet handlers may replace GPU-backed scene objects, so wait before dispatch.
-	m_d3d12Renderer.WaitForPreviousFrame();
+	_d3d12Renderer.WaitForPreviousFrame();
 
-	clientCore.DispatchPackets();
+	if (_packetDispatcher) _networker.DispatchPackets(*_packetDispatcher);
 	ProcessInput();
 	UpdateObject();
 	AnimateObjects();
 
 	if (g_clientTestMode.Enabled())
 	{
-		ClientFrameSnapshot snapshot;
-		snapshot._scene = m_curScene.load();
-		snapshot._submittedFence = m_d3d12Renderer.LastSubmittedFenceValue();
-		snapshot._completedFence = m_d3d12Renderer.CompletedFenceValue();
-		const int playerIndex = g_clientTestMode.DutPlayerIndex();
-		auto* gameScene = static_cast<CGameScene*>(m_SceneManager->GetSceneByIdx(
-			static_cast<int>(SCENESTATE::INGAME)));
-		CPlayer* player = gameScene ? gameScene->GetScenePlayerByIdx(playerIndex) : nullptr;
-		CCamera* camera = gameScene ? gameScene->GetCameraComponent() : nullptr;
-		if (player)
-		{
-			snapshot._health = player->GetHealth();
-			snapshot._behavior = player->GetBehavior();
-			snapshot._hidden = player->IsHidden();
-			if (playerIndex > 0)
-				snapshot._rescuing = static_cast<CEmployee*>(player)->GetRescueOn();
-		}
-		if (camera)
-		{
-			snapshot._cameraMode = static_cast<int>(camera->GetMode());
-			snapshot._cameraIdentity = reinterpret_cast<std::uintptr_t>(camera);
-			snapshot._cameraResourcesValid = camera->HasShaderVariables();
-			snapshot._cameraBufferAddress = camera->GetBufferAddress();
-			snapshot._cameraBufferCreateCount = camera->GetBufferCreateCount();
-		}
-		if (gameScene)
-		{
-			CPlayer* localPlayer = gameScene->GetLocalPlayer();
-			snapshot._renderCameraStateValid =
-				gameScene->GetRenderCamera() == (localPlayer ? camera : nullptr);
-			snapshot._localPlayerMatchesDut =
-				localPlayer == player && gameScene->GetLocalPlayerIndex() == playerIndex;
-			snapshot._cameraViewerMatchesLocal =
-				camera && camera->GetViewerIndex() == gameScene->GetLocalPlayerIndex();
-		}
+		ClientFrameSnapshot snapshot =
+			_gameCore.CaptureClientFrameSnapshot(g_clientTestMode.DutPlayerIndex());
+		snapshot._submittedFence = _d3d12Renderer.LastSubmittedFenceValue();
+		snapshot._completedFence = _d3d12Renderer.CompletedFenceValue();
 		if (g_clientTestMode.Pump(snapshot))
 		{
 			::PostQuitMessage(0);
@@ -193,20 +152,15 @@ void CGameFramework::FrameAdvance()
 	}
 
 	Render();
-	const int32 currentScene = m_curScene.load();
-	int32 localPlayerIndex = -1;
-	if (currentScene == static_cast<int32>(SCENESTATE::INGAME))
-	{
-		auto* gameScene = static_cast<CGameScene*>(m_SceneManager->GetSceneByIdx(currentScene));
-		if (gameScene) localPlayerIndex = gameScene->GetLocalPlayerIndex();
-	}
-	m_d2dRenderer.BeginFrame(m_d3d12Renderer.FrameIndex());
-	m_UIRenderer->Render2D(currentScene, localPlayerIndex);
-	m_d2dRenderer.EndFrame();
+	const int32 currentScene = atb::SceneIndex(_gameCore.CurrentScene());
+	const int32 localPlayerIndex = _gameCore.CurrentLocalPlayerIndex();
+	_d2dRenderer.BeginFrame(_d3d12Renderer.FrameIndex());
+	_uiRenderer->Render2D(currentScene, localPlayerIndex);
+	_d2dRenderer.EndFrame();
 
-	const HRESULT presentResult = m_d3d12Renderer.Present();
+	const HRESULT presentResult = _d3d12Renderer.Present();
 	if (g_clientTestMode.Enabled()) g_clientTestMode.OnPresent(presentResult);
-	m_d3d12Renderer.MoveToNextFrame();
+	_d3d12Renderer.MoveToNextFrame();
 }
 
 void CGameFramework::FinalizeClientTest()
@@ -218,7 +172,7 @@ void CGameFramework::FinalizeClientTest()
 
 #if defined(_DEBUG)
 	ComPtr<ID3D12InfoQueue> infoQueue;
-	auto* device = m_d3d12Renderer.Device();
+	auto* device = _d3d12Renderer.Device();
 	if (!device || FAILED(device->QueryInterface(IID_PPV_ARGS(infoQueue.GetAddressOf()))))
 	{
 		++errorCount;
@@ -266,33 +220,25 @@ void CGameFramework::FinalizeClientTest()
 	g_clientTestMode.FinalizeGraphics(
 		infoQueueAvailable,
 		errorCount,
-		m_d3d12Renderer.DeviceRemovedReason(),
-		m_d3d12Renderer.CompletedFenceValue(),
-		m_d3d12Renderer.LastSubmittedFenceValue());
+		_d3d12Renderer.DeviceRemovedReason(),
+		_d3d12Renderer.CompletedFenceValue(),
+		_d3d12Renderer.LastSubmittedFenceValue());
 }
 
 void CGameFramework::Render()
 {
-	const std::array<float, 4> clearColor = m_raster
+	const std::array<float, 4> clearColor = _raster
 		? std::array<float, 4>{ 0.0f, 0.125f, 0.3f, 1.0f }
 		: std::array<float, 4>{ 0.6f, 0.8f, 0.4f, 1.0f };
-	auto* commandList = m_d3d12Renderer.BeginFrame(clearColor);
-	m_SceneManager->Render(commandList, m_curScene, true);
-	m_d3d12Renderer.SubmitFrame();
-}
-
-void CGameFramework::ChangeScene(const SCENESTATE state)
-{
-	m_curScene.store(static_cast<int32>(state));
-	if (m_curScene <= static_cast<int32>(SCENESTATE::RESULT))
-		SoundManager::GetInstance().PlayBackGroundSound(m_curScene);
+	auto* commandList = _d3d12Renderer.BeginFrame(clearColor);
+	_gameCore.Render(commandList, true);
+	_d3d12Renderer.SubmitFrame();
 }
 
 void CGameFramework::OnProcessingMouseMessage(
 	HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	m_SceneManager->GetSceneByIdx(m_curScene)->OnProcessingMouseMessage(
-		hWnd, nMessageID, wParam, lParam);
+	_gameCore.ProcessMouseMessage(hWnd, nMessageID, wParam, lParam);
 }
 
 void CGameFramework::OnProcessingKeyboardMessage(
@@ -300,8 +246,7 @@ void CGameFramework::OnProcessingKeyboardMessage(
 {
 	if (nMessageID == WM_KEYUP && wParam == VK_ESCAPE) ::PostQuitMessage(0);
 	// F9 remains disabled until D3D11On12 wrapped targets support resize.
-	m_SceneManager->GetSceneByIdx(m_curScene)->OnProcessingKeyboardMessage(
-		hWnd, nMessageID, wParam, lParam);
+	_gameCore.ProcessKeyboardMessage(hWnd, nMessageID, wParam, lParam);
 }
 
 LRESULT CGameFramework::OnProcessingWindowMessage(
@@ -330,15 +275,15 @@ LRESULT CGameFramework::OnProcessingWindowMessage(
 
 void CGameFramework::CheckRaytracingSupport()
 {
-	m_d3d12Renderer.CheckRaytracingSupport();
+	_d3d12Renderer.CheckRaytracingSupport();
 }
 
 void CGameFramework::OnKeyDown(const UINT8 key)
 {
-	if (key == VK_NUMPAD0) m_raster = !m_raster;
+	if (key == VK_NUMPAD0) _raster = !_raster;
 }
 
 void CGameFramework::ChangeSwapChainState()
 {
-	m_d3d12Renderer.ChangeSwapChainState();
+	_d3d12Renderer.ChangeSwapChainState();
 }

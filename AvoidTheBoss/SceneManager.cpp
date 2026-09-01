@@ -10,29 +10,27 @@ SceneManager::~SceneManager()
 	ReleaseScene();
 }
 
-void SceneManager::Render(ID3D12GraphicsCommandList4* pd3dCommandList, int32 idx, bool Raster)
+void SceneManager::Render(
+	ID3D12GraphicsCommandList4* pd3dCommandList, const atb::SceneId scene, const bool Raster)
 {
+	const int32 idx = atb::SceneIndex(scene);
 	m_pScenes[idx]->Render(pd3dCommandList, m_pScenes[idx]->GetRenderCamera(), Raster);
 }
 
-void SceneManager::Update(HWND& hWnd,int32 idx)
+void SceneManager::Update(HWND& hWnd, const atb::SceneId scene)
 {
-	m_pScenes[idx]->Update(hWnd);
+	m_pScenes[atb::SceneIndex(scene)]->Update(hWnd);
 }
 
-void SceneManager::ProcessInput(HWND& hWnd, int32 idx)
+void SceneManager::ProcessInput(HWND& hWnd, const atb::SceneId scene)
 {
-	m_pScenes[idx]->ProcessInput(hWnd);
+	m_pScenes[atb::SceneIndex(scene)]->ProcessInput(hWnd);
 }
 
-
-CScene* SceneManager::ChangeScene(int32 idx)
+CScene* SceneManager::GetScene(const atb::SceneId scene) const noexcept
 {
-	return m_pScenes[idx];  // 해당 인덱스에 맞는 씬으로 변경하고 적절한 조치를 취한다.
-}
-
-void SceneManager::ResetScene()
-{
+	const int32 index = atb::SceneIndex(scene);
+	return index >= 0 && index < SceneCount ? m_pScenes[index] : nullptr;
 }
 
 void SceneManager::ReleaseUpBuffers()
@@ -50,12 +48,17 @@ void SceneManager::ReleaseScene()
 		scene = nullptr;
 	}
 }
-void SceneManager::Animate(int32 idx)
+void SceneManager::Animate(const atb::SceneId scene)
 {
-	m_pScenes[idx]->AnimateObjects();
+	m_pScenes[atb::SceneIndex(scene)]->AnimateObjects();
 }
 
-void SceneManager::BuildScene(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList)
+void SceneManager::BuildScene(
+	ID3D12Device5* pd3dDevice,
+	ID3D12GraphicsCommandList4* pd3dCommandList,
+	atb::GameCore& gameCore,
+	atb::ClientNetworker& networker,
+	UIManager& ui)
 {
 	// Register each scene before BuildObjects(). If a later build step throws,
 	// CGameFramework::OnDestroy() can still reclaim the partially built scene.
@@ -64,29 +67,31 @@ void SceneManager::BuildScene(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandLi
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] TITLE scene build\n");
 #endif
-	m_pScenes[(int32)SCENESTATE::TITLE] = new CTitleScene();
-	m_pScenes[(int32)SCENESTATE::TITLE]->BuildObjects(pd3dDevice, pd3dCommandList);
+	m_pScenes[atb::SceneIndex(atb::SceneId::Title)] = new CTitleScene(gameCore, networker, ui);
+	m_pScenes[atb::SceneIndex(atb::SceneId::Title)]->BuildObjects(pd3dDevice, pd3dCommandList);
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] LOBBY scene build\n");
 #endif
-	m_pScenes[(int32)SCENESTATE::LOBBY] = new CLobbyScene();
-	m_pScenes[(int32)SCENESTATE::LOBBY]->BuildObjects(pd3dDevice, pd3dCommandList);
+	m_pScenes[atb::SceneIndex(atb::SceneId::Lobby)] = new CLobbyScene(gameCore, networker, ui);
+	m_pScenes[atb::SceneIndex(atb::SceneId::Lobby)]->BuildObjects(pd3dDevice, pd3dCommandList);
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] ROOM scene build\n");
 #endif
-	m_pScenes[(int32)SCENESTATE::ROOM] = new CRoomScene();
-	m_pScenes[(int32)SCENESTATE::ROOM]->BuildObjects(pd3dDevice, pd3dCommandList);
+	m_pScenes[atb::SceneIndex(atb::SceneId::Room)] = new CRoomScene(gameCore, networker, ui);
+	m_pScenes[atb::SceneIndex(atb::SceneId::Room)]->BuildObjects(pd3dDevice, pd3dCommandList);
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] INGAME scene build\n");
 #endif
-	m_pScenes[(int32)SCENESTATE::INGAME] = new CGameScene();
-	m_pScenes[(int32)SCENESTATE::INGAME]->BuildObjects(pd3dDevice, pd3dCommandList);
+	m_pScenes[atb::SceneIndex(atb::SceneId::InGame)] = new CGameScene(gameCore, networker, ui);
+	m_pScenes[atb::SceneIndex(atb::SceneId::InGame)]->BuildObjects(pd3dDevice, pd3dCommandList);
 
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] RESULT scene build\n");
 #endif
-	m_pScenes[(int32)SCENESTATE::RESULT] = new CResultScene();
-	m_pScenes[(int32)SCENESTATE::RESULT]->BuildObjects(pd3dDevice, pd3dCommandList);
+	m_pScenes[atb::SceneIndex(atb::SceneId::Result)] = new CResultScene(gameCore, ui);
+	m_pScenes[atb::SceneIndex(atb::SceneId::Result)]->BuildObjects(pd3dDevice, pd3dCommandList);
+	static_cast<CGameScene*>(m_pScenes[atb::SceneIndex(atb::SceneId::InGame)])->SetResultScene(
+		*static_cast<CResultScene*>(m_pScenes[atb::SceneIndex(atb::SceneId::Result)]));
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] scene build complete\n");
 #endif

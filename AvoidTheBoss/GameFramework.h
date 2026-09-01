@@ -1,46 +1,33 @@
 #pragma once
 
 #include "../Shared/Types.h"
+#include "ClientNetworker.h"
+#include "ClientPacketDispatcher.h"
 #include "D2DRenderer.h"
 #include "D3D12Renderer.h"
+#include "GameCore.h"
 #include "Window.h"
+
+#include <memory>
 
 class CScene;
 class UIManager;
-class SceneManager;
 
 class CGameFramework
 {
-public:
-	enum class SCENESTATE { TITLE = 0, LOBBY = 1, ROOM = 2, INGAME = 3, RESULT = 4 };
-
-	friend class CEmployee;
-	friend class CBoss;
-	friend class ClientSession;
-	friend class CGameScene;
-	friend class CRoomScene;
-	friend class CLobbyScene;
-	friend class CTitleScene;
-	friend class UIManager;
-	friend class CGenerator;
-
 private:
-	atb::Window m_window;
-	atb::D3D12Renderer m_d3d12Renderer;
-	atb::D2DRenderer m_d2dRenderer;
-
-protected:
-	SceneManager* m_SceneManager = nullptr;
-	UIManager* m_UIRenderer = nullptr;
+	atb::Window _window;
+	atb::D3D12Renderer _d3d12Renderer;
+	atb::D2DRenderer _d2dRenderer;
+	atb::ClientNetworker _networker;
+	atb::GameCore _gameCore;
+	std::unique_ptr<atb::ClientPacketDispatcher> _packetDispatcher;
+	UIManager* _uiRenderer = nullptr;
+	bool _raster = true;
 
 public:
-	Atomic<int32> m_curFrame = 0;
-	bool m_activeDelay = false;
-	Atomic<int32> m_curScene = 3;
-
 	CGameFramework();
 	~CGameFramework();
-	CScene* GetSceneByIdx(int32 index) const noexcept;
 
 	bool OnCreate(HINSTANCE hInstance, int showCommand);
 	void FinalizeClientTest();
@@ -59,7 +46,6 @@ public:
 	void FrameAdvance();
 	void Render();
 
-	void ChangeScene(SCENESTATE ss);
 	void OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	LRESULT CALLBACK OnProcessingWindowMessage(
@@ -67,7 +53,6 @@ public:
 
 	void CheckRaytracingSupport();
 	virtual void OnKeyDown(UINT8 key);
-	bool m_raster = true;
 };
 
 extern CGameFramework mainGame;
