@@ -35,17 +35,26 @@ D2D1_RECT_F MakeLayoutRectByCorner(float left, float top, float width, float hei
     return D2D1_RECT_F{ left , top , left + width, top + height};
 }
 
-UIManager::UIManager(UINT nFrames, ID3D12Device5* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Resource** ppd3dRenderTargets, UINT nWidth, UINT nHeight)
+UIManager::UIManager(
+    ID2D1DeviceContext2* d2dContext,
+    IDWriteFactory* writeFactory,
+    UINT nWidth,
+    UINT nHeight)
+    : m_pd2dDeviceContext(d2dContext), m_pd2dWriteFactory(writeFactory)
 {
-
+    if (!m_pd2dDeviceContext || !m_pd2dWriteFactory)
+        throw std::invalid_argument("UIManager requires initialized D2D services");
     m_fWidth = static_cast<float>(nWidth);
     m_fHeight = static_cast<float>(nHeight);
-    m_nRenderTargets = nFrames; // 렌더 타겟
-    m_ppd3d11WrappedRenderTargets = new ID3D11Resource * [nFrames] {};
-    m_ppd2dRenderTargets = new ID2D1Bitmap1 * [nFrames] {};
-
-    InitializeDevice(pd3dDevice, pd3dCommandQueue, ppd3dRenderTargets);
-
+    try
+    {
+        InitializeResources();
+    }
+    catch (...)
+    {
+        ReleaseResources();
+        throw;
+    }
 }
 
 UIManager::~UIManager()
@@ -54,47 +63,6 @@ UIManager::~UIManager()
 }
 
 
-
-void UIManager::CreateD3D11On12Device(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue)
-{
-    UINT d3d11DeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT; // ui 출력을 위해 필요한 플레그
-    D2D1_FACTORY_OPTIONS d2dFactoryOptions = { };
-
-    // D3D11On12 디바이스 생성
-    ComPtr<ID3D11Device> pd3d11Device = NULL;
-    ID3D12CommandQueue* ppd3dCommandQueues[] = { pd3dCommandQueue };
-    ::D3D11On12CreateDevice
-    (pd3dDevice,
-        d3d11DeviceFlags,
-        nullptr, 0,
-        reinterpret_cast<IUnknown**>(ppd3dCommandQueues),
-        _countof(ppd3dCommandQueues), 0,
-        &pd3d11Device,
-        &m_pd3d11DeviceContext, nullptr);
-    // 1. d3d12Device 2. 디바이스 플레그, 3. d3d11Device*의 주소 4. DeviceContext 주소
-
-    // 생성된 d3d11on12디바이스에 관한 인터페이스를 m_pd3d11on12Device로 이동
-    //pd3d11Device->QueryInterface(__uuidof(ID3D11On12Device), (void**)m_pd3d11On12Device.GetAddressOf());
-    pd3d11Device.As(&m_pd3d11On12Device);
-}
-
-void UIManager::CreateD2DDevice() // d3d11on12디바이스를 활용해 d2ddevice랑 d2dFactory 생성
-{
-    D2D1_FACTORY_OPTIONS d2dFactoryOptions{};
-    D2D1_DEVICE_CONTEXT_OPTIONS deviceOptions = D2D1_DEVICE_CONTEXT_OPTIONS_NONE;
-
-    IDXGIDevice* pdxgiDevice = NULL;
-    m_pd3d11On12Device->QueryInterface(__uuidof(IDXGIDevice), (void**)&pdxgiDevice);
-
-    ::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory3), &d2dFactoryOptions, (void**)&m_pd2dFactory);
-    HRESULT hResult = m_pd2dFactory->CreateDevice(pdxgiDevice, (ID2D1Device2**)&m_pd2dDevice);
-    m_pd2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, (ID2D1DeviceContext2**)&m_pd2dDeviceContext);
-
-    m_pd2dDeviceContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
-
-    ::DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), (IUnknown**)&m_pd2dWriteFactory);
-    pdxgiDevice->Release();
-}
 
 ID2D1Bitmap1* UIManager::LoadPngFromFile(const wchar_t* filePath)
 {
@@ -105,33 +73,32 @@ ID2D1Bitmap1* UIManager::LoadPngFromFile(const wchar_t* filePath)
     ComPtr<IWICFormatConverter> converter;
     ComPtr<ID2D1Bitmap1> bitmap;
 
-    if (FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&factory))) ||
-		FAILED(factory->CreateDecoderFromFilename(assetPath.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &decoder)) ||
-        FAILED(decoder->GetFrame(0, &frame)) ||
-        FAILED(factory->CreateFormatConverter(&converter)) ||
-        FAILED(converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, nullptr, 0.0f, WICBitmapPaletteTypeCustom)) ||
-        FAILED(m_pd2dDeviceContext->CreateBitmapFromWicBitmap(converter.Get(), nullptr, &bitmap)))
-    {
-        return nullptr;
-    }
+    ThrowIfFailed(CoCreateInstance(
+        CLSID_WICImagingFactory,
+        nullptr,
+        CLSCTX_INPROC_SERVER,
+        IID_PPV_ARGS(&factory)));
+    ThrowIfFailed(factory->CreateDecoderFromFilename(
+        assetPath.c_str(),
+        nullptr,
+        GENERIC_READ,
+        WICDecodeMetadataCacheOnDemand,
+        &decoder));
+    ThrowIfFailed(decoder->GetFrame(0, &frame));
+    ThrowIfFailed(factory->CreateFormatConverter(&converter));
+    ThrowIfFailed(converter->Initialize(
+        frame.Get(),
+        GUID_WICPixelFormat32bppPBGRA,
+        WICBitmapDitherTypeNone,
+        nullptr,
+        0.0f,
+        WICBitmapPaletteTypeCustom));
+    ThrowIfFailed(m_pd2dDeviceContext->CreateBitmapFromWicBitmap(
+        converter.Get(),
+        nullptr,
+        &bitmap));
 
     return bitmap.Detach();
-}
-
-
-void UIManager::CreateRenderTarget(ID3D12Resource** ppd3dRenderTargets)
-{
-    D2D1_BITMAP_PROPERTIES1 d2dBitmapProperties = D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW, D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_PREMULTIPLIED));
-
-    for (UINT i = 0; i < m_nRenderTargets; i++)
-    {
-        D3D11_RESOURCE_FLAGS d3d11Flags = { D3D11_BIND_RENDER_TARGET };
-        m_pd3d11On12Device->CreateWrappedResource(ppd3dRenderTargets[i], &d3d11Flags, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT, IID_PPV_ARGS(&m_ppd3d11WrappedRenderTargets[i]));
-        IDXGISurface* pdxgiSurface = NULL;
-        m_ppd3d11WrappedRenderTargets[i]->QueryInterface(__uuidof(IDXGISurface), (void**)&pdxgiSurface);
-        m_pd2dDeviceContext->CreateBitmapFromDxgiSurface(pdxgiSurface, &d2dBitmapProperties, &m_ppd2dRenderTargets[i]);
-        pdxgiSurface->Release();
-    }
 }
 
 
@@ -216,25 +183,8 @@ void UIManager::ReleaseResources()
     release(whiteBrush);
     release(greenBrush);
 
-    if (m_pd2dDeviceContext) m_pd2dDeviceContext->SetTarget(nullptr);
-    if (m_pd3d11DeviceContext) m_pd3d11DeviceContext->Flush();
-
-    for (UINT i = 0; i < m_nRenderTargets; i++)
-    {
-        if (m_ppd2dRenderTargets) release(m_ppd2dRenderTargets[i]);
-        if (m_ppd3d11WrappedRenderTargets) release(m_ppd3d11WrappedRenderTargets[i]);
-    }
-    delete[] m_ppd2dRenderTargets;
-    m_ppd2dRenderTargets = nullptr;
-    delete[] m_ppd3d11WrappedRenderTargets;
-    m_ppd3d11WrappedRenderTargets = nullptr;
-
-    release(m_pd2dDeviceContext);
-    m_pd2dWriteFactory.Reset();
-    release(m_pd2dDevice);
-    release(m_pd2dFactory);
-    m_pd3d11DeviceContext.Reset();
-    m_pd3d11On12Device.Reset();
+    m_pd2dDeviceContext = nullptr;
+    m_pd2dWriteFactory = nullptr;
 }
 
 void UIManager::DrawOtherSceneBackGround(int32 Scene)
@@ -575,30 +525,30 @@ D2D1_RECT_F UIManager::GetButtonRect(int32 Scene, int32 idx)
 
 ID2D1SolidColorBrush* UIManager::CreateBrush(D2D1::ColorF d2dColor)
 {
-    ID2D1SolidColorBrush* pd2dDefaultTextBrush = NULL;
-    m_pd2dDeviceContext->CreateSolidColorBrush(d2dColor, &pd2dDefaultTextBrush);
-
-    return(pd2dDefaultTextBrush);
+    ComPtr<ID2D1SolidColorBrush> brush;
+    ThrowIfFailed(m_pd2dDeviceContext->CreateSolidColorBrush(d2dColor, &brush));
+    return brush.Detach();
 }
 
 IDWriteTextFormat* UIManager::CreateTextFormat(const WCHAR* pszFontName, float fFontSize)
 {
-    IDWriteTextFormat* pdwDefaultTextFormat = NULL;
-    m_pd2dWriteFactory->CreateTextFormat(pszFontName, nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, fFontSize, L"en-us", &pdwDefaultTextFormat);
-
-    pdwDefaultTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-    pdwDefaultTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
-    //m_pd2dWriteFactory->CreateTextFormat(L"Arial", nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, fSmallFontSize, L"en-us", &m_pdwDefaultTextFormat);
-
-    return(pdwDefaultTextFormat);
+    ComPtr<IDWriteTextFormat> format;
+    ThrowIfFailed(m_pd2dWriteFactory->CreateTextFormat(
+        pszFontName,
+        nullptr,
+        DWRITE_FONT_WEIGHT_NORMAL,
+        DWRITE_FONT_STYLE_NORMAL,
+        DWRITE_FONT_STRETCH_NORMAL,
+        fFontSize,
+        L"en-us",
+        &format));
+    ThrowIfFailed(format->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER));
+    ThrowIfFailed(format->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR));
+    return format.Detach();
 }
 
-void UIManager::InitializeDevice(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Resource** ppd3dRenderTargets)
+void UIManager::InitializeResources()
 {
-    CreateD3D11On12Device(pd3dDevice,pd3dCommandQueue);
-    CreateD2DDevice();
-    CreateRenderTarget(ppd3dRenderTargets);;
-
     // 브러시들
     redBrush = CreateBrush(D2D1::ColorF::Red);
     grayBrush = CreateBrush(D2D1::ColorF::Gray);
@@ -674,22 +624,22 @@ void UIManager::InitializeDevice(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* 
 
     m_ReadyBitmaps[0].d2dLayoutRect = MakeLayoutRectByCorner(LOBBYROOMLIST_X_OFFSET,
         LOBBYROOMLIST_Y_OFFSET,
-        (FRAME_BUFFER_WIDTH - (LOBBYROOMLIST_X_OFFSET * 2.0)) / 2.0,
-        FRAME_BUFFER_HEIGHT / 6.0);
-    m_ReadyBitmaps[1].d2dLayoutRect = MakeLayoutRectByCorner(LOBBYROOMLIST_X_OFFSET + ((FRAME_BUFFER_WIDTH - (LOBBYROOMLIST_X_OFFSET * 2.0)) / 2.0),
+        (FRAME_BUFFER_WIDTH - (LOBBYROOMLIST_X_OFFSET * 2.0f)) / 2.0f,
+        FRAME_BUFFER_HEIGHT / 6.0f);
+    m_ReadyBitmaps[1].d2dLayoutRect = MakeLayoutRectByCorner(LOBBYROOMLIST_X_OFFSET + ((FRAME_BUFFER_WIDTH - (LOBBYROOMLIST_X_OFFSET * 2.0f)) / 2.0f),
         LOBBYROOMLIST_Y_OFFSET,
-        (FRAME_BUFFER_WIDTH - (LOBBYROOMLIST_X_OFFSET * 2.0)) / 2.0,
-        FRAME_BUFFER_HEIGHT / 6.0);
+        (FRAME_BUFFER_WIDTH - (LOBBYROOMLIST_X_OFFSET * 2.0f)) / 2.0f,
+        FRAME_BUFFER_HEIGHT / 6.0f);
 
     m_ReadyBitmaps[2].d2dLayoutRect = MakeLayoutRectByCorner(LOBBYROOMLIST_X_OFFSET,
-        LOBBYROOMLIST_Y_OFFSET + FRAME_BUFFER_HEIGHT / 6.0,
-        (FRAME_BUFFER_WIDTH - (LOBBYROOMLIST_X_OFFSET * 2.0)) / 2.0,
-        FRAME_BUFFER_HEIGHT / 6.0);
+        LOBBYROOMLIST_Y_OFFSET + FRAME_BUFFER_HEIGHT / 6.0f,
+        (FRAME_BUFFER_WIDTH - (LOBBYROOMLIST_X_OFFSET * 2.0f)) / 2.0f,
+        FRAME_BUFFER_HEIGHT / 6.0f);
 
     m_ReadyBitmaps[3].d2dLayoutRect = MakeLayoutRectByCorner(
-        LOBBYROOMLIST_X_OFFSET + (FRAME_BUFFER_WIDTH - (LOBBYROOMLIST_X_OFFSET * 2.0)) / 2.0,
-        LOBBYROOMLIST_Y_OFFSET + FRAME_BUFFER_HEIGHT / 6.0,
-        (FRAME_BUFFER_WIDTH - (LOBBYROOMLIST_X_OFFSET * 2.0)) / 2.0,
+        LOBBYROOMLIST_X_OFFSET + (FRAME_BUFFER_WIDTH - (LOBBYROOMLIST_X_OFFSET * 2.0f)) / 2.0f,
+        LOBBYROOMLIST_Y_OFFSET + FRAME_BUFFER_HEIGHT / 6.0f,
+        (FRAME_BUFFER_WIDTH - (LOBBYROOMLIST_X_OFFSET * 2.0f)) / 2.0f,
         FRAME_BUFFER_HEIGHT / 6.0f);
 
     for (int i = 0; i < 4; ++i)
@@ -793,16 +743,8 @@ void UIManager::InitializeDevice(ID3D12Device5* pd3dDevice, ID3D12CommandQueue* 
     //
 }
 
-void UIManager::Render2D(UINT nFrame, int32 curScene, int32 localPlayerIndex)
+void UIManager::Render2D(int32 curScene, int32 localPlayerIndex)
 {
-
-    ID3D11Resource* ppResources[] = { m_ppd3d11WrappedRenderTargets[nFrame] };
-
-    m_pd2dDeviceContext->SetTarget(m_ppd2dRenderTargets[nFrame]);
-    m_pd3d11On12Device->AcquireWrappedResources(ppResources, _countof(ppResources));
-
-    m_pd2dDeviceContext->BeginDraw();
-
     DrawOtherSceneBackGround(curScene);
 
     DrawOtherSceneUI(curScene, 0);
@@ -810,7 +752,4 @@ void UIManager::Render2D(UINT nFrame, int32 curScene, int32 localPlayerIndex)
     DrawOtherSceneUITextBlock(curScene);
 
     DrawGameSceneUI(curScene, localPlayerIndex);
-    ThrowIfFailed(m_pd2dDeviceContext->EndDraw());
-    m_pd3d11On12Device->ReleaseWrappedResources(ppResources, _countof(ppResources));
-    m_pd3d11DeviceContext->Flush();
 }
