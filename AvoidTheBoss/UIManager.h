@@ -119,8 +119,8 @@ private:
     float                           m_fHeight = 0.0f;
 
     // D2DRenderer가 소유하며 UIManager보다 오래 산다.
-    ID2D1DeviceContext2*        m_pd2dDeviceContext = nullptr;
-    IDWriteFactory*             m_pd2dWriteFactory = nullptr;
+    ID2D1DeviceContext2*            m_pd2dDeviceContext = nullptr;
+    IDWriteFactory*                 m_pd2dWriteFactory = nullptr;
 
     // TextBlock
     UINT                           m_nTextBlocks = 0;

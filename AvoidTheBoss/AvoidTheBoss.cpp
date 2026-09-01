@@ -3,8 +3,6 @@
 #include "ClientTestMode.h"
 #include "GameFramework.h"
 #include "SocketUtil.h"
-#include "ThreadManager.h"
-#include "clientIocpCore.h"
 
 #if defined(_DEBUG)
 #include <crtdbg.h>
@@ -75,24 +73,12 @@ int APIENTRY wWinMain(
 		return 1;
 	}
 
-	clientCore.InitConnect("127.0.0.1");
-	clientCore.DoConnect();
-
-	ThreadManager threadManager;
-	threadManager.Launch([]
-		{
-			while (clientCore.Processing()) {}
-			std::cout << "end thread \n";
-		});
-
 	while (mainGame.ProcessWindowMessages())
 	{
 		mainGame.FrameAdvance();
 	}
 	const int exitCode = mainGame.ExitCode();
 
-	clientCore.Disconnect(0);
-	threadManager.Join();
 	mainGame.OnDestroy();
 	std::cout << "Quit Client\n";
 	SocketUtil::Clear();

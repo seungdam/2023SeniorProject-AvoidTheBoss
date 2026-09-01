@@ -29,26 +29,25 @@ ClientPacketDispatcher::ClientPacketDispatcher(GameCore& gameCore, UIManager& ui
 void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 {
 
-	CTitleScene* ts = _titleScene;
-	CGameScene* gs = _gameScene;
-	CLobbyScene* ls = _lobbyScene;
-	CRoomScene* rs = _roomScene;
-	CResultScene* rrs = _resultScene;
-	if (!gs) return; // something error detected;
-	if (!ls) return; // something error detected;
-	if (!rs) return;
-	if (!rrs) return;
+	auto* pTitleScene = _titleScene;
+	auto* pGameScene = _gameScene;
+	auto* pLobbyScene = _lobbyScene;
+	auto* pRoomScene = _roomScene;
+	auto* pResultScene = _resultScene;
+	if (!pGameScene) return; // something error detected;
+	if (!pLobbyScene) return; // something error detected;
+	if (!pRoomScene) return;
+	if (!pResultScene) return;
 
 	const auto packetType = static_cast<uint8>(packet[1]);
-	const bool requiresInGameScene =
+	const auto requiresInGameScene =
 		packetType == static_cast<uint8>(S_GAME_PACKET_TYPE::SKEY) ||
 		packetType == static_cast<uint8>(S_GAME_PACKET_TYPE::SROT) ||
 		packetType == static_cast<uint8>(S_GAME_PACKET_TYPE::SPOS) ||
 		packetType == static_cast<uint8>(SC_GAME_PACKET_TYPE::GAMEEVENT) ||
 		packetType == static_cast<uint8>(S_GAME_PACKET_TYPE::ANIM) ||
 		packetType == static_cast<uint8>(S_GAME_PACKET_TYPE::FRAME);
-	if (requiresInGameScene &&
-		_gameCore.CurrentScene() != SceneId::InGame)
+	if (requiresInGameScene && _gameCore.CurrentScene() != SceneId::InGame)
 		return;
 
 	switch (packetType)
@@ -61,9 +60,9 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 		S2C_LOGIN_OK* lo = (S2C_LOGIN_OK*)packet;
 		CScene::m_sid = lo->sid;
 		CScene::m_cid = lo->cid;
-		ts->loginLock.lock();
-		ts->m_login = true;
-		ts->loginLock.unlock();
+		pTitleScene->loginLock.lock();
+		pTitleScene->m_login = true;
+		pTitleScene->loginLock.unlock();
 		_ui.ShowLoginFeedback(UIManager::LoginFeedback::LoginOk);
 		g_clientTestMode.OnLoginOk(session);
 	}
@@ -78,7 +77,7 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 			session._resumeSid.store(-1, std::memory_order_release);
 			CScene::m_sid = resume->newSid;
 		}
-		if (CPlayer* player = gs->GetScenePlayerByIdx(resume->playerIndex))
+		if (CPlayer* player = pGameScene->GetScenePlayerByIdx(resume->playerIndex))
 			player->SetPlayerSid(resume->newSid);
 	}
 	break;
@@ -89,7 +88,7 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 		session.SetSid(-1);
 		CScene::m_sid = -1;
 		if (_gameCore.CurrentScene() == SceneId::InGame)
-			gs->ResetGame();
+			pGameScene->ResetGame();
 		_gameCore.ChangeScene(SceneId::Title);
 	}
 	break;
@@ -112,7 +111,7 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 	case (uint8)S_ROOM_PACKET_TYPE::REP_ENTER_OK:
 	{
 		S2C_ROOM_ENTER* rep = (S2C_ROOM_ENTER*)packet;
-		rs->m_rmnum = rep->rmNum;
+		pRoomScene->m_rmnum = rep->rmNum;
 		_gameCore.ChangeScene(SceneId::Room);
 		g_clientTestMode.OnRoomEntered(session, rep->rmNum);
 	}
@@ -137,7 +136,7 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 	{
 
 		S2C_ROOM_LIST* rp = (S2C_ROOM_LIST*)packet;;
-		ls->UpdateRoomStatus(rp->rmNum, rp->member);
+		pLobbyScene->UpdateRoomStatus(rp->rmNum, rp->member);
 		std::cout << "RM" << (int32)rp->rmNum << " MEMBER:" << (int32)rp->member << "\n";
 	}
 		break;
@@ -147,9 +146,9 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 	case (uint8)S_ROOM_PACKET_TYPE::REP_READY:
 	{
 		S2C_ROOM_READY* rp = (S2C_ROOM_READY*)packet;
-		rs->m_memLock.lock();
-		rs->UpdateReady(rp->sid, true);
-		rs->m_memLock.unlock();
+		pRoomScene->m_memLock.lock();
+		pRoomScene->UpdateReady(rp->sid, true);
+		pRoomScene->m_memLock.unlock();
 
 		std::cout << rp->sid << "Ready\n";
 	}
@@ -157,9 +156,9 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 	case (uint8)S_ROOM_PACKET_TYPE::REP_READY_CANCEL:
 	{
 		S2C_ROOM_READY* rp = (S2C_ROOM_READY*)packet;
-		rs->m_memLock.lock();
-		rs->UpdateReady(rp->sid, false);
-		rs->m_memLock.unlock();
+		pRoomScene->m_memLock.lock();
+		pRoomScene->UpdateReady(rp->sid, false);
+		pRoomScene->m_memLock.unlock();
 		std::cout << rp->sid << "Cancel Ready\n";
 	}
 		break;
@@ -167,11 +166,11 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 	{
 
 		S2C_ROOM_INFO* rp = (S2C_ROOM_INFO*)packet;
-		rs->m_memLock.lock();
-		for (int i = 0; i < PLAYERNUM; ++i) rs->m_members[i].m_sid = rp->sids[i];
-		for (int i = 0; i < PLAYERNUM; ++i) rs->m_members[i].isReady = rp->rd[i];
+		pRoomScene->m_memLock.lock();
+		for (int i = 0; i < PLAYERNUM; ++i) pRoomScene->m_members[i].m_sid = rp->sids[i];
+		for (int i = 0; i < PLAYERNUM; ++i) pRoomScene->m_members[i].isReady = rp->rd[i];
 
-		rs->m_memLock.unlock();
+		pRoomScene->m_memLock.unlock();
 	}
 	break;
 	case (uint8)S_ROOM_PACKET_TYPE::GAME_START:
@@ -179,7 +178,7 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 		// ================= 플레이어 초기 위치 초기화 ==================
 		auto* gameStart = reinterpret_cast<S2C_GAMESTART*>(packet);
 		if (!g_clientTestMode.ValidateGameStart(gameStart->sids, session.GetSid())) break;
-		if (!gs->InitGame(gameStart, session.GetSid()))
+		if (!pGameScene->InitGame(gameStart, session.GetSid()))
 		{
 			g_clientTestMode.OnProtocolFailure("invalid or duplicate GAME_START");
 			break;
@@ -187,19 +186,19 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 
 
 		// ================= 카메라 셋팅 ================================
-		_ui.InitGameSceneUI(gs->CreateUiSnapshot());
+		_ui.InitGameSceneUI(pGameScene->CreateUiSnapshot());
 
 		_gameCore.ChangeScene(SceneId::InGame);
-		gs->InitScene();
+		pGameScene->InitScene();
 		g_clientTestMode.OnGameStarted();
-		rs->m_memLock.lock();
+		pRoomScene->m_memLock.lock();
 
 		for (int i = 0; i < PLAYERNUM; ++i)
 		{
-			rs->m_members[i].m_sid = -1;
-			rs->m_members[i].isReady = false;
+			pRoomScene->m_members[i].m_sid = -1;
+			pRoomScene->m_members[i].isReady = false;
 		}
-		rs->m_memLock.unlock();
+		pRoomScene->m_memLock.unlock();
 	}
 	break;
 #pragma endregion
@@ -208,10 +207,10 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 	case (uint8)S_GAME_PACKET_TYPE::SKEY:
 	{
 		S2C_KEY* movePacket = reinterpret_cast<S2C_KEY*>(packet);
-		CPlayer* player = gs ->GetScenePlayerBySid(movePacket->sid);
+		CPlayer* player = pGameScene ->GetScenePlayerBySid(movePacket->sid);
 		if (player == nullptr) break;
 
-		gs->AddEvent(moveEvent{
+		pGameScene->AddEvent(moveEvent{
 			player->GetPlayerIndex(),
 			movePacket->key,
 			XMFLOAT3(movePacket->x, 0.0f, movePacket->z) },
@@ -221,20 +220,20 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 	case (uint8)S_GAME_PACKET_TYPE::SROT:
 	{
 		S2C_ROTATE* rotatePacket = reinterpret_cast<S2C_ROTATE*>(packet);
-		CPlayer* player = gs->GetScenePlayerBySid(rotatePacket->sid);
+		CPlayer* player = pGameScene->GetScenePlayerBySid(rotatePacket->sid);
 		if (!player) break;
-		gs->AddEvent(rotateEvent{ player->GetPlayerIndex(), static_cast<float>(rotatePacket->angle) },
+		pGameScene->AddEvent(rotateEvent{ player->GetPlayerIndex(), static_cast<float>(rotatePacket->angle) },
 			_gameCore.PacketEventDelayMs());
 	}
 	break;
 	case (uint8)S_GAME_PACKET_TYPE::SPOS: // 미리 계산한 좌표값을 보내준다.
 	{
 		S2C_POS* posPacket = reinterpret_cast<S2C_POS*>(packet);
-		CPlayer* player = gs->GetScenePlayerBySid(posPacket->sid);
+		CPlayer* player = pGameScene->GetScenePlayerBySid(posPacket->sid);
 		if (player == nullptr) break;
 
 		XMFLOAT3 newPos = XMFLOAT3(posPacket->x, player->GetPosition().y, posPacket->z);
-		gs->AddEvent(posEvent{ player->GetPlayerIndex(), newPos },
+		pGameScene->AddEvent(posEvent{ player->GetPlayerIndex(), newPos },
 			_gameCore.PacketEventDelayMs());
 	}
 	break;
@@ -243,7 +242,7 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 		SC_EVENTPACKET* ev = (SC_EVENTPACKET*)packet;
 		if (ev->eventId == (uint8)EVENT_TYPE::BOSS_WIN || ev->eventId == (uint8)EVENT_TYPE::EMP_WIN)
 		{
-			if (!gs->ResetGame())
+			if (!pGameScene->ResetGame())
 			{
 				g_clientTestMode.OnProtocolFailure("duplicate or out-of-order game result");
 				break;
@@ -251,15 +250,15 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 
 			std::cout << "Go to Result\n";
 
-			if (ev->eventId == (uint8)EVENT_TYPE::BOSS_WIN) rrs->m_case = 1;
-			if (ev->eventId == (uint8)EVENT_TYPE::EMP_WIN) rrs->m_case = 0;
+			if (ev->eventId == (uint8)EVENT_TYPE::BOSS_WIN) pResultScene->m_case = 1;
+			if (ev->eventId == (uint8)EVENT_TYPE::EMP_WIN) pResultScene->m_case = 0;
 
-			rrs->m_timer.Reset();
+			pResultScene->m_timer.Reset();
 			_gameCore.ChangeScene(SceneId::Result);
 		}
 		else
 		{
-			gs->AddEvent(InteractionEvent{ ev->eventId },
+			pGameScene->AddEvent(InteractionEvent{ ev->eventId },
 				_gameCore.PacketEventDelayMs());
 		}
 	}
@@ -268,15 +267,15 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 	case (uint8)S_GAME_PACKET_TYPE::ANIM:
 	{
 		S2C_ANIMPACKET* sw = (S2C_ANIMPACKET*)packet;
-		if (!gs->GetScenePlayerByIdx(sw->idx)) break;
-		gs->AddEvent(animationEvent{ sw->idx, sw->track },
+		if (!pGameScene->GetScenePlayerByIdx(sw->idx)) break;
+		pGameScene->AddEvent(animationEvent{ sw->idx, sw->track },
 			_gameCore.PacketEventDelayMs());
 	}
 	break;
 	case (uint8)S_GAME_PACKET_TYPE::FRAME:
 	{
 		S2C_FRAMEPACKET* fp = (S2C_FRAMEPACKET*)packet;
-		gs->AddEvent(FrameEvent{ fp->wf }, _gameCore.PacketEventDelayMs());
+		pGameScene->AddEvent(FrameEvent{ fp->wf }, _gameCore.PacketEventDelayMs());
 
 	}
 	break;

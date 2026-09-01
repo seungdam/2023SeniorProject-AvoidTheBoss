@@ -22,7 +22,7 @@ private:
 	atb::ClientNetworker _networker;
 	atb::GameCore _gameCore;
 	std::unique_ptr<atb::ClientPacketDispatcher> _packetDispatcher;
-	UIManager* _uiRenderer = nullptr;
+	std::unique_ptr<UIManager> _uiRenderer = nullptr;
 	bool _raster = true;
 
 public:
@@ -48,8 +48,7 @@ public:
 
 	void OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
-	LRESULT CALLBACK OnProcessingWindowMessage(
-		HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
+	LRESULT CALLBACK OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 
 	void CheckRaytracingSupport();
 	virtual void OnKeyDown(UINT8 key);

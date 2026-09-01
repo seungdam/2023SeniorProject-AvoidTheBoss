@@ -89,7 +89,7 @@ void CGameFramework::BuildScenes()
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] UI initialization begin\n");
 #endif
-	_uiRenderer = new UIManager(
+	_uiRenderer = std::make_unique<UIManager>(
 		_d2dRenderer.Context(),
 		_d2dRenderer.WriteFactory(),
 		_d3d12Renderer.Width(),
@@ -108,8 +108,7 @@ void CGameFramework::ReleaseScenes()
 {
 	_packetDispatcher.reset();
 	_gameCore.Shutdown();
-	delete _uiRenderer;
-	_uiRenderer = nullptr;
+	_uiRenderer.reset();
 	_d2dRenderer.Shutdown();
 }
 
