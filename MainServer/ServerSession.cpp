@@ -1,12 +1,36 @@
 ﻿#include "pch.h"
 #include "SocketUtil.h"
 #include "ServerSession.h"
+
+#include <cmath>
+
 using namespace std;
 // =========== 서버 세션 ============
 
 namespace
 {
 	constexpr auto PacketHeaderSize = sizeof(uint8) * 2;
+	constexpr uint8 AllowedMovementKeys =
+		KEY_FORWARD | KEY_BACKWARD | KEY_LEFT | KEY_RIGHT;
+	constexpr float MinimumLookLength = 1.0e-6f;
+	constexpr float MaximumLookLength = 1.001f;
+
+	bool TryCanonicalize(C2S_KEY& packet) noexcept
+	{
+		if (packet.size != sizeof(C2S_KEY) ||
+			packet.type != static_cast<uint8>(C_GAME_PACKET_TYPE::CKEY) ||
+			(packet.key & static_cast<uint8>(~AllowedMovementKeys)) != 0 ||
+			!std::isfinite(packet.x) || !std::isfinite(packet.z)) return false;
+
+		const float length = std::hypot(packet.x, packet.z);
+		if (!std::isfinite(length) || length <= MinimumLookLength || length > MaximumLookLength)
+			return false;
+
+		packet.x /= length;
+		packet.z /= length;
+		packet.idx = 0;
+		return true;
+	}
 
 	uint8 ExpectedClientPacketSize(const uint8 type)
 	{
@@ -226,7 +250,7 @@ bool ServerSession::ProcessPacket(char* packet)
 		return false;
 	};
 
-	const auto EnqueueGamePacket = [this, packet]() -> bool
+	const auto EnqueueGamePacket = [this](const char* sourcePacket) -> bool
 	{
 		const GameBinding binding = GetGameBinding();
 		if (IsSessionUnbound(binding.roomNumber)) return true;
@@ -235,13 +259,13 @@ bool ServerSession::ProcessPacket(char* packet)
 		command.sid = _sid;
 		command.roomNum = binding.roomNumber;
 		command.lease = binding.lease;
-		command.packetSize = static_cast<uint8>(packet[0]);
+		command.packetSize = static_cast<uint8>(sourcePacket[0]);
 		if (command.packetSize > command.packet.size())
 		{
 			RequestRemoval();
 			return false;
 		}
-		memcpy(command.packet.data(), packet, command.packetSize);
+		memcpy(command.packet.data(), sourcePacket, command.packetSize);
 		if (_routes.enqueueGame(std::move(command))) return true;
 		RequestRemoval();
 		return false;
@@ -309,11 +333,21 @@ bool ServerSession::ProcessPacket(char* packet)
 			return true;
 
 		case (uint8)C_GAME_PACKET_TYPE::CKEY:
+		{
+			C2S_KEY movePacket{};
+			memcpy(&movePacket, packet, sizeof(movePacket));
+			if (!TryCanonicalize(movePacket))
+			{
+				RequestRemoval();
+				return false;
+			}
+			return EnqueueGamePacket(reinterpret_cast<const char*>(&movePacket));
+		}
 		case (uint8)C_GAME_PACKET_TYPE::CROT:
 		case (uint8)C_GAME_PACKET_TYPE::CCHAT:
 		case (uint8)C_GAME_PACKET_TYPE::CATTACK:
 		case (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT:
-			return EnqueueGamePacket();
+			return EnqueueGamePacket(packet);
 
 	}
 	return true;
