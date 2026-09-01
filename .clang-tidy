@@ -9,7 +9,7 @@ Checks: >
   bugprone-use-after-move
 WarningsAsErrors: ''
 HeaderFilterRegex: '.*'
-ExcludeHeaderFilterRegex: '.*[\\/](FMOD|DXRHelpers)[\\/].*|.*[\\/]d3dx12\.h'
+ExcludeHeaderFilterRegex: '.*[\\/]d3dx12\.h'
 SystemHeaders: false
 FormatStyle: none
 ...

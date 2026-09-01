@@ -29,6 +29,3 @@ insert_final_newline = true
 charset = utf-8
 end_of_line = crlf
 insert_final_newline = true
-
-[AvoidTheBoss/DXRHelpers/**]
-charset = utf-8

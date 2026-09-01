@@ -56,7 +56,7 @@ set_target_properties(SharedRuntime PROPERTIES
 add_library(CoreEngine STATIC
     MainServer/AcceptManager.cpp
     MainServer/CollisionDetector.cpp
-        MainServer/ServerIocpCore.cpp
+	MainServer/ServerSessionManager.cpp
     MainServer/JobQueue.cpp
     MainServer/MatchState.cpp
     MainServer/packetEvent.cpp
@@ -103,14 +103,6 @@ add_custom_command(TARGET GameServer POST_BUILD
     VERBATIM
 )
 
-set(client_dxr_sources
-    AvoidTheBoss/DXRHelpers/nv_helpers_dx12/BottomLevelASGenerator.cpp
-    AvoidTheBoss/DXRHelpers/nv_helpers_dx12/RaytracingPipelineGenerator.cpp
-    AvoidTheBoss/DXRHelpers/nv_helpers_dx12/RootSignatureGenerator.cpp
-    AvoidTheBoss/DXRHelpers/nv_helpers_dx12/ShaderBindingTableGenerator.cpp
-    AvoidTheBoss/DXRHelpers/nv_helpers_dx12/TopLevelASGenerator.cpp
-)
-
 add_executable(GameClient WIN32
     AvoidTheBoss/AvoidTheBoss.cpp
     AvoidTheBoss/Camera.cpp
@@ -118,17 +110,21 @@ add_executable(GameClient WIN32
     AvoidTheBoss/CBullet.cpp
     AvoidTheBoss/CEmployee.cpp
     AvoidTheBoss/CGenerator.cpp
-    AvoidTheBoss/clientIocpCore.cpp
+        AvoidTheBoss/clientIocpCore.cpp
+    AvoidTheBoss/ClientPacketDispatcher.cpp
     AvoidTheBoss/ClientPacketEvent.cpp
+	AvoidTheBoss/ClientNetworker.cpp
     AvoidTheBoss/ClientSession.cpp
     AvoidTheBoss/ClientTestMode.cpp
     AvoidTheBoss/CollisionDetector.cpp
     AvoidTheBoss/CScene.cpp
     AvoidTheBoss/CSound.cpp
     AvoidTheBoss/DDSTextureLoader12.cpp
+	AvoidTheBoss/D2DRenderer.cpp
     AvoidTheBoss/D3D12Renderer.cpp
     AvoidTheBoss/DXSampleHelper.cpp
     AvoidTheBoss/GameFramework.cpp
+	AvoidTheBoss/GameCore.cpp
     AvoidTheBoss/GameObject.cpp
     AvoidTheBoss/GameScene.cpp
         AvoidTheBoss/ClientEventScheduler.cpp
@@ -142,15 +138,12 @@ add_executable(GameClient WIN32
     AvoidTheBoss/SoundManager.cpp
 	AvoidTheBoss/TracerVisualState.cpp
     AvoidTheBoss/UIManager.cpp
+	AvoidTheBoss/Window.cpp
     AvoidTheBoss/AvoidTheBoss.rc
     AvoidTheBoss/Light.hlsl
     AvoidTheBoss/Shaders.hlsl
-    ${client_dxr_sources}
 )
 
-set_source_files_properties(${client_dxr_sources} PROPERTIES
-    SKIP_PRECOMPILE_HEADERS ON
-)
 set_source_files_properties(
     AvoidTheBoss/Light.hlsl
     AvoidTheBoss/Shaders.hlsl
@@ -159,8 +152,6 @@ set_source_files_properties(
 
 target_include_directories(GameClient PRIVATE
     AvoidTheBoss
-    AvoidTheBoss/DXRHelpers
-    AvoidTheBoss/DXRHelpers/nv_helpers_dx12
 )
 target_compile_definitions(GameClient PRIVATE _WINDOWS)
 target_precompile_headers(GameClient PRIVATE
@@ -273,11 +264,47 @@ set_target_properties(ServerEventSchedulerTests PROPERTIES
 )
 
 add_executable(RoomCommandQueueTests
-	tests/RoomCommandQueueTests.cpp
+    tests/RoomCommandQueueTests.cpp
 )
 target_include_directories(RoomCommandQueueTests PRIVATE MainServer)
 target_link_libraries(RoomCommandQueueTests PRIVATE SharedHeaders)
 set_target_properties(RoomCommandQueueTests PROPERTIES
+	JOB_POOL_LINK msvc_link_pool
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
+)
+
+add_executable(ServerSessionManagerTests
+	tests/ServerSessionManagerTests.cpp
+)
+target_link_libraries(ServerSessionManagerTests PRIVATE CoreEngine)
+set_target_properties(ServerSessionManagerTests PROPERTIES
+	JOB_POOL_LINK msvc_link_pool
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
+)
+
+add_executable(IocpCoreWakeTests
+	tests/IocpCoreWakeTests.cpp
+)
+target_link_libraries(IocpCoreWakeTests PRIVATE SharedRuntime)
+set_target_properties(IocpCoreWakeTests PROPERTIES
+	JOB_POOL_LINK msvc_link_pool
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
+)
+
+add_executable(OctreeCollisionTests
+	tests/OctreeCollisionTests.cpp
+)
+target_link_libraries(OctreeCollisionTests PRIVATE CoreEngine)
+set_target_properties(OctreeCollisionTests PROPERTIES
+	JOB_POOL_LINK msvc_link_pool
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
+)
+
+add_executable(ServerSimulationTimingTests
+	tests/ServerSimulationTimingTests.cpp
+)
+target_link_libraries(ServerSimulationTimingTests PRIVATE CoreEngine)
+set_target_properties(ServerSimulationTimingTests PROPERTIES
 	JOB_POOL_LINK msvc_link_pool
 	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
 )
@@ -289,6 +316,13 @@ if(BUILD_TESTING)
 	add_test(NAME SchedulerTests COMMAND SchedulerTests)
 	add_test(NAME ServerEventSchedulerTests COMMAND ServerEventSchedulerTests)
 	add_test(NAME RoomCommandQueueTests COMMAND RoomCommandQueueTests)
+	add_test(NAME ServerSessionManagerTests COMMAND ServerSessionManagerTests)
+	add_test(NAME IocpCoreWakeTests COMMAND IocpCoreWakeTests)
+	add_test(NAME OctreeCollisionTests COMMAND OctreeCollisionTests)
+	add_test(NAME ServerSimulationTimingTests COMMAND ServerSimulationTimingTests)
+	set_tests_properties(OctreeCollisionTests PROPERTIES
+		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/MainServer"
+	)
 	set_tests_properties(
 		ProjectileLogicTests
 		GameObjectOwnershipTests
@@ -296,8 +330,13 @@ if(BUILD_TESTING)
 		SchedulerTests
 		ServerEventSchedulerTests
 		RoomCommandQueueTests
+		ServerSessionManagerTests
+		IocpCoreWakeTests
+		OctreeCollisionTests
+		ServerSimulationTimingTests
 		PROPERTIES LABELS unit
 	)
+	set_tests_properties(IocpCoreWakeTests PROPERTIES TIMEOUT 10)
 endif()
 
 add_custom_target(CameraLifecycleE2E

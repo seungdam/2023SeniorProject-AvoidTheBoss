@@ -10,4 +10,6 @@ DirectX12Tutorial
 docs
 .vs
 .codex
-tools
+/tools/*
+!/tools/run-camera-lifecycle-e2e.ps1
+/.idea/
