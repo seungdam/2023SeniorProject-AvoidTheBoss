@@ -2,6 +2,8 @@
 
 #include "GameUiSnapshot.h"
 
+#include <optional>
+
 // UI매니저 개요
 // 게임 프레임워크 시작 시, 각 화면에 필요한 모든 UI 이미지를 로드한다. WCI 컨버터를 활용
 // D2D를 활용해서 이미지를 그린다.
@@ -53,16 +55,47 @@ struct InGameUI
 #define FULL_UI_OPACITY_VALUE 0.8f
 class UIManager
 {
-    enum class ButtonType { MAKE_ROOM, ENTER_ROOM, EXIT_GAME, };
-
 public:
+    enum class LoginFeedback : uint8
+    {
+        LoginOk = 0,
+        LoginFailed = 1,
+        RegistrationOk = 2
+    };
+
+    enum class UiHitTarget : uint8
+    {
+        TitleId,
+        TitlePassword,
+        TitleLogin,
+        TitleRegister,
+        TitleQuit,
+        LobbyEnter,
+        LobbyCreate,
+        LobbyLogout,
+        RoomReady,
+        RoomLeave
+    };
+
+    static constexpr int32 LobbyRoomSlotCount = static_cast<int32>(kLobbyUiRoomCount);
+
     UIManager(ID2D1DeviceContext2* d2dContext, IDWriteFactory* writeFactory, UINT nWidth, UINT nHeight);
     ~UIManager();
+
+    void ShowLoginFeedback(LoginFeedback feedback) noexcept;
+    [[nodiscard]] std::optional<LoginFeedback> TickLoginFeedback(float elapsedSeconds) noexcept;
+    [[nodiscard]] bool HitTest(UiHitTarget target, const POINT& point) const noexcept;
+    [[nodiscard]] bool TrySelectLobbyRoomSlot(int32 slot, const POINT& point) noexcept;
+    void AppendCredential(int32 field, wchar_t character);
+    void BackspaceCredential(int32 field);
+    [[nodiscard]] const std::wstring& CredentialText(int32 field) const noexcept;
 
     ID2D1Bitmap1* LoadPngFromFile(const wchar_t* filePath);
 
     void UpdateRoomTextBlocks(UINT nIndex,const WCHAR* pstrUIText, const D2D1_RECT_F& pd2dLayoutRect, bool hide);
-    void UpdateRoomText();
+    void UpdateLobbySceneUI(const LobbyUiSnapshot& snapshot);
+    void UpdateRoomSceneUI(const RoomUiSnapshot& snapshot);
+    void UpdateResultSceneUI(const ResultUiSnapshot& snapshot);
 
 
 
@@ -76,11 +109,9 @@ public:
     void UpdateGameSceneUI(const GameUiSnapshot& snapshot);
     void DrawGameSceneUI(int32 Scene, int32 localPlayerIndex);
 
-    D2D1_RECT_F GetButtonRect(int32, int32);
-
     ID2D1SolidColorBrush* CreateBrush(D2D1::ColorF d2dColor);
     IDWriteTextFormat* CreateTextFormat(const WCHAR* pszFontName, float fFontSize);
-public:
+private:
     void InitializeResources();
 
     // WindowInfo
@@ -105,7 +136,6 @@ public:
     ANIMButton m_LoginResult[3];
 
     // 버튼 비트맵들
-    int m_nRoomListPerPage = 5;
     UIButton m_TitleButtons[3];
 
     // 로비 전용
@@ -152,6 +182,8 @@ public:
 
     // 결과창
     UITextBlock m_ResultTextBlock[2];
+    RoomUiSnapshot m_roomUiSnapshot;
+    ResultUiSnapshot m_resultUiSnapshot;
 
     // 레이어 위치 출력을 위한 브러시
     ID2D1SolidColorBrush* redBrush = nullptr; // 빨강

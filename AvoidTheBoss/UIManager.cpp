@@ -1,11 +1,8 @@
 ﻿#include "pch.h"
-#include "GameFramework.h"
 #include "UIManager.h"
+#include "SceneId.h"
 
-#include "SceneManager.h"
 #include "DXSampleHelper.h"
-
-#include "OtherScenes.h"
 
 #include <d2d1_1.h>
 #include <wincodec.h>
@@ -35,6 +32,12 @@ D2D1_RECT_F MakeLayoutRectByCorner(float left, float top, float width, float hei
     return D2D1_RECT_F{ left , top , left + width, top + height};
 }
 
+bool ContainsPoint(const D2D1_RECT_F& rect, const POINT& point) noexcept
+{
+    return rect.left <= point.x && point.x <= rect.right &&
+        rect.top <= point.y && point.y <= rect.bottom;
+}
+
 UIManager::UIManager(
     ID2D1DeviceContext2* d2dContext,
     IDWriteFactory* writeFactory,
@@ -60,6 +63,96 @@ UIManager::UIManager(
 UIManager::~UIManager()
 {
     ReleaseResources();
+}
+
+void UIManager::ShowLoginFeedback(const LoginFeedback feedback) noexcept
+{
+    const auto visibleIndex = static_cast<std::size_t>(feedback);
+    for (std::size_t index = 0; index < std::size(m_LoginResult); ++index)
+        m_LoginResult[index].m_hide = index != visibleIndex;
+}
+
+std::optional<UIManager::LoginFeedback> UIManager::TickLoginFeedback(const float elapsedSeconds) noexcept
+{
+    for (std::size_t index = 0; index < std::size(m_LoginResult); ++index)
+    {
+        auto& feedback = m_LoginResult[index];
+        if (feedback.m_hide) continue;
+
+        feedback.animTime -= elapsedSeconds;
+        if (feedback.animTime <= 0.0f)
+        {
+            feedback.animTime = 1.0f;
+            feedback.m_hide = true;
+            return static_cast<LoginFeedback>(index);
+        }
+        break;
+    }
+    return std::nullopt;
+}
+
+bool UIManager::HitTest(const UiHitTarget target, const POINT& point) const noexcept
+{
+    const D2D1_RECT_F* rect = nullptr;
+    switch (target)
+    {
+    case UiHitTarget::TitleId:
+        rect = &m_IDPWTextBlocks[0].m_d2dLayoutRect;
+        break;
+    case UiHitTarget::TitlePassword:
+        rect = &m_IDPWTextBlocks[1].m_d2dLayoutRect;
+        break;
+    case UiHitTarget::TitleLogin:
+        rect = &m_TitleButtons[0].d2dLayoutRect;
+        break;
+    case UiHitTarget::TitleRegister:
+        rect = &m_TitleButtons[2].d2dLayoutRect;
+        break;
+    case UiHitTarget::TitleQuit:
+        rect = &m_TitleButtons[1].d2dLayoutRect;
+        break;
+    case UiHitTarget::LobbyEnter:
+        rect = &m_LobbyButtons[0].d2dLayoutRect;
+        break;
+    case UiHitTarget::LobbyCreate:
+        rect = &m_LobbyButtons[1].d2dLayoutRect;
+        break;
+    case UiHitTarget::LobbyLogout:
+        rect = &m_LobbyButtons[2].d2dLayoutRect;
+        break;
+    case UiHitTarget::RoomReady:
+        rect = &m_RoomButtons[0].d2dLayoutRect;
+        break;
+    case UiHitTarget::RoomLeave:
+        rect = &m_RoomButtons[1].d2dLayoutRect;
+        break;
+    }
+    return rect && ContainsPoint(*rect, point);
+}
+
+bool UIManager::TrySelectLobbyRoomSlot(const int32 slot, const POINT& point) noexcept
+{
+    if (slot < 0 || slot >= LobbyRoomSlotCount) return false;
+    if (!ContainsPoint(m_RoomListLayout[slot], point)) return false;
+    m_selectedLayout = slot;
+    return true;
+}
+
+void UIManager::AppendCredential(const int32 field, const wchar_t character)
+{
+    auto& text = m_IDPWTextBlocks[field == 1 ? 1 : 0].m_pstrText;
+    if (text.length() <= 10) text.push_back(character);
+}
+
+void UIManager::BackspaceCredential(const int32 field)
+{
+    auto& text = m_IDPWTextBlocks[field == 1 ? 1 : 0].m_pstrText;
+    if (!text.empty()) text.erase(text.length() - 1, 1);
+}
+
+const std::wstring& UIManager::CredentialText(const int32 field) const noexcept
+{
+    return m_IDPWTextBlocks[field == 1 ? 1 : 0].m_pstrText;
 }
 
 
@@ -110,44 +203,42 @@ void UIManager::UpdateRoomTextBlocks(UINT nIndex,const WCHAR* pstrUIText, const 
     m_RoomListTextBlock[nIndex].m_hide = hide;
 }
 
-void UIManager::UpdateRoomText()
+void UIManager::UpdateLobbySceneUI(const LobbyUiSnapshot& snapshot)
 {
-
-    CLobbyScene* ls = static_cast<CLobbyScene*>(mainGame.m_SceneManager->GetSceneByIdx((int32)CGameFramework::SCENESTATE::LOBBY));
-    int32 curPage = ls->GetCurPage();
-    bool hide = false;
     WCHAR temp[3];
-
-
     D2D1_RECT_F newRect{ 0,0,0,0 };
-    // 전체 페이지를 갱신한다.
 
-   for(int i = 0; i < m_nRoomListPerPage; ++i)
-   {
-       std::wstring newText = L"ROOM [";
-       int32 mem = ls->GetRoom((curPage * 5 + i)).member;
-       ROOM_STATUS rs = ls->GetRoom(curPage * 5 + i).status;
+    for (std::size_t index = 0; index < snapshot.rooms.size(); ++index)
+    {
+        if (!snapshot.rooms[index])
+        {
+            UpdateRoomTextBlocks(static_cast<UINT>(index), L"", newRect, true);
+            continue;
+        }
 
-       _itow_s(curPage * 5 + i, temp, 10); // 멤버 변환
-       temp[2] = '\0';
+        const auto& room = *snapshot.rooms[index];
+        std::wstring newText = L"ROOM [";
+        _itow_s(room.roomNumber, temp, 10);
+        temp[2] = '\0';
+        newText.append(temp);
+        newText.append(L"]");
+        temp[0] = L'\0';
+        _itow_s(room.memberCount, temp, 10);
+        temp[2] = L'\0';
+        newText.append(temp);
+        newText.append(L"/4");
+        UpdateRoomTextBlocks(static_cast<UINT>(index), newText.c_str(), newRect, false);
+    }
+}
 
-       newText.append(temp);
-       newText.append(L"]");
-       temp[0] = L'\0';
-       _itow_s(mem, temp, 10);
-       temp[2] = L'\0';
+void UIManager::UpdateRoomSceneUI(const RoomUiSnapshot& snapshot)
+{
+    m_roomUiSnapshot = snapshot;
+}
 
-       newText.append(temp);
-       newText.append(L"/4");
-
-       if (rs == ROOM_STATUS::FULL || rs == ROOM_STATUS::EMPTY || rs == ROOM_STATUS::INGAME)
-       {
-          UpdateRoomTextBlocks(i, L"", newRect, true);
-          continue;
-       }
-       else UpdateRoomTextBlocks(i, newText.c_str(), newRect, false);
-   }
-
+void UIManager::UpdateResultSceneUI(const ResultUiSnapshot& snapshot)
+{
+    m_resultUiSnapshot = snapshot;
 }
 
 
@@ -191,15 +282,15 @@ void UIManager::DrawOtherSceneBackGround(int32 Scene)
 {
     switch (Scene)
     {
-    case 0:
-    case 1:
-    case 2:
+    case atb::SceneIndex(atb::SceneId::Title):
+    case atb::SceneIndex(atb::SceneId::Lobby):
+    case atb::SceneIndex(atb::SceneId::Room):
         m_pd2dDeviceContext->DrawBitmap(m_backGround[Scene].resource, D2D1_RECT_F{ 0,0,m_fWidth,m_fHeight });
         break;
-    case 3:
+    case atb::SceneIndex(atb::SceneId::InGame):
         break;
-    case 4:
-        if (static_cast<CResultScene*>(mainGame.m_SceneManager->GetSceneByIdx(4))->m_case == 1)
+    case atb::SceneIndex(atb::SceneId::Result):
+        if (m_resultUiSnapshot.bossWon)
         {
             m_pd2dDeviceContext->DrawBitmap(m_backGround[3].resource, D2D1_RECT_F{ 0,0,m_fWidth,m_fHeight });
         }
@@ -211,7 +302,7 @@ void UIManager::DrawOtherSceneBackGround(int32 Scene)
 
 void UIManager::DrawOtherSceneUI(int32 Scene,int32 idx)
 {
-    if (Scene == 0) // 타이틀 씬
+    if (Scene == atb::SceneIndex(atb::SceneId::Title)) // 타이틀 씬
     {
         m_pd2dDeviceContext->DrawBitmap(m_TitleButtons[0].resource, m_TitleButtons[0].d2dLayoutRect);
         m_pd2dDeviceContext->DrawBitmap(m_TitleButtons[1].resource, m_TitleButtons[1].d2dLayoutRect);
@@ -220,28 +311,29 @@ void UIManager::DrawOtherSceneUI(int32 Scene,int32 idx)
 
         for (int i = 0; i < 3; ++i) if(!m_LoginResult[i].m_hide) m_pd2dDeviceContext->DrawBitmap(m_LoginResult[i].resource, m_LoginResult[i].d2dLayoutRect, m_LoginResult[i].animTime);
     }
-    else if (Scene == 1) // 로비 씬
+    else if (Scene == atb::SceneIndex(atb::SceneId::Lobby)) // 로비 씬
     {
         m_pd2dDeviceContext->DrawBitmap(m_LobbyButtons[0].resource, m_LobbyButtons[0].d2dLayoutRect);
         m_pd2dDeviceContext->DrawBitmap(m_LobbyButtons[1].resource, m_LobbyButtons[1].d2dLayoutRect);
         m_pd2dDeviceContext->DrawBitmap(m_LobbyButtons[2].resource, m_LobbyButtons[2].d2dLayoutRect);
     }
-    else if (Scene == 2) // 게임 룸 씬
+    else if (Scene == atb::SceneIndex(atb::SceneId::Room)) // 게임 룸 씬
     {
-        CRoomScene* rs = static_cast<CRoomScene*>(mainGame.m_SceneManager->GetSceneByIdx((int32)CGameFramework::SCENESTATE::ROOM));
-
         m_pd2dDeviceContext->DrawBitmap(m_RoomButtons[0].resource, m_RoomButtons[0].d2dLayoutRect);
         m_pd2dDeviceContext->DrawBitmap(m_RoomButtons[1].resource, m_RoomButtons[1].d2dLayoutRect);
 
-        for (int i = 0; i < 4; ++i)
+        for (std::size_t index = 0; index < m_roomUiSnapshot.members.size(); ++index)
         {
+            const auto& member = m_roomUiSnapshot.members[index];
+            if (member.occupied)
+                m_pd2dDeviceContext->DrawBitmap(
+                    m_ReadyCard[index].resource, m_ReadyCard[index].d2dLayoutRect);
 
-            if (rs->m_members[i].m_sid != -1) m_pd2dDeviceContext->DrawBitmap(m_ReadyCard[i].resource, m_ReadyCard[i].d2dLayoutRect);
-
-            m_pd2dDeviceContext->DrawRectangle(m_ReadyBitmaps[i].d2dLayoutRect,blackBrush, 6.0f);
-            if(rs->m_members[i].isReady) m_pd2dDeviceContext->DrawBitmap(m_ReadyBitmaps[i].resource, m_ReadyBitmaps[i].d2dLayoutRect);
-
-
+            m_pd2dDeviceContext->DrawRectangle(
+                m_ReadyBitmaps[index].d2dLayoutRect, blackBrush, 6.0f);
+            if (member.ready)
+                m_pd2dDeviceContext->DrawBitmap(
+                    m_ReadyBitmaps[index].resource, m_ReadyBitmaps[index].d2dLayoutRect);
         }
     }
 }
@@ -249,7 +341,7 @@ void UIManager::DrawOtherSceneUI(int32 Scene,int32 idx)
 void UIManager::DrawOtherSceneUITextBlock(int32 Scene)
 {
 
-    if (Scene == 0)
+    if (Scene == atb::SceneIndex(atb::SceneId::Title))
     {
         m_pd2dDeviceContext->FillRectangle(m_IDPWTextBlocks[0].m_d2dLayoutRect, grayBrush);
         m_pd2dDeviceContext->FillRectangle(m_IDPWTextBlocks[1].m_d2dLayoutRect, grayBrush);
@@ -265,9 +357,9 @@ void UIManager::DrawOtherSceneUITextBlock(int32 Scene)
             (UINT)wcslen(m_IDPWTextBlocks[1].m_pstrText.c_str()), m_IDPWTextBlocks[1].m_pdwFormat,
             m_IDPWTextBlocks[1].m_d2dLayoutRect, m_IDPWTextBlocks[1].m_pd2dTextBrush);
     }
-    else if (Scene == 1)
+    else if (Scene == atb::SceneIndex(atb::SceneId::Lobby))
     {
-        for (int i = 0; i < m_nRoomListPerPage; ++i)
+        for (int i = 0; i < LobbyRoomSlotCount; ++i)
         {
 
             m_pd2dDeviceContext->DrawRectangle(m_RoomListLayout[i], blackBrush, 4.0f);
@@ -505,24 +597,6 @@ void UIManager::DrawGameSceneUI(int32 Scene, int32 localPlayerIndex)
 
 }
 
-D2D1_RECT_F UIManager::GetButtonRect(int32 Scene, int32 idx)
-{
-    switch (Scene)
-    {
-    case 0:
-        return m_TitleButtons[idx].d2dLayoutRect;
-        break;
-    case 1:
-        return m_LobbyButtons[idx].d2dLayoutRect;
-        break;
-    case 2:
-        return m_RoomButtons[idx].d2dLayoutRect;
-        break;
-    }
-    return D2D1_RECT_F{ 0,0,0,0 };
-}
-
-
 ID2D1SolidColorBrush* UIManager::CreateBrush(D2D1::ColorF d2dColor)
 {
     ComPtr<ID2D1SolidColorBrush> brush;
@@ -649,11 +723,11 @@ void UIManager::InitializeResources()
     }
 
     //로비에서 출력할 방 리스트 영역
-    for (int i = 0; i < m_nRoomListPerPage; ++i)
+    for (int i = 0; i < LobbyRoomSlotCount; ++i)
     {
         m_RoomListLayout[i] = MakeLayoutRectByCorner(LOBBYROOMLIST_X_OFFSET
-            , LOBBYROOMLIST_Y_OFFSET + (FRAME_BUFFER_HEIGHT / 2.0f * ((float)i / m_nRoomListPerPage)),
-            FRAME_BUFFER_WIDTH - (LOBBYROOMLIST_X_OFFSET + LOBBYROOMLIST_X_OFFSET2), FRAME_BUFFER_HEIGHT / 2.0f * (1.0f / m_nRoomListPerPage));
+            , LOBBYROOMLIST_Y_OFFSET + (FRAME_BUFFER_HEIGHT / 2.0f * ((float)i / LobbyRoomSlotCount)),
+            FRAME_BUFFER_WIDTH - (LOBBYROOMLIST_X_OFFSET + LOBBYROOMLIST_X_OFFSET2), FRAME_BUFFER_HEIGHT / 2.0f * (1.0f / LobbyRoomSlotCount));
         m_RoomListTextBlock[i].m_d2dLayoutRect = m_RoomListLayout[i];
         m_RoomListTextBlock[i].m_pdwFormat = m_LobbyTextFormat;
         m_RoomListTextBlock[i].m_pstrText =  L"ROOMNUM:   MEMBER:   0/4";

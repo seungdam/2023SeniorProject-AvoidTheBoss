@@ -5,6 +5,34 @@
 #include <optional>
 
 inline constexpr std::size_t kGameUiPlayerCount = 4;
+inline constexpr std::size_t kLobbyUiRoomCount = 5;
+
+struct LobbyRoomUiSnapshot
+{
+	int roomNumber = 0;
+	int memberCount = 0;
+};
+
+struct LobbyUiSnapshot
+{
+	std::array<std::optional<LobbyRoomUiSnapshot>, kLobbyUiRoomCount> rooms;
+};
+
+struct RoomMemberUiSnapshot
+{
+	bool occupied = false;
+	bool ready = false;
+};
+
+struct RoomUiSnapshot
+{
+	std::array<RoomMemberUiSnapshot, kGameUiPlayerCount> members;
+};
+
+struct ResultUiSnapshot
+{
+	bool bossWon = false;
+};
 
 struct PlayerUiSnapshot
 {
