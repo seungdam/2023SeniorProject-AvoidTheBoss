@@ -8,9 +8,11 @@
 
 class IocpEvent;
 class ClientEventScheduler;
+namespace atb { class ClientPacketDispatcher; }
 
 class ClientSession : public BaseSession
 {
+	friend class atb::ClientPacketDispatcher;
 
 public:
 	ClientSession();
@@ -22,7 +24,7 @@ public:
 	// 세션 정보를 얻어 내거나 세팅할 수 있는 함수들
 	bool DoSend(void* packet);
 	bool DoRecv();
-	void DispatchPackets();
+	void DispatchPackets(atb::ClientPacketDispatcher& dispatcher);
 	void SetIdentity(int32 cid, int32 sid);
 	void SetSid(int32 sid);
 	int32 GetSid();
@@ -41,7 +43,6 @@ public:
 	int16  _loginOk = -3;
 private:
 	bool QueuePacket(const char* packet, std::size_t packetSize);
-	void ApplyPacket(char* packet);
 
 	std::mutex _packetMutex;
 	std::deque<std::vector<char>> _pendingPackets;

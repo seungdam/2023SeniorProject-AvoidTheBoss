@@ -1,23 +1,11 @@
 ﻿#include "pch.h"
 // 네트워크 관련 헤더
 #include "SocketUtil.h"
+#include "ClientPacketDispatcher.h"
 #include "ClientSession.h"
-// 프레임 워크 헤더
-#include "GameFramework.h"
 #include "ClientTestMode.h"
-#include "SceneManager.h"
-#include "UIManager.h"
 // 이벤트 처리관련 헤더
 #include "IocpEvent.h"
-#include "ClientPacketEvent.h"
-#include "ClientEventScheduler.h"
-// 객체 관련 헤더
-#include "CBullet.h"
-#include "CBoss.h"
-#include "CEmployee.h"
-// 씬관련 헤더
-#include "OtherScenes.h"
-#include "GameScene.h"
 
 namespace
 {
@@ -137,7 +125,7 @@ bool ClientSession::QueuePacket(const char* packet, const std::size_t packetSize
 	return true;
 }
 
-void ClientSession::DispatchPackets()
+void ClientSession::DispatchPackets(atb::ClientPacketDispatcher& dispatcher)
 {
 	std::deque<std::vector<char>> packets;
 	{
@@ -145,7 +133,7 @@ void ClientSession::DispatchPackets()
 		packets.swap(_pendingPackets);
 	}
 
-	for (auto& packet : packets) ApplyPacket(packet.data());
+	for (auto& packet : packets) dispatcher.Apply(*this, packet.data());
 }
 
 void ClientSession::Stop()
@@ -267,7 +255,7 @@ void ClientSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 
 bool ClientSession::DoSend(void* packet)
 {
-	if (IsStopping() || _sock == INVALID_SOCKET) return false;
+	if (IsStopping()) return false;
 	DWORD sendLen(0);
 	DWORD flag(0);
 	SendEvent* sev = new SendEvent(reinterpret_cast<char*>(packet));
@@ -293,7 +281,7 @@ bool ClientSession::DoSend(void* packet)
 
 bool ClientSession::DoRecv()
 {
-	if (IsStopping() || _sock == INVALID_SOCKET) return false;
+	if (IsStopping()) return false;
 	_rev.Init();
 	const auto [cid, sid] = GetIdentity();
 	_rev._sid = sid;
@@ -316,272 +304,4 @@ bool ClientSession::DoRecv()
 		}
 	}
 	return true;
-
-}
-
-void ClientSession::ApplyPacket(char* packet)
-{
-
-	CTitleScene* ts =
-		static_cast<CTitleScene*>(mainGame.m_SceneManager->GetSceneByIdx((int32)CGameFramework::SCENESTATE::TITLE));
-	CGameScene* gs =
-		static_cast<CGameScene*>(mainGame.m_SceneManager->GetSceneByIdx((int32)CGameFramework::SCENESTATE::INGAME));
-	CLobbyScene* ls = static_cast<CLobbyScene*>(mainGame.m_SceneManager->GetSceneByIdx((int32)CGameFramework::SCENESTATE::LOBBY));
-	CRoomScene* rs = static_cast<CRoomScene*>(mainGame.m_SceneManager->GetSceneByIdx((int32)CGameFramework::SCENESTATE::ROOM));
-	CResultScene* rrs = static_cast<CResultScene*>(mainGame.m_SceneManager->GetSceneByIdx((int32)CGameFramework::SCENESTATE::RESULT));
-	if (!gs) return; // something error detected;
-	if (!ls) return; // something error detected;
-	if (!rs) return;
-	if (!rrs) return;
-
-	const auto packetType = static_cast<uint8>(packet[1]);
-	const bool requiresInGameScene =
-		packetType == static_cast<uint8>(S_GAME_PACKET_TYPE::SKEY) ||
-		packetType == static_cast<uint8>(S_GAME_PACKET_TYPE::SROT) ||
-		packetType == static_cast<uint8>(S_GAME_PACKET_TYPE::SPOS) ||
-		packetType == static_cast<uint8>(SC_GAME_PACKET_TYPE::GAMEEVENT) ||
-		packetType == static_cast<uint8>(S_GAME_PACKET_TYPE::ANIM) ||
-		packetType == static_cast<uint8>(S_GAME_PACKET_TYPE::FRAME);
-	if (requiresInGameScene &&
-		mainGame.m_curScene != static_cast<int32>(CGameFramework::SCENESTATE::INGAME))
-		return;
-
-	switch (packetType)
-	{
-
-	// ================ 로그인 관련 처리 ================
-#pragma region Title
-	case (uint8)S_TITLE_PACKET_TYPE::LOGIN_OK:
-	{
-		S2C_LOGIN_OK* lo = (S2C_LOGIN_OK*)packet;
-		CScene::m_sid = lo->sid;
-		CScene::m_cid = lo->cid;
-		ts->loginLock.lock();
-		ts->m_login = true;
-		ts->loginLock.unlock();
-		mainGame.m_UIRenderer->m_LoginResult[0].m_hide = false;
-		mainGame.m_UIRenderer->m_LoginResult[1].m_hide = true;
-		mainGame.m_UIRenderer->m_LoginResult[2].m_hide = true;
-		g_clientTestMode.OnLoginOk(*this);
-	}
-	break;
-	case (uint8)S_TITLE_PACKET_TYPE::RESUME_OK:
-	{
-		auto* resume = reinterpret_cast<S2C_RESUME*>(packet);
-		if (resume->playerIndex >= PLAYERNUM) break;
-		if (resume->oldSid == GetResumeSid())
-		{
-			SetSid(resume->newSid);
-			_resumeSid.store(-1, std::memory_order_release);
-			CScene::m_sid = resume->newSid;
-		}
-		if (CPlayer* player = gs->GetScenePlayerByIdx(resume->playerIndex))
-			player->SetPlayerSid(resume->newSid);
-	}
-	break;
-	case (uint8)S_TITLE_PACKET_TYPE::RESUME_FAIL:
-	{
-		ClearResumeToken();
-		_resumeSid.store(-1, std::memory_order_release);
-		SetSid(-1);
-		CScene::m_sid = -1;
-		if (mainGame.m_curScene == static_cast<int32>(CGameFramework::SCENESTATE::INGAME))
-			gs->ResetGame();
-		mainGame.ChangeScene(CGameFramework::SCENESTATE::TITLE);
-	}
-	break;
-	case (uint8)S_TITLE_PACKET_TYPE::LOGIN_FAIL:
-	{
-		mainGame.m_UIRenderer->m_LoginResult[0].m_hide = true;
-		mainGame.m_UIRenderer->m_LoginResult[1].m_hide = false;
-		mainGame.m_UIRenderer->m_LoginResult[2].m_hide = true;
-		g_clientTestMode.OnProtocolFailure("login failed");
-	}
-	break;
-	case (uint8)S_TITLE_PACKET_TYPE::REG_OK:
-	{
-		mainGame.m_UIRenderer->m_LoginResult[0].m_hide = true;
-		mainGame.m_UIRenderer->m_LoginResult[1].m_hide = true;
-		mainGame.m_UIRenderer->m_LoginResult[2].m_hide = false;
-	}
-	break;
-
-#pragma endregion
-	// ================ 로비씬 패킷      ===============
-#pragma region  Lobby
-	// ============= 방 관련 패킷 ============
-	case (uint8)S_ROOM_PACKET_TYPE::REP_ENTER_OK:
-	{
-		S2C_ROOM_ENTER* rep = (S2C_ROOM_ENTER*)packet;
-		rs->m_rmnum = rep->rmNum;
-		mainGame.ChangeScene(CGameFramework::SCENESTATE::ROOM);
-		g_clientTestMode.OnRoomEntered(*this, rep->rmNum);
-	}
-	break;
-	case (uint8)S_ROOM_PACKET_TYPE::REP_ENTER_FAIL:
-	{
-		g_clientTestMode.OnProtocolFailure("room enter failed");
-	}
-	break;
-	case (uint8)S_ROOM_PACKET_TYPE::MK_RM_FAIL:
-	{
-
-	}
-	break;
-	case (uint8)S_ROOM_PACKET_TYPE::MK_RM_OK:
-	{
-
-		mainGame.ChangeScene(CGameFramework::SCENESTATE::ROOM);
-	}
-		break;
-	case (uint8)S_ROOM_PACKET_TYPE::UPDATE_LIST:
-	{
-
-		S2C_ROOM_LIST* rp = (S2C_ROOM_LIST*)packet;;
-		ls->UpdateRoomStatus(rp->rmNum, rp->member);
-		std::cout << "RM" << (int32)rp->rmNum << " MEMBER:" << (int32)rp->member << "\n";
-	}
-		break;
-
-#pragma endregion
-#pragma region Room
-	case (uint8)S_ROOM_PACKET_TYPE::REP_READY:
-	{
-		S2C_ROOM_READY* rp = (S2C_ROOM_READY*)packet;
-		rs->m_memLock.lock();
-		rs->UpdateReady(rp->sid, true);
-		rs->m_memLock.unlock();
-
-		std::cout << rp->sid << "Ready\n";
-	}
-		break;
-	case (uint8)S_ROOM_PACKET_TYPE::REP_READY_CANCEL:
-	{
-		S2C_ROOM_READY* rp = (S2C_ROOM_READY*)packet;
-		rs->m_memLock.lock();
-		rs->UpdateReady(rp->sid, false);
-		rs->m_memLock.unlock();
-		std::cout << rp->sid << "Cancel Ready\n";
-	}
-		break;
-	case (uint8)S_ROOM_PACKET_TYPE::ROOM_INFO:
-	{
-
-		S2C_ROOM_INFO* rp = (S2C_ROOM_INFO*)packet;
-		rs->m_memLock.lock();
-		for (int i = 0; i < PLAYERNUM; ++i) rs->m_members[i].m_sid = rp->sids[i];
-		for (int i = 0; i < PLAYERNUM; ++i) rs->m_members[i].isReady = rp->rd[i];
-
-		rs->m_memLock.unlock();
-	}
-	break;
-	case (uint8)S_ROOM_PACKET_TYPE::GAME_START:
-	{
-		// ================= 플레이어 초기 위치 초기화 ==================
-		auto* gameStart = reinterpret_cast<S2C_GAMESTART*>(packet);
-		if (!g_clientTestMode.ValidateGameStart(gameStart->sids, GetSid())) break;
-		if (!gs->InitGame(gameStart, GetSid()))
-		{
-			g_clientTestMode.OnProtocolFailure("invalid or duplicate GAME_START");
-			break;
-		}
-
-
-		// ================= 카메라 셋팅 ================================
-		mainGame.m_UIRenderer->InitGameSceneUI(gs->CreateUiSnapshot());
-
-		mainGame.ChangeScene(CGameFramework::SCENESTATE::INGAME);
-		gs->InitScene();
-		g_clientTestMode.OnGameStarted();
-		rs->m_memLock.lock();
-
-		for (int i = 0; i < PLAYERNUM; ++i)
-		{
-			rs->m_members[i].m_sid = -1;
-			rs->m_members[i].isReady = false;
-		}
-		rs->m_memLock.unlock();
-	}
-	break;
-#pragma endregion
-	// ============== 인게임 관련 패킷 =============
-#pragma region InGame
-	case (uint8)S_GAME_PACKET_TYPE::SKEY:
-	{
-		S2C_KEY* movePacket = reinterpret_cast<S2C_KEY*>(packet);
-		CPlayer* player = gs ->GetScenePlayerBySid(movePacket->sid);
-		if (player == nullptr) break;
-
-		gs->AddEvent(moveEvent{
-			player->GetPlayerIndex(),
-			movePacket->key,
-			XMFLOAT3(movePacket->x, 0.0f, movePacket->z) },
-			mainGame.m_activeDelay ? 320.0f : 0.0f);
-	}
-	break;
-	case (uint8)S_GAME_PACKET_TYPE::SROT:
-	{
-		S2C_ROTATE* rotatePacket = reinterpret_cast<S2C_ROTATE*>(packet);
-		CPlayer* player = gs->GetScenePlayerBySid(rotatePacket->sid);
-		if (!player) break;
-		gs->AddEvent(rotateEvent{ player->GetPlayerIndex(), static_cast<float>(rotatePacket->angle) },
-			mainGame.m_activeDelay ? 320.0f : 0.0f);
-	}
-	break;
-	case (uint8)S_GAME_PACKET_TYPE::SPOS: // 미리 계산한 좌표값을 보내준다.
-	{
-		S2C_POS* posPacket = reinterpret_cast<S2C_POS*>(packet);
-		CPlayer* player = gs->GetScenePlayerBySid(posPacket->sid);
-		if (player == nullptr) break;
-
-		XMFLOAT3 newPos = XMFLOAT3(posPacket->x, player->GetPosition().y, posPacket->z);
-		gs->AddEvent(posEvent{ player->GetPlayerIndex(), newPos },
-			mainGame.m_activeDelay ? 320.0f : 0.0f);
-	}
-	break;
-	case (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT:
-	{
-		SC_EVENTPACKET* ev = (SC_EVENTPACKET*)packet;
-		if (ev->eventId == (uint8)EVENT_TYPE::BOSS_WIN || ev->eventId == (uint8)EVENT_TYPE::EMP_WIN)
-		{
-			if (!gs->ResetGame())
-			{
-				g_clientTestMode.OnProtocolFailure("duplicate or out-of-order game result");
-				break;
-			}
-
-			std::cout << "Go to Result\n";
-
-			if (ev->eventId == (uint8)EVENT_TYPE::BOSS_WIN) rrs->m_case = 1;
-			if (ev->eventId == (uint8)EVENT_TYPE::EMP_WIN) rrs->m_case = 0;
-
-			rrs->m_timer.Reset();
-			mainGame.ChangeScene(CGameFramework::SCENESTATE::RESULT);
-		}
-		else
-		{
-			gs->AddEvent(InteractionEvent{ ev->eventId },
-				mainGame.m_activeDelay ? 320.0f : 0.0f);
-		}
-	}
-	break;
-	// ================= 플레이어 스위치 애니메이션 관련 패킷 ==================
-	case (uint8)S_GAME_PACKET_TYPE::ANIM:
-	{
-		S2C_ANIMPACKET* sw = (S2C_ANIMPACKET*)packet;
-		if (!gs->GetScenePlayerByIdx(sw->idx)) break;
-		gs->AddEvent(animationEvent{ sw->idx, sw->track },
-			mainGame.m_activeDelay ? 320.0f : 0.0f);
-	}
-	break;
-	case (uint8)S_GAME_PACKET_TYPE::FRAME:
-	{
-		S2C_FRAMEPACKET* fp = (S2C_FRAMEPACKET*)packet;
-		gs->AddEvent(FrameEvent{ fp->wf }, mainGame.m_activeDelay ? 320.0f : 0.0f);
-
-	}
-	break;
-#pragma endregion
-	}
-
 }
