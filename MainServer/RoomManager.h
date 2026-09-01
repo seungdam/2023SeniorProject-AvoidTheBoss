@@ -44,7 +44,7 @@ public:
 	bool ResumeUser(int32 newSid, uint64 resumeToken);
 	void BroadCasting(void* packet);
 	void BroadCastingExcept(void* packet, int32 sid);
-	void Update();
+	void Update(float fixedDeltaSeconds);
 
 	void SendRoomListPacket();
 	void SendRoomInfoPacket();
@@ -98,7 +98,7 @@ public:
 	void ResumeSession(int32 sid, uint64 resumeToken);
 	bool EnterRoom(int32 sid, int32 rmNum);
 	void CreateRoom(int32 sid);
-	void UpdateRooms();
+	void UpdateRooms(float fixedDeltaSeconds);
 
 private:
 	static constexpr std::size_t MaxLobbyCommandsPerUpdate = 512;

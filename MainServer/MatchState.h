@@ -6,7 +6,6 @@
 #include "SGenerator.h"
 #include "SPlayer.h"
 #include "WorldRewinder.h"
-#include "../Shared/Runtime/GameTimer.h"
 
 class ClientEventScheduler;
 class OcTree;
@@ -51,7 +50,7 @@ public:
 	~MatchState();
 
 	uint64 Start(const std::array<int16, PLAYERNUM>& playerSids);
-	MatchTickResult Tick(Room& room);
+	MatchTickResult Tick(Room& room, float fixedDeltaSeconds);
 	MatchPlayerDeparture OnPlayerLeft(int32 sid);
 	void PausePlayer(int32 sid);
 	void RebindPlayer(int32 sid, int32 idx);
@@ -85,5 +84,5 @@ private:
 	uint64 _generation = 0;
 	Rewinder<30> _history;
 	std::unique_ptr<ClientEventScheduler> _jobQueue;
-	Timer _timer;
+	uint32 _positionBroadcastPhase = 0;
 };

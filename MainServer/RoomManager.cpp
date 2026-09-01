@@ -369,12 +369,12 @@ void Room::BroadCastingExcept(void* packet, int32 sid) // 방에 속하는 클�
 }
 
 // 방에 있는 유저에 대한 게임 로직 업데이트 진행
-void Room::Update()
+void Room::Update(const float fixedDeltaSeconds)
 {
 	if (_status != (int8)ROOM_STATUS::INGAME) return;
 	ExpireReconnects();
 	if (_status != (int8)ROOM_STATUS::INGAME) return;
-	const MatchTickResult tick = _matchState.Tick(*this);
+	const MatchTickResult tick = _matchState.Tick(*this, fixedDeltaSeconds);
 
 	if (tick.frame >= 0)
 	{
@@ -750,7 +750,7 @@ void RoomManager::CreateRoom(int32 sid)
 	packet.type = (uint8)S_ROOM_PACKET_TYPE::MK_RM_FAIL;
 	session->DoSend(&packet);
 }
-void RoomManager::UpdateRooms()
+void RoomManager::UpdateRooms(const float fixedDeltaSeconds)
 {
 	DrainLobbyCommands();
 	DrainGameCommands();
@@ -758,7 +758,7 @@ void RoomManager::UpdateRooms()
 	for (int i = 0; i < RoomCapacity; ++i)
 	{
 		if (_rooms[i]._status != (int8)ROOM_STATUS::INGAME) continue;
-		_rooms[i].Update();
+		_rooms[i].Update(fixedDeltaSeconds);
 	}
 }
 void RoomManager::ExitRoom(int32 sid, int32 rmNum)

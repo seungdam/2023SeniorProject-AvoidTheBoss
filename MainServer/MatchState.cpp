@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "MatchState.h"
+#include "FixedStepScheduler.h"
 #include "JobQueue.h"
 
 #include <stdexcept>
@@ -38,25 +39,21 @@ uint64 MatchState::Start(const std::array<int16, PLAYERNUM>& playerSids)
 	_state = GAMESTATE::IN_GAME;
 	_history.Clear();
 	ClearQueuedEvents();
-	_timer.Reset();
+	_positionBroadcastPhase = 0;
 	return _generation;
 }
 
-MatchTickResult MatchState::Tick(Room& room)
+MatchTickResult MatchState::Tick(Room& room, const float fixedDeltaSeconds)
 {
-	_timer.Tick(60.f);
-	const float elapsedTime = _timer.GetTimeElapsed();
-	Update(room, elapsedTime);
-	LateUpdate(elapsedTime);
+	Update(room, fixedDeltaSeconds);
+	LateUpdate(fixedDeltaSeconds);
 
 	MatchTickResult result{};
 	result.state = _state;
-	if (_timer.IsTimeToAddHistory())
-	{
-		_history.AddHistory(_players.data());
-		result.frame = _history.GetCurFrame();
-	}
-	result.broadcastPositions = _timer.IsAfterTick(45);
+	_history.AddHistory(_players.data());
+	result.frame = _history.GetCurFrame();
+	result.broadcastPositions =
+		ServerSimulation::AdvancePositionBroadcastPhase(_positionBroadcastPhase);
 	return result;
 }
 
@@ -164,5 +161,6 @@ void MatchState::Reset()
 	_players[2].SetPosition(XMFLOAT3(15, 0.25f, -18));
 	_players[3].SetPosition(XMFLOAT3(20, 0.25f, -18));
 	_exitReady = false;
+	_positionBroadcastPhase = 0;
 	_state = GAMESTATE::NONE;
 }
