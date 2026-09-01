@@ -2,16 +2,17 @@
 #include "CBoss.h"
 #include "CEmployee.h"
 #include "CBullet.h"
-#include "clientIocpCore.h"
 
-#include "GameFramework.h"
-
-#include "SceneManager.h"
 #include "InputManager.h"
 #include "SoundManager.h"
 #include "GameScene.h"
 
-CBoss::CBoss(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4  * pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+CBoss::CBoss(
+	ID3D12Device5* pd3dDevice,
+	ID3D12GraphicsCommandList4* pd3dCommandList,
+	ID3D12RootSignature* pd3dGraphicsRootSignature,
+	CGameScene& ownerScene)
+	: _ownerScene(ownerScene)
 {
 	m_type = 0;
 
@@ -501,7 +502,6 @@ uint8 CBoss::ProcessInput()
 	if (dir) SetBehavior(PLAYER_BEHAVIOR::RUN);
 	else	 SetBehavior(PLAYER_BEHAVIOR::IDLE);
 
-	CGameScene* gs = static_cast<CGameScene*>(mainGame.m_SceneManager->GetSceneByIdx(3));
 	// 1. 공격 키를 눌렀을 경우 처리
 	if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::SPACE) == (uint8)KEY_STATUS::KEY_PRESS && !GetOnAttack())
 	{
@@ -512,32 +512,30 @@ uint8 CBoss::ProcessInput()
 		C2S_ATTACK packet;
 		packet.type = (uint8)C_GAME_PACKET_TYPE::CATTACK;
 		packet.size = sizeof(C2S_ATTACK);
-		packet.wf = mainGame.m_curFrame;
+		packet.wf = _ownerScene.CurrentWorldFrame();
 
 		SC_EVENTPACKET epacket{};
 		epacket.size = sizeof(epacket);
 		epacket.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
 		epacket.eventId = (uint8)EVENT_TYPE::ATTACK_ANIM;
 
-		clientCore.DoSend(&epacket);
+		_ownerScene.SendPacket(&epacket);
 
 		XMFLOAT3 bossPos = GetPosition();
 		XMFLOAT3 bossDir = GetLookVector();
 		float rayDist = 5.0f;
 
-		CGameScene* gs = static_cast<CGameScene*>(mainGame.m_SceneManager->GetSceneByIdx((int32)CGameFramework::SCENESTATE::INGAME));
-
 		if (PLAYERNUM >= 1)
 		{
 			for (int i = 1; i < PLAYERNUM; ++i)
 			{
-				CEmployee* targetPlayer = static_cast<CEmployee*>(gs->GetScenePlayerByIdx(i));
+				CEmployee* targetPlayer = static_cast<CEmployee*>(_ownerScene.GetScenePlayerByIdx(i));
 				if (targetPlayer)
 				{
 					if (targetPlayer->_boundingSphere.Intersects(XMLoadFloat3(&bossPos), XMLoadFloat3(&bossDir), rayDist) && !targetPlayer->_invincible)
 					{
 						packet.tidx = i;
-						gs->AddEvent(DelayEvent{ packet }, 0.0f);
+						_ownerScene.AddEvent(DelayEvent{ packet }, 0.0f);
 						break;
 					}
 				}

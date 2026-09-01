@@ -1,62 +1,53 @@
 #include "pch.h"
 #include "ClientPacketEvent.h"
 
-#include "clientIocpCore.h"
-#include "GameFramework.h"
 #include "GameScene.h"
-#include "SceneManager.h"
 
 namespace
 {
-	CGameScene* GetGameScene() noexcept
+	bool CanApplyTo(CGameScene* scene) noexcept
 	{
-		if (mainGame.m_curScene != static_cast<int32>(CGameFramework::SCENESTATE::INGAME))
-		{
-			return nullptr;
-		}
-
-		return static_cast<CGameScene*>(mainGame.GetSceneByIdx(
-			static_cast<int32>(CGameFramework::SCENESTATE::INGAME)));
+		return scene && scene->IsActive();
 	}
 }
 
-void moveEvent::Task()
+void moveEvent::Task(CGameScene* scene)
 {
-	if (CGameScene* scene = GetGameScene())
+	if (CanApplyTo(scene))
 		scene->ApplyPlayerMove(_playerIndex, _key, _direction);
 }
 
-void posEvent::Task()
+void posEvent::Task(CGameScene* scene)
 {
-	if (CGameScene* scene = GetGameScene())
+	if (CanApplyTo(scene))
 		scene->ApplyPlayerPosition(_playerIndex, _position);
 }
 
-void rotateEvent::Task()
+void rotateEvent::Task(CGameScene* scene)
 {
-	if (CGameScene* scene = GetGameScene())
+	if (CanApplyTo(scene))
 		scene->ApplyPlayerRotation(_playerIndex, _angle);
 }
 
-void animationEvent::Task()
+void animationEvent::Task(CGameScene* scene)
 {
-	if (CGameScene* scene = GetGameScene())
+	if (CanApplyTo(scene))
 		scene->ApplyPlayerAnimation(_playerIndex, _track);
 }
 
-void InteractionEvent::Task()
+void InteractionEvent::Task(CGameScene* scene)
 {
-	if (CGameScene* scene = GetGameScene())
+	if (CanApplyTo(scene))
 		scene->ApplyInteraction(_eventId);
 }
 
-void FrameEvent::Task()
+void FrameEvent::Task(CGameScene* scene)
 {
-	if (CGameScene* scene = GetGameScene())
+	if (CanApplyTo(scene))
 		scene->ApplyWorldFrame(_worldFrame);
 }
 
-void DelayEvent::Task()
+void DelayEvent::Task(CGameScene* scene)
 {
-	clientCore.DoSend(&_packet);
+	if (scene) scene->SendPacket(&_packet);
 }

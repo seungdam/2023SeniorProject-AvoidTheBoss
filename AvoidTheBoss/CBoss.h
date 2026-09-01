@@ -1,11 +1,13 @@
 #pragma once
 #include "Player.h"
 class CBullet;
+class CGameScene;
 
 class CBoss : public CPlayer
 {
 	friend class ClientSession;
 private:
+	CGameScene& _ownerScene;
 	CGameObject* _rightHand = NULL;
 private: // 06/11 --> 06/13 추가
 	int32 _runAttackAnimationTime = 0;
@@ -15,7 +17,11 @@ public:
 	int _bulletCount = 50;
 	CBullet* _bullet = NULL;
 
-	CBoss(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
+	CBoss(
+		ID3D12Device5* pd3dDevice,
+		ID3D12GraphicsCommandList4* pd3dCommandList,
+		ID3D12RootSignature* pd3dGraphicsRootSignature,
+		CGameScene& ownerScene);
 	virtual ~CBoss();
 
 	virtual void Rotate(float x, float y, float z);

@@ -7,6 +7,8 @@
 #include <queue>
 #include <vector>
 
+class CGameScene;
+
 struct ScheduledClientEvent
 {
 	int64 _executeAt = 0;
@@ -42,7 +44,7 @@ class ClientEventScheduler
 public:
 	using Clock = std::chrono::steady_clock;
 
-	ClientEventScheduler();
+	explicit ClientEventScheduler(CGameScene* ownerScene = nullptr);
 	void Reset() noexcept;
 	void PushTask(ClientEvent event, float afterMilliseconds);
 	void DoTasks();
@@ -58,4 +60,5 @@ private:
 	JobPriorityQueue _taskQueue;
 	Clock::time_point _beginTickPoint;
 	std::uint64_t _nextSequence = 0;
+	CGameScene* _ownerScene = nullptr;
 };

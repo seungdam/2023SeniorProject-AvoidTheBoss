@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "SoundManager.h"
 #include "CSound.h"
+#include "SceneId.h"
 
 CSound* SoundManager::m_pSound = nullptr;
 
@@ -25,18 +26,18 @@ void SoundManager::PlayBackGroundSound(int32 Scene)
 {
 	switch (Scene)
 	{
-	case 0:
-	case 1:
-	case 2:
+	case atb::SceneIndex(atb::SceneId::Title):
+	case atb::SceneIndex(atb::SceneId::Lobby):
+	case atb::SceneIndex(atb::SceneId::Room):
 		m_pSound->SoundStop(0);
 		m_pSound->PlayBackGroundSound(0,0);
 		SoundManager::GetInstance().SetVolum(0, 0.5f);
 		break;
-	case 3:
+	case atb::SceneIndex(atb::SceneId::InGame):
 		m_pSound->SoundStop(0);
 		m_pSound->PlayBackGroundSound(1, 0);
 		break;
-	case 4:
+	case atb::SceneIndex(atb::SceneId::Result):
 		for (int i = 0; i < 3; i++)
 		{
 			m_pSound->SoundStop(8 + i);

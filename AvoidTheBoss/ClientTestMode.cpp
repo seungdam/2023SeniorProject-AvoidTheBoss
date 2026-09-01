@@ -3,7 +3,7 @@
 #include "ClientTestMode.h"
 
 #include "ClientSession.h"
-#include "GameFramework.h"
+#include "SceneId.h"
 
 ClientTestMode g_clientTestMode;
 
@@ -238,9 +238,9 @@ bool ClientTestMode::Pump(const ClientFrameSnapshot& snapshot)
 
 	const int firstPerson = static_cast<int>(FIRST_PERSON_CAMERA);
 	const int thirdPerson = static_cast<int>(THIRD_PERSON_CAMERA);
-	const int inGame = static_cast<int>(CGameFramework::SCENESTATE::INGAME);
-	const int result = static_cast<int>(CGameFramework::SCENESTATE::RESULT);
-	const int lobby = static_cast<int>(CGameFramework::SCENESTATE::LOBBY);
+	const int inGame = atb::SceneIndex(atb::SceneId::InGame);
+	const int result = atb::SceneIndex(atb::SceneId::Result);
+	const int lobby = atb::SceneIndex(atb::SceneId::Lobby);
 	const bool validatingFirstMatch = _stage >= Stage::AwaitInitialFirst && _stage <= Stage::AwaitResult;
 	const bool validatingSecondMatch = _stage == Stage::AwaitSecondInitialFirst ||
 		_stage == Stage::AwaitSecondPresent;
@@ -349,7 +349,7 @@ void ClientTestMode::OnPresent(const long result)
 {
 	if (!_enabled) return;
 	std::lock_guard lock(_mutex);
-	if (_lastScene == static_cast<int>(CGameFramework::SCENESTATE::INGAME)) ++_ingamePresents;
+	if (_lastScene == atb::SceneIndex(atb::SceneId::InGame)) ++_ingamePresents;
 	_presentResult = result;
 	if (result < 0)
 	{

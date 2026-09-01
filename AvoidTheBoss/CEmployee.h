@@ -3,6 +3,7 @@
 
 
 class CGenerator;
+class CGameScene;
 
 class CEmployee : public CPlayer
 {
@@ -14,6 +15,7 @@ public:
 	float _uiCooldown = 1.0f;
 
 private:
+	CGameScene& _ownerScene;
 	bool _inGeneratorArea = false;
 	bool _nearDownedPlayer = false; // Down된 플레이어와 인접해 있는가?
 	//bool m_bIsDown
@@ -35,7 +37,10 @@ public:
 public:
 	CEmployee(ID3D12Device5* pd3dDevice,
 		ID3D12GraphicsCommandList4
-		* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CHARACTER_TYPE nType);
+		* pd3dCommandList,
+		ID3D12RootSignature* pd3dGraphicsRootSignature,
+		CHARACTER_TYPE nType,
+		CGameScene& ownerScene);
 	virtual ~CEmployee();
 
 	// ========== 플레이어 조작 관련 ===================

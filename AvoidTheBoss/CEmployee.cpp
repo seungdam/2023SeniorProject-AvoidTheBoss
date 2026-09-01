@@ -1,19 +1,20 @@
 #include "pch.h"
 #include "CEmployee.h"
-#include "clientIocpCore.h"
-#include "GameFramework.h"
-
 #include "CGenerator.h"
 #include "CSound.h"
 
 #include "GameScene.h"
-#include "OtherScenes.h"
 
 #include "InputManager.h"
-#include "SceneManager.h"
 #include "SoundManager.h"
 
-CEmployee::CEmployee(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CHARACTER_TYPE nType)
+CEmployee::CEmployee(
+	ID3D12Device5* pd3dDevice,
+	ID3D12GraphicsCommandList4* pd3dCommandList,
+	ID3D12RootSignature* pd3dGraphicsRootSignature,
+	CHARACTER_TYPE nType,
+	CGameScene& ownerScene)
+	: _ownerScene(ownerScene)
 {
 	_state.playerType = PLAYER_TYPE::EMPLOYEE;
 	_characterType = nType;
@@ -171,18 +172,16 @@ void CEmployee::LateUpdate(float fTimeElapsed, CLIENT_TYPE ptype)
 			packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
 			packet.size = sizeof(SC_EVENTPACKET);
 			packet.eventId = (int32)EVENT_TYPE::ALIVE_PLAYER_ONE + _state.playerIndex;
-			clientCore.DoSend(&packet);
+			_ownerScene.SendPacket(&packet);
 		}
 	}
 
 	// 탈출 후 맵에서 일정 범위 이상 넘어가게 되면 EXIT 상태로 만세 애니메이션 재생
-	if (!m_bEmpExit && static_cast<CGameScene*>(mainGame.m_SceneManager->GetSceneByIdx(3))->_employeeExitReady && _state.clientType == CLIENT_TYPE::OWNER)
+	if (!m_bEmpExit && _ownerScene._employeeExitReady && _state.clientType == CLIENT_TYPE::OWNER)
 	{
 		// 결과 씬에 넘겨주기
-		static_cast<CResultScene*>(mainGame.m_SceneManager->GetSceneByIdx(4))->m_activeCnt = _activatedGeneratorCount;
-		static_cast<CResultScene*>(mainGame.m_SceneManager->GetSceneByIdx(4))->m_deadCnt = _deathCount;
-		static_cast<CGameScene*>(mainGame.m_SceneManager->GetSceneByIdx(
-			static_cast<int32>(CGameFramework::SCENESTATE::INGAME)))->SetCameraMode(FIRST_PERSON_CAMERA);
+		_ownerScene.SetEmployeeResultStats(_activatedGeneratorCount, _deathCount);
+		_ownerScene.SetCameraMode(FIRST_PERSON_CAMERA);
 
 		if (GetPosition().x < -28 || GetPosition().x > 28 || GetPosition().z > 28 || GetPosition().z < -28)
 		{
@@ -196,7 +195,7 @@ void CEmployee::LateUpdate(float fTimeElapsed, CLIENT_TYPE ptype)
 			packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
 			packet.eventId = _state.playerIndex + (uint8)EVENT_TYPE::EXIT_PLAYER_ONE;
 
-			clientCore.DoSend(&packet); // 탈출 시 전송
+			_ownerScene.SendPacket(&packet); // 탈출 시 전송
 		}
 	}
 
@@ -786,8 +785,7 @@ void CEmployee::AnimTrackUpdate()
 	case (int32)PLAYER_BEHAVIOR::CRAWL:
 		SetCrawlAnimTrack();
 		if (CLIENT_TYPE::OWNER == _state.clientType)
-			static_cast<CGameScene*>(mainGame.m_SceneManager->GetSceneByIdx(
-				static_cast<int32>(CGameFramework::SCENESTATE::INGAME)))->SetFogEnabled(false);
+			_ownerScene.SetFogEnabled(false);
 		break;
 
 	case (int32)PLAYER_BEHAVIOR::EXIT:
@@ -811,10 +809,8 @@ void CEmployee::AnimTrackUpdate()
 			{
 				if (CLIENT_TYPE::OWNER == _state.clientType)
 				{
-					auto* gameScene = static_cast<CGameScene*>(mainGame.m_SceneManager->GetSceneByIdx(
-						static_cast<int32>(CGameFramework::SCENESTATE::INGAME)));
-					gameScene->SetCameraMode(FIRST_PERSON_CAMERA);
-					gameScene->SetFogEnabled(true);
+					_ownerScene.SetCameraMode(FIRST_PERSON_CAMERA);
+					_ownerScene.SetFogEnabled(true);
 				}
 				SetBehavior(PLAYER_BEHAVIOR::IDLE);
 				_invincible = false;
@@ -826,18 +822,10 @@ void CEmployee::AnimTrackUpdate()
 
 CGenerator* CEmployee::GetAvailGen()
 {
-	CGameScene* gs = static_cast<CGameScene*>(mainGame.m_SceneManager->GetSceneByIdx((int32)CGameFramework::SCENESTATE::INGAME));
-	if (!gs)
-	{
-		_inGeneratorArea = false;
-		_currentGeneratorIndex = -1;
-		return nullptr;
-	}
-
 	if (_generatorInteractionActive && _currentGeneratorIndex >= 0)
 	{
 		_inGeneratorArea = true;
-		return gs->GetSceneGenByIdx(_currentGeneratorIndex);
+		return _ownerScene.GetSceneGenByIdx(_currentGeneratorIndex);
 	}
 
 	for (int i = 0; i < 3; ++i)
@@ -847,7 +835,7 @@ CGenerator* CEmployee::GetAvailGen()
 		float sumRange = _boundingSphere.Radius + _switches[i].radius;
 		if (distance <= sumRange)
 		{
-			CGenerator* targetGenerator = gs->GetSceneGenByIdx(i);
+			CGenerator* targetGenerator = _ownerScene.GetSceneGenByIdx(i);
 
 			if (targetGenerator)
 			{
@@ -873,14 +861,12 @@ CGenerator* CEmployee::GetAvailGen()
 
 CEmployee* CEmployee::GetAvailEMP()
 {
-	CGameScene* gs = static_cast<CGameScene*>(mainGame.m_SceneManager->GetSceneByIdx((int32)CGameFramework::SCENESTATE::INGAME));
 	_nearDownedPlayer = false;
-	if (!gs) return nullptr;
 
 	for (int i = 1; i < PLAYERNUM; ++i)
 	{
 
-		CEmployee* p = static_cast<CEmployee*>(gs->GetScenePlayerByIdx(i));
+		CEmployee* p = static_cast<CEmployee*>(_ownerScene.GetScenePlayerByIdx(i));
 		if (p == nullptr || i == _state.playerIndex) continue;
 		XMFLOAT3 ppos = p->GetPosition();
 		ppos = Vector3::Subtract(_position, ppos);
@@ -920,10 +906,8 @@ void CEmployee::PlayerDown()
 {
 	if (CLIENT_TYPE::OWNER == _state.clientType)
 	{
-		auto* gameScene = static_cast<CGameScene*>(mainGame.m_SceneManager->GetSceneByIdx(
-			static_cast<int32>(CGameFramework::SCENESTATE::INGAME)));
-		gameScene->SetCameraMode(THIRD_PERSON_CAMERA);
-		gameScene->SetFogEnabled(true);
+		_ownerScene.SetCameraMode(THIRD_PERSON_CAMERA);
+		_ownerScene.SetFogEnabled(true);
 	}
 
 	SetBehavior(PLAYER_BEHAVIOR::DOWN);
@@ -933,8 +917,6 @@ void CEmployee::PlayerDown()
 bool CEmployee::GenTasking()
 {
 	CGenerator* targetGen = GetAvailGen();
-	CGameScene* gameScene = static_cast<CGameScene*>(mainGame.m_SceneManager->GetSceneByIdx(
-		static_cast<int32>(CGameFramework::SCENESTATE::INGAME)));
 
 	if(targetGen)std::cout << targetGen->GetIndex() << "Available\n";
 
@@ -942,9 +924,9 @@ bool CEmployee::GenTasking()
 	if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::F) > 0 && !GetIsPlayerOnRescueInter())
 	{
 
-		if (targetGen && gameScene)
+		if (targetGen)
 		{
-			if (!gameScene->SetGeneratorInteraction(_currentGeneratorIndex, true, true)) return false;
+			if (!_ownerScene.SetGeneratorInteraction(_currentGeneratorIndex, true, true)) return false;
 			SetGenInteraction(true); // 캐릭터 상호작용 애니메이션 재생을 활성화 한다.
 			SetBehavior(PLAYER_BEHAVIOR::SWITCH_INTER);
 
@@ -954,7 +936,7 @@ bool CEmployee::GenTasking()
 				packet.eventId = _currentGeneratorIndex + (int32)EVENT_TYPE::SWITCH_ONE_START_EVENT;
 				packet.size = sizeof(SC_EVENTPACKET);
 				packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
-				clientCore.DoSend(&packet);
+				_ownerScene.SendPacket(&packet);
 			}
 			return true;
 		}
@@ -968,14 +950,13 @@ bool CEmployee::GenTasking()
 					std::cout << "Cancel\n";
 					SetGenInteraction(false);
 					SetBehavior(PLAYER_BEHAVIOR::IDLE);
-					if (gameScene)
-						gameScene->SetGeneratorInteraction(_currentGeneratorIndex, false, true);
+					_ownerScene.SetGeneratorInteraction(_currentGeneratorIndex, false, true);
 					//========= 패킷 송신 처리 ==============
 					SC_EVENTPACKET packet;
 					packet.eventId = _currentGeneratorIndex + (int32)EVENT_TYPE::SWITCH_ONE_END_EVENT;
 					packet.size = sizeof(SC_EVENTPACKET);
 					packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
-					clientCore.DoSend(&packet);
+					_ownerScene.SendPacket(&packet);
 					_currentGeneratorIndex = -1;
 				}
 			}
@@ -1006,7 +987,7 @@ bool CEmployee::RescueTasking()
 			packet.eventId = targetPlayer->GetPlayerIndex() + (int32)EVENT_TYPE::RESCUE_PLAYER_ONE;
 			packet.size = sizeof(SC_EVENTPACKET);
 			packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
-			clientCore.DoSend(&packet);
+			_ownerScene.SendPacket(&packet);
 			_rescuingEmployeeIndex = targetPlayer->GetPlayerIndex();
 		}
 		return true;
@@ -1018,7 +999,7 @@ bool CEmployee::RescueTasking()
 			if (GetIsPlayerOnRescueInter())
 			{
 
-				CEmployee* rescuedPlayer = static_cast<CEmployee*>(static_cast<CGameScene*>(mainGame.m_SceneManager->GetSceneByIdx(3))->GetScenePlayerByIdx(_rescuingEmployeeIndex));
+				CEmployee* rescuedPlayer = static_cast<CEmployee*>(_ownerScene.GetScenePlayerByIdx(_rescuingEmployeeIndex));
 
 				SetRescueInteraction(false);
 
@@ -1033,7 +1014,7 @@ bool CEmployee::RescueTasking()
 					packet.eventId = rescuedPlayer->GetPlayerIndex() + (int32)EVENT_TYPE::RESCUE_CANCEL_PLAYER_ONE;
 					packet.size = sizeof(SC_EVENTPACKET);
 					packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
-					clientCore.DoSend(&packet);
+					_ownerScene.SendPacket(&packet);
 					_rescuingEmployeeIndex = -1;
 				}
 			}
