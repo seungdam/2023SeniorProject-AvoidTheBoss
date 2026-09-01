@@ -1,38 +1,35 @@
 ﻿#pragma once
-#include "GameFramework.h"
 #include "ClientSession.h"
 #include "IocpCore.h"
-#include "Player.h"
-// =============== new Client Session ================
-// ===================================================
-// ===================================================
 
-extern HWND g_hwnd;
+#include <atomic>
+#include <memory>
 
 // ========= new Iocp Core ==============
 
-class CCIocpCore : public IocpCore
+namespace atb { class ClientPacketDispatcher; }
+
+class ClientIocpCore final : public IocpCore
 {
 	friend class ClientSession;
 public:
-	CCIocpCore();
-	~CCIocpCore();
+	ClientIocpCore();
+	~ClientIocpCore() override;
 	void InitConnect(const char* address);
 	void DoConnect();
-	void DoSend(void* packet) { _client->DoSend(packet); }
-	void DispatchPackets() { if (_client) _client->DispatchPackets(); }
-	virtual bool Processing(uint32_t timelimit = INFINITE);
-	void Disconnect(int32 sid);
+	bool Logout();
+	bool DoSend(void* packet);
+	void DispatchPackets(atb::ClientPacketDispatcher& dispatcher);
+	bool Processing(uint32_t timelimit = INFINITE) override;
+	void Disconnect();
 private:
 	bool PrepareSocket(bool reconnect);
 	bool ReconnectIfDrained();
 	bool ScheduleReconnect();
 
-	ClientSession* _client;
+	std::unique_ptr<ClientSession> _client;
 	SOCKADDR_IN _serveraddr;
-	bool _manualDisconnect = false;
+	std::atomic_bool _manualDisconnect = false;
 	bool _reconnectPending = false;
 
 };
-
-extern class CCIocpCore clientCore;
