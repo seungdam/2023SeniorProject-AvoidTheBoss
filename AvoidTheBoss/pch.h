@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include "targetver.h"
-
 #include "../Shared/GameCommon.h"
 #include "../Shared/Protocol.h"
 #include "../Shared/Runtime/CoreMacro.h"

@@ -153,7 +153,11 @@ set_source_files_properties(
 target_include_directories(GameClient PRIVATE
     AvoidTheBoss
 )
-target_compile_definitions(GameClient PRIVATE _WINDOWS)
+target_compile_definitions(GameClient PRIVATE
+    _WINDOWS
+    WINVER=0x0A00
+    _WIN32_WINNT=0x0A00
+)
 target_precompile_headers(GameClient PRIVATE
     "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss/pch.h>"
 )
