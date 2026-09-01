@@ -1,264 +1,102 @@
-﻿// Senior_project_ver2.cpp : 애플리케이션에 대한 진입점을 정의합니다.
-//
 #include "pch.h"
-#include "AvoidTheBoss.h"
-#include "clientIocpCore.h"
+
 #include "ClientTestMode.h"
+#include "GameFramework.h"
 #include "SocketUtil.h"
 #include "ThreadManager.h"
+#include "clientIocpCore.h"
 
 #if defined(_DEBUG)
 #include <crtdbg.h>
 #endif
 
-#define MAX_LOADSTRING 100
-
-// 전역 변수:
-
-HWND g_hWnd;
-HINSTANCE hInst;                                // 현재 인스턴스입니다.
-WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
-WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
-
-// 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
-ATOM                MyRegisterClass(HINSTANCE hInstance);
-BOOL                InitInstance(HINSTANCE, int);
-LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-
-BOOL CALLBACK MyDialogBox(HWND hWndDlg, UINT message, WPARAM wParam, LPARAM lParam);
-
-int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
-    _In_opt_ HINSTANCE hPrevInstance,
-    _In_ LPWSTR    lpCmdLine,
-    _In_ int       nCmdShow)
+int APIENTRY wWinMain(
+	_In_ HINSTANCE hInstance,
+	_In_opt_ HINSTANCE hPrevInstance,
+	_In_ LPWSTR commandLine,
+	_In_ int showCommand)
 {
 #if defined(_DEBUG)
-    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-    std::set_terminate([]
-        {
-            try
-            {
-                if (const auto exception = std::current_exception()) std::rethrow_exception(exception);
-            }
-            catch (const std::exception& error)
-            {
-                ::OutputDebugStringA("[terminate] ");
-                ::OutputDebugStringA(error.what());
-                ::OutputDebugStringA("\n");
-            }
-            catch (...)
-            {
-                ::OutputDebugStringA("[terminate] unknown exception\n");
-            }
-            std::abort();
-        });
-#endif
-    ::SetConsoleTitle(L"Client");
-    if (!g_clientTestMode.Configure())
-    {
-        ::OutputDebugStringA("[E2E] Invalid camera test arguments\n");
-        return 2;
-    }
-    const bool isClientTest = g_clientTestMode.Enabled();
-    ThreadManager threadManager;
-    MSG msg{};
-
-    UNREFERENCED_PARAMETER(hPrevInstance);
-    UNREFERENCED_PARAMETER(lpCmdLine);
-   SocketUtil::Init();
-   CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-   // 전역 문자열을 초기화합니다.
-    ::LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    ::LoadString(hInstance, IDC_AVOIDTHEBOSS, szWindowClass, MAX_LOADSTRING);
-    MyRegisterClass(hInstance);
-
-    // 애플리케이션 초기화를 수행합니다:
-    if (!InitInstance(hInstance, nCmdShow))
-    {
-        CoUninitialize();
-        SocketUtil::Clear();
-        return FALSE;
-    }
-
-
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_AVOIDTHEBOSS));
-
-    clientCore.InitConnect("127.0.0.1");
-    clientCore.DoConnect();
-
-    // 기본 메시지 루프입니다:
-    threadManager.Launch([=]()
-        {
-            while (true)
-            {
-                if (!clientCore.Processing()) break;
-            }
-            std::cout << "end thread \n";
-        }
-    );
-
-   while (true)
-   {
-       if (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-       {
-           if (msg.message == WM_QUIT)
-           {
-               //mainGame.OnDestroy();
-               //clientCore.Disconnect(0);
-
-               break;
-           }
-           else if (!::TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
-           {
-               ::TranslateMessage(&msg);
-               ::DispatchMessage(&msg);
-           }
-       }
-       else
-           mainGame.FrameAdvance(); // 처리할 윈도우 메세지가 큐에 없을 때 게임프로그램이 CPU사용
-   }
-    clientCore.Disconnect(0);
-    threadManager.Join();
-    mainGame.OnDestroy();
-    std::cout << "Quit Client\n";
-    SocketUtil::Clear();
-    CoUninitialize();
-
-    return isClientTest ? g_clientTestMode.FinalizeProcess() : static_cast<int>(msg.wParam);
-}
-
-
-ATOM MyRegisterClass(HINSTANCE hInstance)
-{
-    WNDCLASSEXW wcex;
-
-    wcex.cbSize = sizeof(WNDCLASSEX);
-    wcex.style = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc = WndProc;
-    wcex.cbClsExtra = 0;
-    wcex.cbWndExtra = 0;
-    wcex.hInstance = hInstance;
-    wcex.hIcon = ::LoadIcon(hInstance, MAKEINTRESOURCE(IDI_AVOIDTHEBOSS));
-    wcex.hCursor = ::LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    //주 윈도우의 메뉴가 나타나지 않도록 한다.
-    wcex.lpszMenuName = NULL;
-    wcex.lpszClassName = szWindowClass;
-    wcex.hIconSm = ::LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
-
-    return ::RegisterClassEx(&wcex);
-}
-
-BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
-{
-    hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
-
-    RECT rc = { 0, 0,FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT };
-    DWORD dwStyle = WS_OVERLAPPED | WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU |
-        WS_BORDER;
-    AdjustWindowRect(&rc, dwStyle, FALSE);   //윈도우가 원하는 클라이언트 영역 크기 가지도록 윈도우크기 계산
-    HWND hMainWnd = CreateWindow(
-        szWindowClass,
-        szTitle,
-        dwStyle,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        rc.right - rc.left,
-        rc.bottom - rc.top,
-        NULL,
-        NULL,
-        hInst,
-        NULL);
-    g_hWnd = hMainWnd;
-
-    if (!hMainWnd)return (FALSE);
-
-    //----프레임워크 객체 초기화
-    try
-    {
-        mainGame.OnCreate(hInst, hMainWnd);
-    }
-    catch (const std::exception& error)
-    {
-        ::OutputDebugStringA("[initialization] ");
-        ::OutputDebugStringA(error.what());
-        ::OutputDebugStringA("\n");
-        mainGame.OnDestroy();
-        ::DestroyWindow(hMainWnd);
-        g_hWnd = nullptr;
-        return FALSE;
-    }
-    catch (...)
-    {
-        ::OutputDebugStringA("[initialization] unknown exception\n");
-        mainGame.OnDestroy();
-        ::DestroyWindow(hMainWnd);
-        g_hWnd = nullptr;
-        return FALSE;
-    }
-    ShowWindow(hMainWnd, nCmdShow);
-    UpdateWindow(hMainWnd);
-
-#ifdef _WITH_SWAPCHAIN_FULLSCREEN_STATE
-    mainGame.ChangeSwapChainState();
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	std::set_terminate([]
+		{
+			try
+			{
+				if (const auto exception = std::current_exception()) std::rethrow_exception(exception);
+			}
+			catch (const std::exception& error)
+			{
+				::OutputDebugStringA("[terminate] ");
+				::OutputDebugStringA(error.what());
+				::OutputDebugStringA("\n");
+			}
+			catch (...)
+			{
+				::OutputDebugStringA("[terminate] unknown exception\n");
+			}
+			std::abort();
+		});
 #endif
 
-    return (TRUE);
+	UNREFERENCED_PARAMETER(hPrevInstance);
+	UNREFERENCED_PARAMETER(commandLine);
+	::SetConsoleTitleW(L"Client");
+
+	if (!g_clientTestMode.Configure())
+	{
+		::OutputDebugStringA("[E2E] Invalid camera test arguments\n");
+		return 2;
+	}
+	const bool isClientTest = g_clientTestMode.Enabled();
+
+	SocketUtil::Init();
+	::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+
+	try
+	{
+		mainGame.OnCreate(hInstance, showCommand);
+	}
+	catch (const std::exception& error)
+	{
+		::OutputDebugStringA("[initialization] ");
+		::OutputDebugStringA(error.what());
+		::OutputDebugStringA("\n");
+		mainGame.OnDestroy();
+		SocketUtil::Clear();
+		::CoUninitialize();
+		return 1;
+	}
+	catch (...)
+	{
+		::OutputDebugStringA("[initialization] unknown exception\n");
+		mainGame.OnDestroy();
+		SocketUtil::Clear();
+		::CoUninitialize();
+		return 1;
+	}
+
+	clientCore.InitConnect("127.0.0.1");
+	clientCore.DoConnect();
+
+	ThreadManager threadManager;
+	threadManager.Launch([]
+		{
+			while (clientCore.Processing()) {}
+			std::cout << "end thread \n";
+		});
+
+	while (mainGame.ProcessWindowMessages())
+	{
+		mainGame.FrameAdvance();
+	}
+	const int exitCode = mainGame.ExitCode();
+
+	clientCore.Disconnect(0);
+	threadManager.Join();
+	mainGame.OnDestroy();
+	std::cout << "Quit Client\n";
+	SocketUtil::Clear();
+	::CoUninitialize();
+
+	return isClientTest ? g_clientTestMode.FinalizeProcess() : exitCode;
 }
-
-
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    int wmId, wmEvent;
-    PAINTSTRUCT ps;
-    HDC hdc;
-    switch (message)
-    {
-    case WM_SIZE:
-    case WM_LBUTTONDOWN:
-    case WM_LBUTTONUP:
-    case WM_RBUTTONDOWN:
-    case WM_RBUTTONUP:
-    case WM_MOUSEMOVE:
-    case WM_KEYDOWN:
-    case WM_KEYUP:
-        mainGame.OnProcessingWindowMessage(hWnd, message, wParam, lParam);
-        break;
-    case WM_COMMAND:
-    {
-        wmId = LOWORD(wParam);
-        wmEvent = HIWORD(wParam);
-        // 메뉴 선택을 구문 분석합니다:
-        switch (wmId)
-        {
-        case IDM_EXIT:
-            DestroyWindow(hWnd);
-            break;
-        default:
-            return ::DefWindowProc(hWnd, message, wParam, lParam);
-        }
-    }
-    break;
-    case WM_PAINT:
-    {
-        hdc = BeginPaint(hWnd, &ps);
-        EndPaint(hWnd, &ps);
-    }
-    break;
-    case WM_CREATE:
-        SetWindowLong(hWnd, GWL_STYLE, GetWindowLong(hWnd, GWL_STYLE) & ~WS_CAPTION);
-        SetWindowPos(hWnd, NULL, 0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, SWP_FRAMECHANGED);
-        break;
-    case WM_DESTROY:
-        ::PostQuitMessage(0);
-        break;
-    default:
-        return(::DefWindowProc(hWnd, message, wParam, lParam));
-    }
-
-    return 0;
-}
-
-
-

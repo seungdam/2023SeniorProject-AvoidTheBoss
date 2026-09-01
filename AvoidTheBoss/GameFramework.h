@@ -1,7 +1,9 @@
 #pragma once
 
 #include "../Shared/Types.h"
+#include "D2DRenderer.h"
 #include "D3D12Renderer.h"
+#include "Window.h"
 
 class CScene;
 class UIManager;
@@ -23,9 +25,9 @@ public:
 	friend class CGenerator;
 
 private:
-	HINSTANCE m_hInstance = nullptr;
-	HWND m_hWnd = nullptr;
+	atb::Window m_window;
 	atb::D3D12Renderer m_d3d12Renderer;
+	atb::D2DRenderer m_d2dRenderer;
 
 protected:
 	SceneManager* m_SceneManager = nullptr;
@@ -40,9 +42,11 @@ public:
 	~CGameFramework();
 	CScene* GetSceneByIdx(int32 index) const noexcept;
 
-	bool OnCreate(HINSTANCE hInstance, HWND hMainWnd);
+	bool OnCreate(HINSTANCE hInstance, int showCommand);
 	void FinalizeClientTest();
 	void OnDestroy();
+	[[nodiscard]] bool ProcessWindowMessages();
+	[[nodiscard]] int ExitCode() const noexcept;
 
 	void ChangeSwapChainState();
 

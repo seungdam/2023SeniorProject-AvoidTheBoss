@@ -24,12 +24,21 @@ CScene* CGameFramework::GetSceneByIdx(const int32 index) const noexcept
 	return m_SceneManager ? m_SceneManager->GetSceneByIdx(index) : nullptr;
 }
 
-bool CGameFramework::OnCreate(HINSTANCE hInstance, HWND hMainWnd)
+bool CGameFramework::OnCreate(HINSTANCE hInstance, const int showCommand)
 {
-	m_hInstance = hInstance;
-	m_hWnd = hMainWnd;
-	m_d3d12Renderer.Initialize(hMainWnd);
+	m_window.Initialize(
+		hInstance,
+		[this](HWND window, UINT message, WPARAM wParam, LPARAM lParam)
+		{
+			return OnProcessingWindowMessage(window, message, wParam, lParam);
+		});
+	m_d3d12Renderer.Initialize(m_window.Handle());
 	BuildScenes();
+	m_window.Show(showCommand);
+
+#ifdef _WITH_SWAPCHAIN_FULLSCREEN_STATE
+	ChangeSwapChainState();
+#endif
 	return true;
 }
 
@@ -61,22 +70,35 @@ void CGameFramework::OnDestroy()
 	}
 #endif
 
+	m_window.Shutdown();
 	g_clientTestMode.OnCleanupSequenceCompleted();
+}
+
+bool CGameFramework::ProcessWindowMessages()
+{
+	return m_window.ProcessMessages();
+}
+
+int CGameFramework::ExitCode() const noexcept
+{
+	return m_window.ExitCode();
 }
 
 void CGameFramework::BuildScenes()
 {
 	auto* commandList = m_d3d12Renderer.BeginResourceUpload();
 	auto backBuffers = m_d3d12Renderer.BackBuffers();
+	m_d2dRenderer.Initialize(
+		m_d3d12Renderer.Device(),
+		m_d3d12Renderer.CommandQueue(),
+		backBuffers);
 
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] UI initialization begin\n");
 #endif
 	m_UIRenderer = new UIManager(
-		atb::D3D12Renderer::FrameCount,
-		m_d3d12Renderer.Device(),
-		m_d3d12Renderer.CommandQueue(),
-		backBuffers.data(),
+		m_d2dRenderer.Context(),
+		m_d2dRenderer.WriteFactory(),
 		m_d3d12Renderer.Width(),
 		m_d3d12Renderer.Height());
 #if defined(_DEBUG)
@@ -93,6 +115,7 @@ void CGameFramework::ReleaseScenes()
 {
 	delete m_UIRenderer;
 	m_UIRenderer = nullptr;
+	m_d2dRenderer.Shutdown();
 
 	delete m_SceneManager;
 	m_SceneManager = nullptr;
@@ -100,12 +123,14 @@ void CGameFramework::ReleaseScenes()
 
 void CGameFramework::ProcessInput()
 {
-	m_SceneManager->ProcessInput(m_hWnd, m_curScene);
+	HWND window = m_window.Handle();
+	m_SceneManager->ProcessInput(window, m_curScene);
 }
 
 void CGameFramework::UpdateObject()
 {
-	m_SceneManager->Update(m_hWnd, m_curScene);
+	HWND window = m_window.Handle();
+	m_SceneManager->Update(window, m_curScene);
 }
 
 void CGameFramework::AnimateObjects()
@@ -175,7 +200,9 @@ void CGameFramework::FrameAdvance()
 		auto* gameScene = static_cast<CGameScene*>(m_SceneManager->GetSceneByIdx(currentScene));
 		if (gameScene) localPlayerIndex = gameScene->GetLocalPlayerIndex();
 	}
-	m_UIRenderer->Render2D(m_d3d12Renderer.FrameIndex(), currentScene, localPlayerIndex);
+	m_d2dRenderer.BeginFrame(m_d3d12Renderer.FrameIndex());
+	m_UIRenderer->Render2D(currentScene, localPlayerIndex);
+	m_d2dRenderer.EndFrame();
 
 	const HRESULT presentResult = m_d3d12Renderer.Present();
 	if (g_clientTestMode.Enabled()) g_clientTestMode.OnPresent(presentResult);
