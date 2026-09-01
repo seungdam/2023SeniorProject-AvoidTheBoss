@@ -338,7 +338,7 @@ void CRoomScene::MouseAction(const POINT& mp)
 
 		for (int i = 0; i < PLAYERNUM; ++i)
 		{
-			if (_members[i]._sid == CScene::m_sid)
+			if (_members[i]._sid == CScene::_sid)
 			{
 				if (!_members[i].isReady)
 				{

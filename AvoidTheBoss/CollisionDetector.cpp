@@ -73,7 +73,7 @@ void OcTree::AddBoundingBox(DirectX::BoundingBox aabb)
 	{
 		if (_area.Intersects(aabb))
 		{
-			_node->addBoxs(aabb);
+			_node->AddBoxs(aabb);
 		}
 	}
 	else if (_curLevel < _maxLevel)

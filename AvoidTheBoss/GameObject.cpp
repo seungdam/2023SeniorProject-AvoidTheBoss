@@ -131,17 +131,17 @@ void CTexture::LoadTextureFromFile(ID3D12Device5 *pd3dDevice, ID3D12GraphicsComm
 //
 CMaterial::CMaterial(int nTextures)
 {
-	m_nTextures = nTextures;
+	_textureCount = nTextures;
 
-	m_ppTextures = new CTexture*[m_nTextures];
-	m_ppstrTextureNames = new _TCHAR[m_nTextures][64];
-	for (int i = 0; i < m_nTextures; i++)
+	_ppTextures = new CTexture*[_textureCount];
+	_ppStrTextureNames = new _TCHAR[_textureCount][64];
+	for (int i = 0; i < _textureCount; i++)
 	{
-		m_ppTextures[i] = NULL;
+		_ppTextures[i] = NULL;
 	}
-	for (int i = 0; i < m_nTextures; i++)
+	for (int i = 0; i < _textureCount; i++)
 	{
-		m_ppstrTextureNames[i][0] = '\0';
+		_ppStrTextureNames[i][0] = '\0';
 	}
 }
 
@@ -153,21 +153,21 @@ CMaterial::~CMaterial()
 		_pShader= nullptr;
 	}
 
-	if (m_nTextures > 0)
+	if (_textureCount > 0)
 	{
-		for (int i = 0; i < m_nTextures; i++)
+		for (int i = 0; i < _textureCount; i++)
 		{
-			if (m_ppTextures[i])
+			if (_ppTextures[i])
 			{
-				m_ppTextures[i]->Release();
-				m_ppTextures[i] = nullptr;
+				_ppTextures[i]->Release();
+				_ppTextures[i] = nullptr;
 			}
 		}
-		delete[] m_ppTextures;
+		delete[] _ppTextures;
 
-		if (m_ppstrTextureNames)
+		if (_ppStrTextureNames)
 		{
-			delete[] m_ppstrTextureNames;
+			delete[] _ppStrTextureNames;
 		}
 	}
 }
@@ -187,72 +187,72 @@ void CMaterial::SetShader(CShader *pShader)
 
 void CMaterial::SetTexture(CTexture *pTexture, UINT nTexture)
 {
-	if (m_ppTextures[nTexture])
+	if (_ppTextures[nTexture])
 	{
-		m_ppTextures[nTexture]->Release();
+		_ppTextures[nTexture]->Release();
 	}
-	m_ppTextures[nTexture] = pTexture;
-	if (m_ppTextures[nTexture])
+	_ppTextures[nTexture] = pTexture;
+	if (_ppTextures[nTexture])
 	{
-		m_ppTextures[nTexture]->AddRef();
+		_ppTextures[nTexture]->AddRef();
 	}
 }
 
 void CMaterial::ReleaseUploadBuffers()
 {
-	for (int i = 0; i < m_nTextures; i++)
+	for (int i = 0; i < _textureCount; i++)
 	{
-		if (m_ppTextures[i])
+		if (_ppTextures[i])
 		{
-			m_ppTextures[i]->ReleaseUploadBuffers();
+			_ppTextures[i]->ReleaseUploadBuffers();
 		}
 	}
 }
 
-CShader *CMaterial::m_pSkinnedAnimationShader = NULL;
-CShader *CMaterial::m_pStandardShader = NULL;
+CShader *CMaterial::_pSkinnedAnimationShader = NULL;
+CShader *CMaterial::_pStandardShader = NULL;
 
 void CMaterial::PrepareShaders(ID3D12Device5 *pd3dDevice, ID3D12GraphicsCommandList4   *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature)
 {
-	m_pStandardShader = new CStandardShader();
-	m_pStandardShader->AddRef();
-	m_pStandardShader->CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
-	m_pStandardShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);
+	_pStandardShader = new CStandardShader();
+	_pStandardShader->AddRef();
+	_pStandardShader->CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+	_pStandardShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);
 
-	m_pSkinnedAnimationShader = new CSkinnedAnimationStandardShader();
-	m_pSkinnedAnimationShader->AddRef();
-	m_pSkinnedAnimationShader->CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
-	m_pSkinnedAnimationShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);
+	_pSkinnedAnimationShader = new CSkinnedAnimationStandardShader();
+	_pSkinnedAnimationShader->AddRef();
+	_pSkinnedAnimationShader->CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+	_pSkinnedAnimationShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
 
 void CMaterial::ReleaseShaders()
 {
-	if (m_pStandardShader)
+	if (_pStandardShader)
 	{
-		m_pStandardShader->Release();
+		_pStandardShader->Release();
 	}
-	m_pStandardShader = nullptr;
-	if (m_pSkinnedAnimationShader)
+	_pStandardShader = nullptr;
+	if (_pSkinnedAnimationShader)
 	{
-		m_pSkinnedAnimationShader->Release();
+		_pSkinnedAnimationShader->Release();
 	}
-	m_pSkinnedAnimationShader = nullptr;
+	_pSkinnedAnimationShader = nullptr;
 }
 
 void CMaterial::UpdateShaderVariable(ID3D12GraphicsCommandList4   *pd3dCommandList)
 {
-	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 4, &m_xmf4AmbientColor, 16);
-	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 4, &m_xmf4AlbedoColor, 20);
-	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 4, &m_xmf4SpecularColor, 24);
-	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 4, &m_xmf4EmissiveColor, 28);
+	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 4, &_xmf4AmbientColor, 16);
+	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 4, &_xmf4AlbedoColor, 20);
+	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 4, &_xmf4SpecularColor, 24);
+	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 4, &_xmf4EmissiveColor, 28);
 
 	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 1, &m_nType, 32);
 
-	for (int i = 0; i < m_nTextures; i++)
+	for (int i = 0; i < _textureCount; i++)
 	{
-		if (m_ppTextures[i])
+		if (_ppTextures[i])
 		{
-			m_ppTextures[i]->UpdateShaderVariable(pd3dCommandList, 0);
+			_ppTextures[i]->UpdateShaderVariable(pd3dCommandList, 0);
 		}
 	}
 }
@@ -1183,13 +1183,13 @@ CTexture *CGameObject::FindReplicatedTexture(_TCHAR *pstrTextureName)
 	{
 		if (m_ppMaterials[i])
 		{
-			for (int j = 0; j < m_ppMaterials[i]->m_nTextures; j++)
+			for (int j = 0; j < m_ppMaterials[i]->_textureCount; j++)
 			{
-				if (m_ppMaterials[i]->m_ppTextures[j])
+				if (m_ppMaterials[i]->_ppTextures[j])
 				{
-					if (!_tcsncmp(m_ppMaterials[i]->m_ppstrTextureNames[j], pstrTextureName, _tcslen(pstrTextureName)))
+					if (!_tcsncmp(m_ppMaterials[i]->_ppStrTextureNames[j], pstrTextureName, _tcslen(pstrTextureName)))
 					{
-						return (m_ppMaterials[i]->m_ppTextures[j]);
+						return (m_ppMaterials[i]->_ppTextures[j]);
 					}
 				}
 			}
@@ -1284,23 +1284,23 @@ void CGameObject::LoadMaterialsFromFile(ID3D12Device5 *pd3dDevice, ID3D12Graphic
 		}
 		else if (!strcmp(pstrToken, "<AlbedoColor>:"))
 		{
-			nReads = (UINT)::fread(&(pMaterial->m_xmf4AlbedoColor), sizeof(float), 4, pInFile);
+			nReads = (UINT)::fread(&(pMaterial->_xmf4AlbedoColor), sizeof(float), 4, pInFile);
 		}
 		else if (!strcmp(pstrToken, "<EmissiveColor>:"))
 		{
-			nReads = (UINT)::fread(&(pMaterial->m_xmf4EmissiveColor), sizeof(float), 4, pInFile);
+			nReads = (UINT)::fread(&(pMaterial->_xmf4EmissiveColor), sizeof(float), 4, pInFile);
 		}
 		else if (!strcmp(pstrToken, "<SpecularColor>:"))
 		{
-			nReads = (UINT)::fread(&(pMaterial->m_xmf4SpecularColor), sizeof(float), 4, pInFile);
+			nReads = (UINT)::fread(&(pMaterial->_xmf4SpecularColor), sizeof(float), 4, pInFile);
 		}
 		else if (!strcmp(pstrToken, "<Glossiness>:"))
 		{
-			nReads = (UINT)::fread(&(pMaterial->m_fGlossiness), sizeof(float), 1, pInFile);
+			nReads = (UINT)::fread(&(pMaterial->_fGlossiness), sizeof(float), 1, pInFile);
 		}
 		else if (!strcmp(pstrToken, "<Smoothness>:"))
 		{
-			nReads = (UINT)::fread(&(pMaterial->m_fSmoothness), sizeof(float), 1, pInFile);
+			nReads = (UINT)::fread(&(pMaterial->_fSmoothness), sizeof(float), 1, pInFile);
 		}
 		else if (!strcmp(pstrToken, "<Metallic>:"))
 		{
@@ -1316,31 +1316,31 @@ void CGameObject::LoadMaterialsFromFile(ID3D12Device5 *pd3dDevice, ID3D12Graphic
 		}
 		else if (!strcmp(pstrToken, "<AlbedoMap>:"))
 		{
-			pMaterial->LoadTextureFromFile(pd3dDevice, pd3dCommandList, CMaterial::AlbedoMap, 3, pMaterial->m_ppstrTextureNames[0], &(pMaterial->m_ppTextures[0]), pParent, pInFile, pShader);
+			pMaterial->LoadTextureFromFile(pd3dDevice, pd3dCommandList, CMaterial::AlbedoMap, 3, pMaterial->_ppStrTextureNames[0], &(pMaterial->_ppTextures[0]), pParent, pInFile, pShader);
 		}
 		else if (!strcmp(pstrToken, "<SpecularMap>:"))
 		{
-			m_ppMaterials[nMaterial]->LoadTextureFromFile(pd3dDevice, pd3dCommandList, CMaterial::SpecularMap, 4, pMaterial->m_ppstrTextureNames[1], &(pMaterial->m_ppTextures[1]), pParent, pInFile, pShader);
+			m_ppMaterials[nMaterial]->LoadTextureFromFile(pd3dDevice, pd3dCommandList, CMaterial::SpecularMap, 4, pMaterial->_ppStrTextureNames[1], &(pMaterial->_ppTextures[1]), pParent, pInFile, pShader);
 		}
 		else if (!strcmp(pstrToken, "<NormalMap>:"))
 		{
-			m_ppMaterials[nMaterial]->LoadTextureFromFile(pd3dDevice, pd3dCommandList, CMaterial::NormalMap, 5, pMaterial->m_ppstrTextureNames[2], &(pMaterial->m_ppTextures[2]), pParent, pInFile, pShader);
+			m_ppMaterials[nMaterial]->LoadTextureFromFile(pd3dDevice, pd3dCommandList, CMaterial::NormalMap, 5, pMaterial->_ppStrTextureNames[2], &(pMaterial->_ppTextures[2]), pParent, pInFile, pShader);
 		}
 		else if (!strcmp(pstrToken, "<MetallicMap>:"))
 		{
-			m_ppMaterials[nMaterial]->LoadTextureFromFile(pd3dDevice, pd3dCommandList, CMaterial::MetallicMap, 6, pMaterial->m_ppstrTextureNames[3], &(pMaterial->m_ppTextures[3]), pParent, pInFile, pShader);
+			m_ppMaterials[nMaterial]->LoadTextureFromFile(pd3dDevice, pd3dCommandList, CMaterial::MetallicMap, 6, pMaterial->_ppStrTextureNames[3], &(pMaterial->_ppTextures[3]), pParent, pInFile, pShader);
 		}
 		else if (!strcmp(pstrToken, "<EmissionMap>:"))
 		{
-			m_ppMaterials[nMaterial]->LoadTextureFromFile(pd3dDevice, pd3dCommandList, CMaterial::EmissionMap, 7, pMaterial->m_ppstrTextureNames[4], &(pMaterial->m_ppTextures[4]), pParent, pInFile, pShader);
+			m_ppMaterials[nMaterial]->LoadTextureFromFile(pd3dDevice, pd3dCommandList, CMaterial::EmissionMap, 7, pMaterial->_ppStrTextureNames[4], &(pMaterial->_ppTextures[4]), pParent, pInFile, pShader);
 		}
 		else if (!strcmp(pstrToken, "<DetailAlbedoMap>:"))
 		{
-			m_ppMaterials[nMaterial]->LoadTextureFromFile(pd3dDevice, pd3dCommandList, CMaterial::DetailAlbedoMap, 8, pMaterial->m_ppstrTextureNames[5], &(pMaterial->m_ppTextures[5]), pParent, pInFile, pShader);
+			m_ppMaterials[nMaterial]->LoadTextureFromFile(pd3dDevice, pd3dCommandList, CMaterial::DetailAlbedoMap, 8, pMaterial->_ppStrTextureNames[5], &(pMaterial->_ppTextures[5]), pParent, pInFile, pShader);
 		}
 		else if (!strcmp(pstrToken, "<DetailNormalMap>:"))
 		{
-			m_ppMaterials[nMaterial]->LoadTextureFromFile(pd3dDevice, pd3dCommandList, CMaterial::DetailNormalMap, 9, pMaterial->m_ppstrTextureNames[6], &(pMaterial->m_ppTextures[6]), pParent, pInFile, pShader);
+			m_ppMaterials[nMaterial]->LoadTextureFromFile(pd3dDevice, pd3dCommandList, CMaterial::DetailNormalMap, 9, pMaterial->_ppStrTextureNames[6], &(pMaterial->_ppTextures[6]), pParent, pInFile, pShader);
 		}
 		else if (!strcmp(pstrToken, "</Materials>"))
 		{

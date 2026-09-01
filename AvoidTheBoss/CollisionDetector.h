@@ -11,9 +11,9 @@ class LeafNode
 {
 public:
 	std::vector<DirectX::BoundingBox> boxs;
-public:
-	LeafNode() {}
-	void addBoxs(DirectX::BoundingBox aabb) { boxs.push_back(aabb); }
+
+	LeafNode() = default;
+	void AddBoxs(DirectX::BoundingBox aabb) { boxs.push_back(aabb); }
 	virtual ~LeafNode() { boxs.clear(); }
 };
 
@@ -22,14 +22,10 @@ class OcTree
 
 	struct Sector
 	{
-		DirectX::XMFLOAT3 _center;
+		DirectX::XMFLOAT3 _center = { 0,0,0 };
 		DirectX::XMFLOAT3 _leftTopBack;
 		DirectX::XMFLOAT3 _rightBottomFront;
-	public:
-		Sector()
-		{
-			_center = { 0,0,0 };
-		}
+
 		Sector(DirectX::XMFLOAT3 center, float volume)
 		{
 			_center = center;
@@ -40,11 +36,6 @@ class OcTree
 		bool IsIncludePoint(const XMFLOAT3 pos)
 		{
 			return ((_leftTopBack.x <= pos.x && pos.x <= _rightBottomFront.x) && (_leftTopBack.y >= pos.y && pos.y >= _rightBottomFront.y) && (_leftTopBack.z <= pos.z && pos.z <= _rightBottomFront.z));
-		}
-		void print()
-		{
-			//std::cout << "center : " << _center.x << " " << _center.y << " " << _center.z << std::endl;
-
 		}
 	};
 

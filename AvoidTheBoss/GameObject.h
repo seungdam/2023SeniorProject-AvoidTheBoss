@@ -118,35 +118,35 @@ public:
 
 public:
 	CShader							*_pShader = nullptr;
-	XMFLOAT4						m_xmf4AlbedoColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	XMFLOAT4						m_xmf4EmissiveColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
-	XMFLOAT4						m_xmf4SpecularColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
-	XMFLOAT4						m_xmf4AmbientColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	XMFLOAT4						_xmf4AlbedoColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	XMFLOAT4						_xmf4EmissiveColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	XMFLOAT4						_xmf4SpecularColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	XMFLOAT4						_xmf4AmbientColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 
 	UINT							m_nType = 0x00;
 
-	float							m_fGlossiness = 0.0f;
-	float							m_fSmoothness = 0.0f;
+	float							_fGlossiness = 0.0f;
+	float							_fSmoothness = 0.0f;
 	float							m_fSpecularHighlight = 0.0f;
 	float							m_fMetallic = 0.0f;
 	float							m_fGlossyReflection = 0.0f;
 
 public:
-	int 							m_nTextures = 0;
-	_TCHAR							(*m_ppstrTextureNames)[64] = NULL;
-	CTexture						**m_ppTextures = NULL; //0:Albedo, 1:Specular, 2:Metallic, 3:Normal, 4:Emission, 5:DetailAlbedo, 6:DetailNormal
+	int 							_textureCount = 0;
+	_TCHAR							(*_ppStrTextureNames)[64] = NULL;
+	CTexture						**_ppTextures = nullptr; //0:Albedo, 1:Specular, 2:Metallic, 3:Normal, 4:Emission, 5:DetailAlbedo, 6:DetailNormal
 
 	void LoadTextureFromFile(ID3D12Device5 *pd3dDevice, ID3D12GraphicsCommandList4  *pd3dCommandList, UINT nType, UINT nRootParameter, _TCHAR *pwstrTextureName, CTexture **ppTexture, CGameObject *pParent, FILE *pInFile, CShader *pShader);
 
 public:
-	static CShader					*m_pStandardShader;
-	static CShader					*m_pSkinnedAnimationShader;
+	static CShader					*_pStandardShader;
+	static CShader					*_pSkinnedAnimationShader;
 
 	static void PrepareShaders(ID3D12Device5 *pd3dDevice, ID3D12GraphicsCommandList4  *pd3dCommandList, ID3D12RootSignature *pd3dGraphicsRootSignature);
 	static void ReleaseShaders();
 
-	void SetStandardShader() { CMaterial::SetShader(m_pStandardShader); }
-	void SetSkinnedAnimationShader() { CMaterial::SetShader(m_pSkinnedAnimationShader); }
+	void SetStandardShader() { CMaterial::SetShader(_pStandardShader); }
+	void SetSkinnedAnimationShader() { CMaterial::SetShader(_pSkinnedAnimationShader); }
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

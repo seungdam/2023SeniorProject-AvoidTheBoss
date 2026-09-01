@@ -72,8 +72,8 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 	case (uint8)S_TITLE_PACKET_TYPE::LOGIN_OK:
 	{
 		S2C_LOGIN_OK* lo = (S2C_LOGIN_OK*)packet;
-		CScene::m_sid = lo->sid;
-		CScene::m_cid = lo->cid;
+		CScene::_sid = lo->sid;
+		CScene::_cid = lo->cid;
 		pTitleScene->_loginLock.lock();
 		pTitleScene->_isLogin = true;
 		pTitleScene->_loginLock.unlock();
@@ -92,7 +92,7 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 		{
 			session.SetSid(resume->newSid);
 			session._resumeSid.store(-1, std::memory_order_release);
-			CScene::m_sid = resume->newSid;
+			CScene::_sid = resume->newSid;
 		}
 		if (CPlayer *player = pGameScene->GetScenePlayerByIdx(resume->playerIndex))
 		{
@@ -105,7 +105,7 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 		session.ClearResumeToken();
 		session._resumeSid.store(-1, std::memory_order_release);
 		session.SetSid(-1);
-		CScene::m_sid = -1;
+		CScene::_sid = -1;
 		if (_gameCore.CurrentScene() == SceneId::InGame)
 		{
 			pGameScene->ResetGame();

@@ -20,8 +20,11 @@ int APIENTRY wWinMain(
 		{
 			try
 			{
-				if (const auto exception = std::current_exception()) std::rethrow_exception(exception);
-			}
+			    if (const auto exception = std::current_exception())
+			    {
+				    std::rethrow_exception(exception);
+			    }
+		    }
 			catch (const std::exception& error)
 			{
 				::OutputDebugStringA("[terminate] ");

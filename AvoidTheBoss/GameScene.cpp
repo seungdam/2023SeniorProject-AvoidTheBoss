@@ -122,84 +122,84 @@ void CGameScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM 
 
 void CGameScene::BuildDefaultLightsAndMaterials()
 {
-	m_nLights = 11;
-	m_pLights = new LIGHT[m_nLights];
-	::ZeroMemory(m_pLights, sizeof(LIGHT) * m_nLights);
+	_lightCount = 11;
+	_pLights = new LIGHT[_lightCount];
+	::ZeroMemory(_pLights, sizeof(LIGHT) * _lightCount);
 
-	m_xmf4GlobalAmbient = XMFLOAT4(0.15f, 0.15f, 0.15f, 1.0f);
+	_xmf4GlobalAmbient = XMFLOAT4(0.15f, 0.15f, 0.15f, 1.0f);
 
 	// 비상구 조명
 	XMFLOAT4 fAmbientExist = XMFLOAT4(0.0f, 0.7f, 0.1f, 1.0f);
 	XMFLOAT4 f4DiffuseExist = XMFLOAT4(0.0f, 0.7f, 0.1f, 1.0f);
-	m_pLights[0].m_bEnable = true;
-	m_pLights[0].m_nType = LIGHT::PointType;
-	m_pLights[0].m_fRange = 4.5f;
-	m_pLights[0].m_xmf4Ambient = fAmbientExist;
-	m_pLights[0].m_xmf4Diffuse = f4DiffuseExist;
-	m_pLights[0].m_xmf4Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.0f);
-	m_pLights[0].m_xmf3Position = XMFLOAT3(24.6359f, 1.168867f, -21.98898f);
-	m_pLights[0].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
+	_pLights[0].isEnable = true;
+	_pLights[0].type = LIGHT::PointType;
+	_pLights[0].range = 4.5f;
+	_pLights[0].xmf4Ambient = fAmbientExist;
+	_pLights[0].xmf4Diffuse = f4DiffuseExist;
+	_pLights[0].xmf4Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.0f);
+	_pLights[0].xmf3Position = XMFLOAT3(24.6359f, 1.168867f, -21.98898f);
+	_pLights[0].xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
 
-	m_pLights[10].m_bEnable = true;
-	m_pLights[10].m_nType = LIGHT::PointType;
-	m_pLights[10].m_fRange = 4.5f;
-	m_pLights[10].m_xmf4Ambient = fAmbientExist;
-	m_pLights[10].m_xmf4Diffuse = f4DiffuseExist;
-	m_pLights[10].m_xmf4Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.0f);
-	m_pLights[10].m_xmf3Position = XMFLOAT3(-24.6359f, 1.168867f, -21.98898f);
-	m_pLights[10].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
+	_pLights[10].isEnable = true;
+	_pLights[10].type = LIGHT::PointType;
+	_pLights[10].range = 4.5f;
+	_pLights[10].xmf4Ambient = fAmbientExist;
+	_pLights[10].xmf4Diffuse = f4DiffuseExist;
+	_pLights[10].xmf4Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.0f);
+	_pLights[10].xmf3Position = XMFLOAT3(-24.6359f, 1.168867f, -21.98898f);
+	_pLights[10].xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
 
 	// 입구 문틈 햇빛 효과
-	m_pLights[1].m_bEnable = true;
-	m_pLights[1].m_nType = LIGHT::SpotType;
-	m_pLights[1].m_fRange = 35.0f;
-	m_pLights[1].m_xmf4Ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
-	m_pLights[1].m_xmf4Diffuse = XMFLOAT4(1.0f, 0.53f, 0.27f, 1.0f);
-	m_pLights[1].m_xmf4Specular = XMFLOAT4(0.3f, 0.3f, 0.3f, 0.0f);
-	m_pLights[1].m_xmf3Position = XMFLOAT3(-0.0f, 18.0f, 23.0f);
-	m_pLights[1].m_xmf3Direction = XMFLOAT3(0.0f, -1.0f, -0.1f);
-	m_pLights[1].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.01f, 0.0001f);
-	m_pLights[1].m_fFalloff = 40.0f;
-	m_pLights[1].m_fPhi = (float)cos(XMConvertToRadians(150.0f));
-	m_pLights[1].m_fTheta = (float)cos(XMConvertToRadians(20.0f));
+	_pLights[1].isEnable = true;
+	_pLights[1].type = LIGHT::SpotType;
+	_pLights[1].range = 35.0f;
+	_pLights[1].xmf4Ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
+	_pLights[1].xmf4Diffuse = XMFLOAT4(1.0f, 0.53f, 0.27f, 1.0f);
+	_pLights[1].xmf4Specular = XMFLOAT4(0.3f, 0.3f, 0.3f, 0.0f);
+	_pLights[1].xmf3Position = XMFLOAT3(-0.0f, 18.0f, 23.0f);
+	_pLights[1].xmf3Direction = XMFLOAT3(0.0f, -1.0f, -0.1f);
+	_pLights[1].xmf3Attenuation = XMFLOAT3(1.0f, 0.01f, 0.0001f);
+	_pLights[1].fFalloff = 40.0f;
+	_pLights[1].pi = (float)cos(XMConvertToRadians(150.0f));
+	_pLights[1].theta = (float)cos(XMConvertToRadians(20.0f));
 
 	// 전역 조명
-	m_pLights[2].m_bEnable = true;
-	m_pLights[2].m_nType = LIGHT::DirectionalType;
-	m_pLights[2].m_xmf4Ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
-	m_pLights[2].m_xmf4Diffuse = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
-	m_pLights[2].m_xmf4Specular = XMFLOAT4(0.4f, 0.4f, 0.4f, 0.0f);
-	m_pLights[2].m_xmf3Direction = XMFLOAT3(0.0f, -1.0f, -1.0f);
+	_pLights[2].isEnable = true;
+	_pLights[2].type = LIGHT::DirectionalType;
+	_pLights[2].xmf4Ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
+	_pLights[2].xmf4Diffuse = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
+	_pLights[2].xmf4Specular = XMFLOAT4(0.4f, 0.4f, 0.4f, 0.0f);
+	_pLights[2].xmf3Direction = XMFLOAT3(0.0f, -1.0f, -1.0f);
 
 	// 발전기 조명
 	XMFLOAT4 fAmbientGen = XMFLOAT4(0.7f, 0.3f, 0.3f, 1.0f);
 	XMFLOAT4 f4DiffuseGen = XMFLOAT4(0.7f, 0.3f, 0.3f, 1.0f);
-	m_pLights[4].m_bEnable = true;
-	m_pLights[4].m_nType = LIGHT::PointType;
-	m_pLights[4].m_fRange = 3.5f;
-	m_pLights[4].m_xmf4Ambient = fAmbientGen;
-	m_pLights[4].m_xmf4Diffuse = f4DiffuseGen;
-	m_pLights[4].m_xmf4Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.0f);
-	m_pLights[4].m_xmf3Position = XMFLOAT3(0.874719f, 1.083242f, -23.05909f);
-	m_pLights[4].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
+	_pLights[4].isEnable = true;
+	_pLights[4].type = LIGHT::PointType;
+	_pLights[4].range = 3.5f;
+	_pLights[4].xmf4Ambient = fAmbientGen;
+	_pLights[4].xmf4Diffuse = f4DiffuseGen;
+	_pLights[4].xmf4Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.0f);
+	_pLights[4].xmf3Position = XMFLOAT3(0.874719f, 1.083242f, -23.05909f);
+	_pLights[4].xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
 
-	m_pLights[5].m_bEnable = true;
-	m_pLights[5].m_nType = LIGHT::PointType;
-	m_pLights[5].m_fRange = 3.5f;
-	m_pLights[5].m_xmf4Ambient = fAmbientGen;
-	m_pLights[5].m_xmf4Diffuse = f4DiffuseGen;
-	m_pLights[5].m_xmf4Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.0f);
-	m_pLights[5].m_xmf3Position = XMFLOAT3(23.08867f, 1.083242f, 3.35997f);
-	m_pLights[5].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
+	_pLights[5].isEnable = true;
+	_pLights[5].type = LIGHT::PointType;
+	_pLights[5].range = 3.5f;
+	_pLights[5].xmf4Ambient = fAmbientGen;
+	_pLights[5].xmf4Diffuse = f4DiffuseGen;
+	_pLights[5].xmf4Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.0f);
+	_pLights[5].xmf3Position = XMFLOAT3(23.08867f, 1.083242f, 3.35997f);
+	_pLights[5].xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
 
-	m_pLights[6].m_bEnable = true;
-	m_pLights[6].m_nType = LIGHT::PointType;
-	m_pLights[6].m_fRange = 3.5f;
-	m_pLights[6].m_xmf4Ambient = fAmbientGen;
-	m_pLights[6].m_xmf4Diffuse = f4DiffuseGen;
-	m_pLights[6].m_xmf4Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.0f);
-	m_pLights[6].m_xmf3Position = XMFLOAT3(-23.12724f, 1.146619f, 1.614123f);
-	m_pLights[6].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
+	_pLights[6].isEnable = true;
+	_pLights[6].type = LIGHT::PointType;
+	_pLights[6].range = 3.5f;
+	_pLights[6].xmf4Ambient = fAmbientGen;
+	_pLights[6].xmf4Diffuse = f4DiffuseGen;
+	_pLights[6].xmf4Specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 0.0f);
+	_pLights[6].xmf3Position = XMFLOAT3(-23.12724f, 1.146619f, 1.614123f);
+	_pLights[6].xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
 
 	// 창문 햇살 조명
 	XMFLOAT4 fAmbientWin = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f); // 기본 색상 (발산광)
@@ -209,104 +209,104 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 	float fRangeWin = 20.0f; // 원 크기
 	float fphiWin = (float)cos(XMConvertToRadians(25.0f)); // 강도를 감쇠하기 시작하는 각도 (스포트라이트의 내부 원뿔 각도)
 	float fThetaWin = (float)cos(XMConvertToRadians(10.0f)); // 강도를 감쇠하기 시작하는 각도(외부 원뿔 각도)
-	m_pLights[7].m_bEnable = false;
-	m_pLights[7].m_nType = LIGHT::SpotType;
-	m_pLights[7].m_fRange = fRangeWin;
-	m_pLights[7].m_xmf4Ambient = fAmbientWin;
-	m_pLights[7].m_xmf4Diffuse = f4DiffuseWin;
-	m_pLights[7].m_xmf4Specular = XMFLOAT4(0.3f, 0.3f, 0.3f, 0.0f);
-	m_pLights[7].m_xmf3Position = XMFLOAT3(0.0f, 20.0f, 20.0f);
-	m_pLights[7].m_xmf3Direction = XMFLOAT3(0.0f, -1.0f, 1.0f);;
-	m_pLights[7].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.01f, 0.0001f);
-	m_pLights[7].m_fFalloff = fFalloff;
-	m_pLights[7].m_fPhi = fphiWin;
-	m_pLights[7].m_fTheta = fThetaWin;
+	_pLights[7].isEnable = false;
+	_pLights[7].type = LIGHT::SpotType;
+	_pLights[7].range = fRangeWin;
+	_pLights[7].xmf4Ambient = fAmbientWin;
+	_pLights[7].xmf4Diffuse = f4DiffuseWin;
+	_pLights[7].xmf4Specular = XMFLOAT4(0.3f, 0.3f, 0.3f, 0.0f);
+	_pLights[7].xmf3Position = XMFLOAT3(0.0f, 20.0f, 20.0f);
+	_pLights[7].xmf3Direction = XMFLOAT3(0.0f, -1.0f, 1.0f);;
+	_pLights[7].xmf3Attenuation = XMFLOAT3(1.0f, 0.01f, 0.0001f);
+	_pLights[7].fFalloff = fFalloff;
+	_pLights[7].pi = fphiWin;
+	_pLights[7].theta = fThetaWin;
 
-	m_pLights[8].m_bEnable = true;
-	m_pLights[8].m_nType = LIGHT::SpotType;
-	m_pLights[8].m_fRange = fRangeWin + 10.0f;
-	m_pLights[8].m_xmf4Ambient = fAmbientWin;
-	m_pLights[8].m_xmf4Diffuse = f4DiffuseWin;
-	m_pLights[8].m_xmf4Specular = XMFLOAT4(0.3f, 0.3f, 0.3f, 0.0f);
-	m_pLights[8].m_xmf3Position = XMFLOAT3(0.0f, 23.0f, -18.0f);
-	m_pLights[8].m_xmf3Direction = fDirectionWin;
-	m_pLights[8].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.01f, 0.0001f);
-	m_pLights[8].m_fFalloff = fFalloff;
-	m_pLights[8].m_fPhi = (float)cos(XMConvertToRadians(fphiWin + 25.0f));
-	m_pLights[8].m_fTheta = fThetaWin;
+	_pLights[8].isEnable = true;
+	_pLights[8].type = LIGHT::SpotType;
+	_pLights[8].range = fRangeWin + 10.0f;
+	_pLights[8].xmf4Ambient = fAmbientWin;
+	_pLights[8].xmf4Diffuse = f4DiffuseWin;
+	_pLights[8].xmf4Specular = XMFLOAT4(0.3f, 0.3f, 0.3f, 0.0f);
+	_pLights[8].xmf3Position = XMFLOAT3(0.0f, 23.0f, -18.0f);
+	_pLights[8].xmf3Direction = fDirectionWin;
+	_pLights[8].xmf3Attenuation = XMFLOAT3(1.0f, 0.01f, 0.0001f);
+	_pLights[8].fFalloff = fFalloff;
+	_pLights[8].pi = (float)cos(XMConvertToRadians(fphiWin + 25.0f));
+	_pLights[8].theta = fThetaWin;
 
-	m_pLights[9].m_bEnable = false;
-	m_pLights[9].m_nType = LIGHT::SpotType;
-	m_pLights[9].m_fRange = fRangeWin;
-	m_pLights[9].m_xmf4Ambient = fAmbientWin;
-	m_pLights[9].m_xmf4Diffuse = f4DiffuseWin;
-	m_pLights[9].m_xmf4Specular = XMFLOAT4(0.3f, 0.3f, 0.3f, 0.0f);
-	m_pLights[9].m_xmf3Position = XMFLOAT3(-10.0f, 23.0f, -20.0f);
-	m_pLights[9].m_xmf3Direction = fDirectionWin;
-	m_pLights[9].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.01f, 0.0001f);
-	m_pLights[9].m_fFalloff = fFalloff;
-	m_pLights[9].m_fPhi = fphiWin;
-	m_pLights[9].m_fTheta = fThetaWin;
+	_pLights[9].isEnable = false;
+	_pLights[9].type = LIGHT::SpotType;
+	_pLights[9].range = fRangeWin;
+	_pLights[9].xmf4Ambient = fAmbientWin;
+	_pLights[9].xmf4Diffuse = f4DiffuseWin;
+	_pLights[9].xmf4Specular = XMFLOAT4(0.3f, 0.3f, 0.3f, 0.0f);
+	_pLights[9].xmf3Position = XMFLOAT3(-10.0f, 23.0f, -20.0f);
+	_pLights[9].xmf3Direction = fDirectionWin;
+	_pLights[9].xmf3Attenuation = XMFLOAT3(1.0f, 0.01f, 0.0001f);
+	_pLights[9].fFalloff = fFalloff;
+	_pLights[9].pi = fphiWin;
+	_pLights[9].theta = fThetaWin;
 }
 
 void CGameScene::BuildObjects(ID3D12Device5* pd3dDevice,ID3D12GraphicsCommandList4*  pd3dCommandList)
 {
-	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
+	_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
 
 	CreateCbvSrvDescriptorHeaps(pd3dDevice, 0, 282);
 	// 맵 106+ 스카이박스 2 + 크래인 12 + 바닥 2 + 사이렌 6*16+ 발전기 16*3 + 셔터도어 4*2 + 비상구1*2 + 정문 4 + 캐릭터?? + 히트 1 + 총알 1
-	CMaterial::PrepareShaders(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
+	CMaterial::PrepareShaders(pd3dDevice, pd3dCommandList, _pd3dGraphicsRootSignature);
 	BuildDefaultLightsAndMaterials();
 
-	m_pSkyBox = new CSkyBox(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
-	m_pSkyBox->SetScale(50.0f, 50.0f, 50.0f);
-	m_pSkyBox->SetPosition(0.0f, 100.0f, 0.0f);
-	m_pSkyBox->Rotate(0.0f, 150.0f, 0.0f);
+	_pSkyBox = new CSkyBox(pd3dDevice, pd3dCommandList, _pd3dGraphicsRootSignature);
+	_pSkyBox->SetScale(50.0f, 50.0f, 50.0f);
+	_pSkyBox->SetPosition(0.0f, 100.0f, 0.0f);
+	_pSkyBox->Rotate(0.0f, 150.0f, 0.0f);
 
 	for (int i = 0; i < PLAYERNUM; ++i)
 	{
 		if (i == (int)(CHARACTER_TYPE::BOSS))
 		{
-			_players[i] = new CBoss(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, *this);
+			_players[i] = new CBoss(pd3dDevice, pd3dCommandList, _pd3dGraphicsRootSignature, *this);
 		}
 		else
 		{
-			_players[i] = new CEmployee(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, (CHARACTER_TYPE)(i), *this);
+			_players[i] = new CEmployee(pd3dDevice, pd3dCommandList, _pd3dGraphicsRootSignature, (CHARACTER_TYPE)(i), *this);
 		}
 		_players[i]->SetPlayerIndex(i);
 	}
-	m_nShaders = 6;
-	m_ppShaders = new CShader * [m_nShaders]{};
+	_shaderCount = 6;
+	_ppShaders = new CShader * [_shaderCount]{};
 
 	CMapObjectsShader* pMapShader = new CMapObjectsShader();
-	m_ppShaders[0] = pMapShader;
-	pMapShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
-	pMapShader->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, NULL, NULL);
+	_ppShaders[0] = pMapShader;
+	pMapShader->CreateShader(pd3dDevice, pd3dCommandList, _pd3dGraphicsRootSignature);
+	pMapShader->BuildObjects(pd3dDevice, pd3dCommandList, _pd3dGraphicsRootSignature, NULL, NULL);
 
 	CBulletObjectsShader* pBulletObjectShader = new CBulletObjectsShader();
-	m_ppShaders[1] = pBulletObjectShader;
-	pBulletObjectShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
-	pBulletObjectShader->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, NULL, NULL);
+	_ppShaders[1] = pBulletObjectShader;
+	pBulletObjectShader->CreateShader(pd3dDevice, pd3dCommandList, _pd3dGraphicsRootSignature);
+	pBulletObjectShader->BuildObjects(pd3dDevice, pd3dCommandList, _pd3dGraphicsRootSignature, NULL, NULL);
 
 	CDoorObjectsShader* pDoorObjectShader = new CDoorObjectsShader();
-	m_ppShaders[2] = pDoorObjectShader;
-	pDoorObjectShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
-	pDoorObjectShader->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, NULL, NULL);
+	_ppShaders[2] = pDoorObjectShader;
+	pDoorObjectShader->CreateShader(pd3dDevice, pd3dCommandList, _pd3dGraphicsRootSignature);
+	pDoorObjectShader->BuildObjects(pd3dDevice, pd3dCommandList, _pd3dGraphicsRootSignature, NULL, NULL);
 
 	CSirenObjectsShader* pSirenObjectShader = new CSirenObjectsShader();
-	m_ppShaders[3] = pSirenObjectShader;
-	pSirenObjectShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
-	pSirenObjectShader->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, NULL, NULL);
+	_ppShaders[3] = pSirenObjectShader;
+	pSirenObjectShader->CreateShader(pd3dDevice, pd3dCommandList, _pd3dGraphicsRootSignature);
+	pSirenObjectShader->BuildObjects(pd3dDevice, pd3dCommandList, _pd3dGraphicsRootSignature, NULL, NULL);
 
 	CGeneratorObjectsShader* pGeneratorObjectsShader = new CGeneratorObjectsShader();
-	m_ppShaders[4] = pGeneratorObjectsShader;
-	pGeneratorObjectsShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
-	pGeneratorObjectsShader->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, NULL, NULL);
+	_ppShaders[4] = pGeneratorObjectsShader;
+	pGeneratorObjectsShader->CreateShader(pd3dDevice, pd3dCommandList, _pd3dGraphicsRootSignature);
+	pGeneratorObjectsShader->BuildObjects(pd3dDevice, pd3dCommandList, _pd3dGraphicsRootSignature, NULL, NULL);
 
 	CHitEffectObjectsShader* pHitEffectObjectsShader = new CHitEffectObjectsShader();
-	m_ppShaders[5] = pHitEffectObjectsShader;
-	pHitEffectObjectsShader->CreateShader(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
-	pHitEffectObjectsShader->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, NULL, NULL);
+	_ppShaders[5] = pHitEffectObjectsShader;
+	pHitEffectObjectsShader->CreateShader(pd3dDevice, pd3dCommandList, _pd3dGraphicsRootSignature);
+	pHitEffectObjectsShader->BuildObjects(pd3dDevice, pd3dCommandList, _pd3dGraphicsRootSignature, NULL, NULL);
 
 	_generators = new CGenerator * [_generatorCount];
 
@@ -320,7 +320,7 @@ void CGameScene::BuildObjects(ID3D12Device5* pd3dDevice,ID3D12GraphicsCommandLis
 	{
 		if (i == (int)(CHARACTER_TYPE::BOSS))
 		{
-			if (m_ppShaders[1] && m_ppShaders[5])
+			if (_ppShaders[1] && _ppShaders[5])
 			{
 				((CBullet*)(pBulletObjectShader->_ppObjects[0]))->SetHitEffect((CHitEffect*)pHitEffectObjectsShader->_ppObjects[0]);
 				((CBoss*)_players[i])->_bullet = (CBullet*)pBulletObjectShader->_ppObjects[0];
@@ -445,7 +445,7 @@ void CGameScene::Update(HWND& hWnd)
 	}
 	// 평균 프레임 레이트 출력
 	std::wstring str = L"[";
-	str.append(std::to_wstring(m_sid));
+	str.append(std::to_wstring(_sid));
 	str.append(L"] ");
 	str.append(L"- WorldFrame: ");
 	str.append(std::to_wstring(_currentFrame));
@@ -455,11 +455,11 @@ void CGameScene::Update(HWND& hWnd)
 
 void CGameScene::AnimateObjects()
 {
-	for (int i = 0; i < m_nShaders; i++)
+	for (int i = 0; i < _shaderCount; i++)
 	{
-		if (m_ppShaders[i])
+		if (_ppShaders[i])
 		{
-			m_ppShaders[i]->AnimateObjects(_timer.GetTimeElapsed());
+			_ppShaders[i]->AnimateObjects(_timer.GetTimeElapsed());
 		}
 	}
 
@@ -484,13 +484,13 @@ void CGameScene::Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pC
 		return;
 	}
 
-	if (m_pd3dGraphicsRootSignature)
+	if (_pd3dGraphicsRootSignature)
 	{
-		pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
+		pd3dCommandList->SetGraphicsRootSignature(_pd3dGraphicsRootSignature);
 	}
-	if (m_pd3dCbvSrvDescriptorHeap)
+	if (_pd3dCbvSrvDescriptorHeap)
 	{
-		pd3dCommandList->SetDescriptorHeaps(1, &m_pd3dCbvSrvDescriptorHeap);
+		pd3dCommandList->SetDescriptorHeaps(1, &_pd3dCbvSrvDescriptorHeap);
 	}
 
 	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
@@ -498,55 +498,55 @@ void CGameScene::Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pC
 
 	UpdateShaderVariables(pd3dCommandList);
 
-	D3D12_GPU_VIRTUAL_ADDRESS d3dcbLightsGpuVirtualAddress = m_pd3dcbLights->GetGPUVirtualAddress();
+	D3D12_GPU_VIRTUAL_ADDRESS d3dcbLightsGpuVirtualAddress = _pd3dcbLights->GetGPUVirtualAddress();
 	pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbLightsGpuVirtualAddress); //Lights
 
-	if (m_pSkyBox)
+	if (_pSkyBox)
 	{
-		m_pSkyBox->Render(pd3dCommandList, pCamera, bRaster);
+		_pSkyBox->Render(pd3dCommandList, pCamera, bRaster);
 	}
 
-	for (int i = 0; i < m_nGameObjects; i++)
+	for (int i = 0; i < _gameObjectCounts; i++)
 	{
-		if (m_ppGameObjects[i])
+		if (_ppGameObjects[i])
 		{
-			m_ppGameObjects[i]->Render(pd3dCommandList, pCamera, bRaster);
+			_ppGameObjects[i]->Render(pd3dCommandList, pCamera, bRaster);
 		}
 	}
 
-	for (int i = 0; i < m_nShaders; i++)
+	for (int i = 0; i < _shaderCount; i++)
 	{
-		if (m_ppShaders[i])
+		if (_ppShaders[i])
 		{
-			m_ppShaders[i]->Render(pd3dCommandList, pCamera, bRaster);
+			_ppShaders[i]->Render(pd3dCommandList, pCamera, bRaster);
 		}
 	}
 
-	for (int i = 0; i < m_nHierarchicalGameObjects; i++)
+	for (int i = 0; i < _hierarchicalGameObjectCount; i++)
 	{
-		if (m_ppHierarchicalGameObjects[i])
+		if (_ppHierarchicalGameObjects[i])
 		{
-			m_ppHierarchicalGameObjects[i]->Animate(m_fElapsedTime);
-			if (!m_ppHierarchicalGameObjects[i]->m_IsFirst)
+			_ppHierarchicalGameObjects[i]->Animate(_fElapsedTime);
+			if (!_ppHierarchicalGameObjects[i]->m_IsFirst)
 			{
-				if (!m_ppHierarchicalGameObjects[i]->m_pSkinnedAnimationController)
+				if (!_ppHierarchicalGameObjects[i]->m_pSkinnedAnimationController)
 				{
-					m_ppHierarchicalGameObjects[i]->UpdateTransform(NULL);
+					_ppHierarchicalGameObjects[i]->UpdateTransform(NULL);
 				}
-				if (!m_ppHierarchicalGameObjects[i]->m_pSkinnedAnimationController1)
+				if (!_ppHierarchicalGameObjects[i]->m_pSkinnedAnimationController1)
 				{
-					m_ppHierarchicalGameObjects[i]->UpdateTransform(NULL);
+					_ppHierarchicalGameObjects[i]->UpdateTransform(NULL);
 				}
 			}
 			else
 			{
-				if (!m_ppHierarchicalGameObjects[i]->m_pSkinnedAnimationController2)
+				if (!_ppHierarchicalGameObjects[i]->m_pSkinnedAnimationController2)
 				{
-					m_ppHierarchicalGameObjects[i]->UpdateTransform(NULL);
+					_ppHierarchicalGameObjects[i]->UpdateTransform(NULL);
 				}
 			}
 
-			m_ppHierarchicalGameObjects[i]->Render(pd3dCommandList, pCamera, bRaster);
+			_ppHierarchicalGameObjects[i]->Render(pd3dCommandList, pCamera, bRaster);
 		}
 	}
 
@@ -1057,9 +1057,9 @@ void CGameScene::ExitReady()
 			SoundManager::GetInstance().PlayObjectSound(19, 13);//Shutter_Open
 			_exitSoundActive = true;
 		}
-		for (int j = 0; j < m_nShaders; j++)
+		for (int j = 0; j < _shaderCount; j++)
 		{
-			CStandardObjectsShader* pShaderObjects = (CStandardObjectsShader*)m_ppShaders[j];
+			CStandardObjectsShader* pShaderObjects = (CStandardObjectsShader*)_ppShaders[j];
 			for (int i = 0; i < pShaderObjects->_objectCount; i++)
 			{
 				if (pShaderObjects->_ppObjects[i])
@@ -1092,13 +1092,13 @@ bool CGameScene::ResetGame()
 			i->ResetState();
 		}
 	}
-	if (m_ppShaders)
+	if (_ppShaders)
 	{
-		for (int i = 0; i < m_nShaders; ++i)
+		for (int i = 0; i < _shaderCount; ++i)
 		{
-			if (m_ppShaders[i])
+			if (_ppShaders[i])
 			{
-				m_ppShaders[i]->ResetState();
+				_ppShaders[i]->ResetState();
 			}
 		}
 	}

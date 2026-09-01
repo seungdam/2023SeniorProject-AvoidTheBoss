@@ -10,27 +10,28 @@ struct LIGHT
 	static constexpr int SpotType = 2;
 	static constexpr int DirectionalType = 3;
 
-	XMFLOAT4				m_xmf4Ambient;
-	XMFLOAT4				m_xmf4Diffuse;
-	XMFLOAT4				m_xmf4Specular;
-	XMFLOAT3				m_xmf3Position;
-	float 					m_fFalloff;
-	XMFLOAT3				m_xmf3Direction;
-	float 					m_fTheta; //cos(m_fTheta)
-	XMFLOAT3				m_xmf3Attenuation;
-	float					m_fPhi; //cos(m_fPhi)
-	bool					m_bEnable;
-	int						m_nType;
-	float					m_fRange;
+	XMFLOAT4				xmf4Ambient;
+	XMFLOAT4				xmf4Diffuse;
+	XMFLOAT4				xmf4Specular;
+	XMFLOAT3				xmf3Position;
+	XMFLOAT3				xmf3Attenuation;
+	XMFLOAT3				xmf3Direction;
+
+	float 					fFalloff;
+	float 					theta; //cos(m_fTheta)
+	float					pi; //cos(m_fPhi)
+	bool					isEnable;
+	int						type;
+	float					range;
 	float					padding;
 };
 struct LIGHTS
 {
 	static constexpr std::size_t MaxLightCount = 16;
 
-	LIGHT					m_pLights[MaxLightCount];
-	XMFLOAT4				m_xmf4GlobalAmbient;
-	int						m_nLights;
+	LIGHT					lights[MaxLightCount];
+	XMFLOAT4				xmf4GlobalAmbient;
+	int						lightCount;
 };
 
 class CSound;
@@ -38,59 +39,59 @@ class CSound;
 class CScene
 {
 public:
-	static int32 m_sid;
-	static int32 m_cid;
+	static int32 _sid;
+	static int32 _cid;
 protected:
-	ID3D12RootSignature* m_pd3dGraphicsRootSignature = NULL;
+	ID3D12RootSignature* _pd3dGraphicsRootSignature = NULL;
 public:
-	LIGHT*								m_pLights = NULL;
-	LIGHTS*								m_pcbMappedLights = NULL;
+	LIGHT*								_pLights = nullptr;
+	LIGHTS*								_pcbMappedLights = nullptr;
 
-	int									m_nLights = 0;
-	XMFLOAT4							m_xmf4GlobalAmbient;
+	int									_lightCount = 0;
+	XMFLOAT4							_xmf4GlobalAmbient;
+	ID3D12Resource*						_pd3dcbLights = nullptr;
 
-	ID3D12Resource*						m_pd3dcbLights = NULL;
-public:
-	int									m_nGameObjects = 0;
-	CGameObject**						m_ppGameObjects = NULL;
+	int									_gameObjectCounts = 0;
+	CGameObject							(**_ppGameObjects) = nullptr;
 
-	int									m_nHierarchicalGameObjects = 0;
-	CGameObject**						m_ppHierarchicalGameObjects = NULL;
+	int									_hierarchicalGameObjectCount = 0;
+	CGameObject							(**_ppHierarchicalGameObjects) = nullptr;
 
-	int									m_nShaders = 0;
-	CShader**							m_ppShaders = NULL;
-	CSkyBox*							m_pSkyBox = NULL;
-public:
-	float								m_fElapsedTime = 0.0f;
+	int									_shaderCount = 0;
+	CShader								(**_ppShaders) = nullptr;
+	CSkyBox*							_pSkyBox = nullptr;
+
+	float								_fElapsedTime = 0.0f;
 protected:
 
-	static ID3D12DescriptorHeap* m_pd3dCbvSrvDescriptorHeap;
-	static D3D12_CPU_DESCRIPTOR_HANDLE	m_d3dCbvCPUDescriptorStartHandle;
-	static D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dCbvGPUDescriptorStartHandle;
-	static D3D12_CPU_DESCRIPTOR_HANDLE	m_d3dSrvCPUDescriptorStartHandle;
-	static D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dSrvGPUDescriptorStartHandle;
+	static ID3D12DescriptorHeap*		_pd3dCbvSrvDescriptorHeap;
+	static D3D12_CPU_DESCRIPTOR_HANDLE	_d3dCbvCPUDescriptorStartHandle;
+	static D3D12_GPU_DESCRIPTOR_HANDLE	_d3dCbvGPUDescriptorStartHandle;
+	static D3D12_CPU_DESCRIPTOR_HANDLE	_d3dSrvCPUDescriptorStartHandle;
+	static D3D12_GPU_DESCRIPTOR_HANDLE	_d3dSrvGPUDescriptorStartHandle;
 
-	static D3D12_CPU_DESCRIPTOR_HANDLE	m_d3dCbvCPUDescriptorNextHandle;
-	static D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dCbvGPUDescriptorNextHandle;
-	static D3D12_CPU_DESCRIPTOR_HANDLE	m_d3dSrvCPUDescriptorNextHandle;
-	static D3D12_GPU_DESCRIPTOR_HANDLE	m_d3dSrvGPUDescriptorNextHandle;
+	static D3D12_CPU_DESCRIPTOR_HANDLE	_d3dCbvCPUDescriptorNextHandle;
+	static D3D12_GPU_DESCRIPTOR_HANDLE	_d3dCbvGPUDescriptorNextHandle;
+	static D3D12_CPU_DESCRIPTOR_HANDLE	_d3dSrvCPUDescriptorNextHandle;
+	static D3D12_GPU_DESCRIPTOR_HANDLE	_d3dSrvGPUDescriptorNextHandle;
 public:
+	CScene() = default;
+	virtual ~CScene() = default;
+
 	static void CreateCbvSrvDescriptorHeaps(ID3D12Device5* pd3dDevice, int nConstantBufferViews, int nShaderResourceViews);
-
 	static D3D12_GPU_DESCRIPTOR_HANDLE CreateConstantBufferViews(ID3D12Device5* pd3dDevice, int nConstantBufferViews, ID3D12Resource* pd3dConstantBuffers, UINT nStride);
 	static D3D12_GPU_DESCRIPTOR_HANDLE CreateShaderResourceViews(ID3D12Device5* pd3dDevice, CTexture* pTexture, UINT nRootParameter, bool bAutoIncrement);
 
-	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUCbvDescriptorStartHandle() { return(m_d3dCbvCPUDescriptorStartHandle); }
-	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUCbvDescriptorStartHandle() { return(m_d3dCbvGPUDescriptorStartHandle); }
-	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSrvDescriptorStartHandle() { return(m_d3dSrvCPUDescriptorStartHandle); }
-	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSrvDescriptorStartHandle() { return(m_d3dSrvGPUDescriptorStartHandle); }
+	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUCbvDescriptorStartHandle() { return(_d3dCbvCPUDescriptorStartHandle); }
+	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUCbvDescriptorStartHandle() { return(_d3dCbvGPUDescriptorStartHandle); }
+	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSrvDescriptorStartHandle() { return(_d3dSrvCPUDescriptorStartHandle); }
+	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSrvDescriptorStartHandle() { return(_d3dSrvGPUDescriptorStartHandle); }
 
-	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUCbvDescriptorNextHandle() { return(m_d3dCbvCPUDescriptorNextHandle); }
-	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUCbvDescriptorNextHandle() { return(m_d3dCbvGPUDescriptorNextHandle); }
-	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSrvDescriptorNextHandle() { return(m_d3dSrvCPUDescriptorNextHandle); }
-	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSrvDescriptorNextHandle() { return(m_d3dSrvGPUDescriptorNextHandle); }
-public:
-	virtual ~CScene() = default;
+	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUCbvDescriptorNextHandle() { return(_d3dCbvCPUDescriptorNextHandle); }
+	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUCbvDescriptorNextHandle() { return(_d3dCbvGPUDescriptorNextHandle); }
+	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSrvDescriptorNextHandle() { return(_d3dSrvCPUDescriptorNextHandle); }
+	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSrvDescriptorNextHandle() { return(_d3dSrvGPUDescriptorNextHandle); }
+
 
 	virtual void ProcessInput(HWND& hWnd) {}
 	virtual void Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pCamera,bool Raster) {};
@@ -98,19 +99,18 @@ public:
 	virtual void Update(HWND& hWnd) {}
 	virtual void AnimateObjects() {}
 	virtual void BuildObjects(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList) {}
-public:
-	ID3D12RootSignature* CreateGraphicsRootSignature(ID3D12Device5* pd3dDevice);
-	ID3D12RootSignature* GetGraphicsRootSignature() { return(m_pd3dGraphicsRootSignature); }
 
-public:
+	ID3D12RootSignature* CreateGraphicsRootSignature(ID3D12Device5* pd3dDevice);
+	ID3D12RootSignature* GetGraphicsRootSignature() { return(_pd3dGraphicsRootSignature); }
+
+
 	virtual void CreateShaderVariables(ID3D12Device5* pd3dDevice, ID3D12GraphicsCommandList4* pd3dCommandList);
 	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList4* pd3dCommandList);
 	virtual void ReleaseShaderVariables();
 
-public:
 	virtual void ReleaseUploadBuffers();
 	virtual void ReleaseObjects();
-public:
+
 	virtual void OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM	lParam);
 	virtual void OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	virtual void MouseAction(const POINT& mp) {};
