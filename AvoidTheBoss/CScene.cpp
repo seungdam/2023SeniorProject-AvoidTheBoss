@@ -12,7 +12,6 @@ int32 CScene::m_sid = -1;
 int32 CScene::m_cid = -1;
 
 ID3D12DescriptorHeap* CScene::m_pd3dCbvSrvDescriptorHeap = NULL;
-#define MAPVOLUME 50
 
 D3D12_CPU_DESCRIPTOR_HANDLE	CScene::m_d3dCbvCPUDescriptorStartHandle;
 D3D12_GPU_DESCRIPTOR_HANDLE	CScene::m_d3dCbvGPUDescriptorStartHandle;
@@ -31,15 +30,15 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetShaderResourceViewDesc(D3D12_RESOURCE_DESC d3
 	d3dShaderResourceViewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	switch (nTextureType)
 	{
-	case RESOURCE_TEXTURE2D: //(d3dResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)(d3dResourceDesc.DepthOrArraySize == 1)
-	case RESOURCE_TEXTURE2D_ARRAY:
+	case CTexture::Texture2D: //(d3dResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)(d3dResourceDesc.DepthOrArraySize == 1)
+	case CTexture::Texture2DResources:
 		d3dShaderResourceViewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		d3dShaderResourceViewDesc.Texture2D.MipLevels = -1;
 		d3dShaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
 		d3dShaderResourceViewDesc.Texture2D.PlaneSlice = 0;
 		d3dShaderResourceViewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		break;
-	case RESOURCE_TEXTURE2DARRAY: //(d3dResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)(d3dResourceDesc.DepthOrArraySize != 1)
+	case CTexture::Texture2DArray: //(d3dResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)(d3dResourceDesc.DepthOrArraySize != 1)
 		d3dShaderResourceViewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
 		d3dShaderResourceViewDesc.Texture2DArray.MipLevels = -1;
 		d3dShaderResourceViewDesc.Texture2DArray.MostDetailedMip = 0;
@@ -48,13 +47,13 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetShaderResourceViewDesc(D3D12_RESOURCE_DESC d3
 		d3dShaderResourceViewDesc.Texture2DArray.FirstArraySlice = 0;
 		d3dShaderResourceViewDesc.Texture2DArray.ArraySize = d3dResourceDesc.DepthOrArraySize;
 		break;
-	case RESOURCE_TEXTURE_CUBE: //(d3dResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)(d3dResourceDesc.DepthOrArraySize == 6)
+	case CTexture::TextureCube: //(d3dResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)(d3dResourceDesc.DepthOrArraySize == 6)
 		d3dShaderResourceViewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
 		d3dShaderResourceViewDesc.TextureCube.MipLevels = -1;
 		d3dShaderResourceViewDesc.TextureCube.MostDetailedMip = 0;
 		d3dShaderResourceViewDesc.TextureCube.ResourceMinLODClamp = 0.0f;
 		break;
-	case RESOURCE_BUFFER: //(d3dResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+	case CTexture::Buffer: //(d3dResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
 		d3dShaderResourceViewDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 		d3dShaderResourceViewDesc.Buffer.FirstElement = 0;
 		d3dShaderResourceViewDesc.Buffer.NumElements = 0;
@@ -282,8 +281,14 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device5* pd3dDevi
 	ID3DBlob* pd3dErrorBlob = NULL;
 	D3D12SerializeRootSignature(&d3dRootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &pd3dSignatureBlob, &pd3dErrorBlob);
 	pd3dDevice->CreateRootSignature(0, pd3dSignatureBlob->GetBufferPointer(), pd3dSignatureBlob->GetBufferSize(), __uuidof(ID3D12RootSignature), (void**)&pd3dGraphicsRootSignature);
-	if (pd3dSignatureBlob) pd3dSignatureBlob->Release();
-	if (pd3dErrorBlob) pd3dErrorBlob->Release();
+	if (pd3dSignatureBlob)
+	{
+		pd3dSignatureBlob->Release();
+	}
+	if (pd3dErrorBlob)
+	{
+		pd3dErrorBlob->Release();
+	}
 
 	return(pd3dGraphicsRootSignature);
 }
@@ -316,23 +321,53 @@ void CScene::ReleaseShaderVariables()
 
 void CScene::ReleaseUploadBuffers()
 {
-	if (m_pSkyBox) m_pSkyBox->ReleaseUploadBuffers();
+	if (m_pSkyBox)
+	{
+		m_pSkyBox->ReleaseUploadBuffers();
+	}
 
-	for (int i = 0; i < m_nShaders; i++)				if (m_ppShaders[i])	m_ppShaders[i]->ReleaseUploadBuffers();
-	for (int i = 0; i < m_nGameObjects; i++)			if (m_ppGameObjects[i]) m_ppGameObjects[i]->ReleaseUploadBuffers();
-	for (int i = 0; i < m_nHierarchicalGameObjects; i++) m_ppHierarchicalGameObjects[i]->ReleaseUploadBuffers();
+	for (int i = 0; i < m_nShaders; i++)
+	{
+		if (m_ppShaders[i])
+		{
+			m_ppShaders[i]->ReleaseUploadBuffers();
+		}
+	}
+	for (int i = 0; i < m_nGameObjects; i++)
+	{
+		if (m_ppGameObjects[i])
+		{
+			m_ppGameObjects[i]->ReleaseUploadBuffers();
+		}
+	}
+	for (int i = 0; i < m_nHierarchicalGameObjects; i++)
+	{
+		m_ppHierarchicalGameObjects[i]->ReleaseUploadBuffers();
+	}
 }
 
 void CScene::ReleaseObjects()
 {
-	if (m_pd3dGraphicsRootSignature) m_pd3dGraphicsRootSignature->Release();
+	if (m_pd3dGraphicsRootSignature)
+	{
+		m_pd3dGraphicsRootSignature->Release();
+	}
 	m_pd3dGraphicsRootSignature = nullptr;
-	if (m_pd3dCbvSrvDescriptorHeap) m_pd3dCbvSrvDescriptorHeap->Release();
+	if (m_pd3dCbvSrvDescriptorHeap)
+	{
+		m_pd3dCbvSrvDescriptorHeap->Release();
+	}
 	m_pd3dCbvSrvDescriptorHeap = nullptr;
 
 	if (m_ppGameObjects)
 	{
-		for (int i = 0; i < m_nGameObjects; i++) if (m_ppGameObjects[i]) m_ppGameObjects[i]->Release();
+		for (int i = 0; i < m_nGameObjects; i++)
+		{
+			if (m_ppGameObjects[i])
+			{
+				m_ppGameObjects[i]->Release();
+			}
+		}
 		delete[] m_ppGameObjects;
 		m_ppGameObjects = nullptr;
 	}
@@ -341,7 +376,10 @@ void CScene::ReleaseObjects()
 	{
 		for (int i = 0; i < m_nShaders; i++)
 		{
-			if (!m_ppShaders[i]) continue;
+			if (!m_ppShaders[i])
+			{
+				continue;
+			}
 			m_ppShaders[i]->ReleaseShaderVariables();
 			std::cout << "Shader Index: " << i << std::endl;
 
@@ -353,12 +391,21 @@ void CScene::ReleaseObjects()
 		m_ppShaders = nullptr;
 	}
 
-	if (m_pSkyBox) m_pSkyBox->Release();
+	if (m_pSkyBox)
+	{
+		m_pSkyBox->Release();
+	}
 	m_pSkyBox = nullptr;
 
 	if (m_ppHierarchicalGameObjects)
 	{
-		for (int i = 0; i < m_nHierarchicalGameObjects; i++) if (m_ppHierarchicalGameObjects[i]) m_ppHierarchicalGameObjects[i]->Release();
+		for (int i = 0; i < m_nHierarchicalGameObjects; i++)
+		{
+			if (m_ppHierarchicalGameObjects[i])
+			{
+				m_ppHierarchicalGameObjects[i]->Release();
+			}
+		}
 		delete[] m_ppHierarchicalGameObjects;
 		m_ppHierarchicalGameObjects = nullptr;
 	}

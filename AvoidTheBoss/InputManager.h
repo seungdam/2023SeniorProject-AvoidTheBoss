@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <array>
 
 enum class KEY_TYPE
 {
@@ -28,7 +29,7 @@ enum class KEY_TYPE
 	NUM9 = 0x39,
 };
 
-enum class KEY_STATUS : int8
+enum class KEY_STATUS : int
 {
 	KEY_NONE = -1, // 애초에 누른 적이 없는 경우
 	KEY_UP = 0, // 키를 눌렀다 땠을 경우
@@ -41,30 +42,37 @@ enum class KEY_STATUS : int8
 // 키 입력 처리하기 위한 것 싱글톤 패턴으로 생성한다.
 class InputManager
 {
-private:
-	static int8 m_keyBuffer[256];
-private:
-	InputManager()
+public:
+	static InputManager& GetInstance()
 	{
-		for (int i = 0; i < 256; ++i) m_keyBuffer[i] = (int8)KEY_STATUS::KEY_NONE;
+		static InputManager instance;
+		return instance;
 	}
-	InputManager(const InputManager& ref) {}
-	InputManager& operator=(const InputManager& ref) {}
-	~InputManager() {}
-	static void Update(const int32 key);
-	static void SetKeyPress(const int32 key);
-	static void SetKeyUp(const int32 key);
-public:
-static InputManager& GetInstance()
-{
-	static InputManager instance;
-	return instance;
-}
-public:
 
 	static void InputStatusUpdate();
 	static void MouseInputStatusUpdate();
-	static int8 GetKeyBuffer(const KEY_TYPE key) { return m_keyBuffer[(int32)key]; }
-	static int8 GetKeyBuffer(int32 key) { return m_keyBuffer[(int32)key]; }
+	static int GetKeyBuffer(const KEY_TYPE key) { return _keyBuffer[(int32)key]; }
+	static int GetKeyBuffer(int32 key) { return _keyBuffer[(int32)key]; }
+
+private:
+	InputManager() = delete;
+	~InputManager() = default;
+	InputManager(const InputManager& ref) = default;
+	InputManager& operator=(const InputManager& ref) = delete;
+	static void Update(const int32 key);
+	static void SetKeyPress(const int32 key);
+	static void SetKeyUp(const int32 key);
+
+	static constexpr std::array<int, 256> InitKeyBuffer()
+	{
+		std::array<int8, 256> arr{};
+		for (auto& val : arr)
+		{
+			val = (int8)KEY_STATUS::KEY_NONE;
+		}
+		return arr;
+	}
+private:
+	inline static std::array<int, 256> _keyBuffer = InitKeyBuffer();
 };
 

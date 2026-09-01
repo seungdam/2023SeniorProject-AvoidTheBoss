@@ -1,7 +1,6 @@
 ﻿#include "pch.h"
 #include "InputManager.h"
 
-int8 InputManager::m_keyBuffer[256] = {-1,};
 
 void InputManager::InputStatusUpdate()
 {
@@ -23,32 +22,35 @@ void InputManager::InputStatusUpdate()
 
 void InputManager::MouseInputStatusUpdate()
 {
-	if (::GetCapture())	Update(0x01);
+	if (::GetCapture())
+	{
+		Update(0x01);
+	}
 }
 
 void InputManager::SetKeyPress(int32 key)
 {
-	if (m_keyBuffer[key] <= 0 )
+	if (_keyBuffer[key] <= 0 )
 	{
 
-		m_keyBuffer[key] = (int8)KEY_STATUS::KEY_PRESS;
+		_keyBuffer[key] = (int8)KEY_STATUS::KEY_PRESS;
 	}
-	else if(m_keyBuffer[key] == (int8)KEY_STATUS::KEY_PRESS)
+	else if(_keyBuffer[key] == (int8)KEY_STATUS::KEY_PRESS)
 	{
 
-		m_keyBuffer[key] = (int8)KEY_STATUS::KEY_DOWN;
+		_keyBuffer[key] = (int8)KEY_STATUS::KEY_DOWN;
 	}
 }
 
 void InputManager::SetKeyUp(int32 key)
 {
-	if (m_keyBuffer[key] > 0)
+	if (_keyBuffer[key] > 0)
 	{
-		m_keyBuffer[key] = (int8)KEY_STATUS::KEY_UP;
+		_keyBuffer[key] = (int8)KEY_STATUS::KEY_UP;
 	}
-	else if(m_keyBuffer[key] == (int8)KEY_STATUS::KEY_UP)
+	else if(_keyBuffer[key] == (int8)KEY_STATUS::KEY_UP)
 	{
-		m_keyBuffer[key] = (int8)KEY_STATUS::KEY_NONE;
+		_keyBuffer[key] = (int8)KEY_STATUS::KEY_NONE;
 	}
 }
 

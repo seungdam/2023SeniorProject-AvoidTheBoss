@@ -12,21 +12,12 @@
 extern std::vector<DirectX::BoundingBox> bv;
 
 
-#define DIR_BUTTON_F				0X0300
-
 class CSound;
 class CShader;
 class CStandardShader;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-#define RESOURCE_TEXTURE2D			0x01
-#define RESOURCE_TEXTURE2D_ARRAY	0x02	//[]
-#define RESOURCE_TEXTURE2DARRAY		0x03
-#define RESOURCE_TEXTURE_CUBE		0x04
-#define RESOURCE_BUFFER				0x05
-
-
 struct SRVROOTARGUMENTINFO
 {
 	int								m_nRootParameterIndex = 0;
@@ -36,7 +27,13 @@ struct SRVROOTARGUMENTINFO
 class CTexture
 {
 public:
-	CTexture(int nTextureResources = 1, UINT nResourceType = RESOURCE_TEXTURE2D, int nSamplers = 0);
+	static constexpr UINT Texture2D = 0x01;
+	static constexpr UINT Texture2DResources = 0x02;
+	static constexpr UINT Texture2DArray = 0x03;
+	static constexpr UINT TextureCube = 0x04;
+	static constexpr UINT Buffer = 0x05;
+
+	CTexture(int nTextureResources = 1, UINT nResourceType = Texture2D, int nSamplers = 0);
 	virtual ~CTexture() = default;
 
 	CTexture(const CTexture&) = delete;
@@ -45,7 +42,7 @@ public:
 private:
 	int								m_nReferences = 0;
 
-	UINT							m_nTextureType = RESOURCE_TEXTURE2D;
+	UINT							m_nTextureType = Texture2D;
 
 	int								m_nTextures = 0;
 	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_textures;
@@ -56,7 +53,13 @@ private:
 
 public:
 	void AddRef() { m_nReferences++; }
-	void Release() { if (--m_nReferences <= 0) delete this; }
+	void Release()
+	{
+		if (--m_nReferences <= 0)
+		{
+			delete this;
+		}
+	}
 
 	void SetRootArgument(int nIndex, UINT nRootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE d3dsrvGpuDescriptorHandle);
 	void SetSampler(int nIndex, D3D12_GPU_DESCRIPTOR_HANDLE d3dSamplerGpuDescriptorHandle);
@@ -76,19 +79,19 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-#define MATERIAL_ALBEDO_MAP				0x01
-#define MATERIAL_SPECULAR_MAP			0x02
-#define MATERIAL_NORMAL_MAP				0x04
-#define MATERIAL_METALLIC_MAP			0x08
-#define MATERIAL_EMISSION_MAP			0x10
-#define MATERIAL_DETAIL_ALBEDO_MAP		0x20
-#define MATERIAL_DETAIL_NORMAL_MAP		0x40
-
 class CGameObject;
 
 class CMaterial
 {
 public:
+	static constexpr UINT AlbedoMap = 0x01;
+	static constexpr UINT SpecularMap = 0x02;
+	static constexpr UINT NormalMap = 0x04;
+	static constexpr UINT MetallicMap = 0x08;
+	static constexpr UINT EmissionMap = 0x10;
+	static constexpr UINT DetailAlbedoMap = 0x20;
+	static constexpr UINT DetailNormalMap = 0x40;
+
 	CMaterial(int nTextures);
 	virtual ~CMaterial();
 
@@ -97,15 +100,13 @@ private:
 
 public:
 	void AddRef() { m_nReferences++; }
-	void Release() { if (--m_nReferences <= 0) delete this; }
-
-public:
-	CShader							*m_pShader = NULL;
-
-	XMFLOAT4						m_xmf4AlbedoColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	XMFLOAT4						m_xmf4EmissiveColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
-	XMFLOAT4						m_xmf4SpecularColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
-	XMFLOAT4						m_xmf4AmbientColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	void Release()
+	{
+		if (--m_nReferences <= 0)
+		{
+			delete this;
+		}
+	}
 
 	void SetShader(CShader *pShader);
 	void SetMaterialType(UINT nType) { m_nType |= nType; }
@@ -116,6 +117,12 @@ public:
 	virtual void ReleaseUploadBuffers();
 
 public:
+	CShader							*_pShader = nullptr;
+	XMFLOAT4						m_xmf4AlbedoColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	XMFLOAT4						m_xmf4EmissiveColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	XMFLOAT4						m_xmf4SpecularColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	XMFLOAT4						m_xmf4AmbientColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+
 	UINT							m_nType = 0x00;
 
 	float							m_fGlossiness = 0.0f;
@@ -150,8 +157,6 @@ struct CALLBACKKEY
    const void  							*m_pCallbackData = NULL;
 };
 
-#define _WITH_ANIMATION_INTERPOLATION
-
 class CAnimationCallbackHandler
 {
 
@@ -166,6 +171,10 @@ public:
 class CAnimationSet
 {
 public:
+	static constexpr int Once = 0;
+	static constexpr int PingPong = 2;
+	static constexpr float CallbackEpsilon = 0.0165f;
+
 	CAnimationSet(float fLength, int nFramesPerSecond, int nKeyFrameTransforms, int nSkinningBones, char *pstrName);
 	~CAnimationSet();
 
@@ -192,7 +201,7 @@ public:
 #endif
 
 	float 							m_fPosition = 0.0f;
-    int 							m_nType = ANIMATION_TYPE_ONCE; //Once, Loop, PingPong
+    int 							m_nType = Once; //Once, Loop, PingPong
 
 	int 							m_nCallbackKeys = 0;
 	CALLBACKKEY 					*m_pCallbackKeys = NULL;
@@ -218,7 +227,13 @@ private:
 
 public:
 	void AddRef() { m_nReferences++; }
-	void Release() { if (--m_nReferences <= 0) delete this; }
+	void Release()
+	{
+		if (--m_nReferences <= 0)
+		{
+			delete this;
+		}
+	}
 
 public:
 	CAnimationSets(int nAnimationSets);
@@ -356,7 +371,7 @@ public:
 	CGameObject 					*m_pSibling = NULL;
 
 	BoundingBox						m_pAABB;
-	int								m_type = -1;
+	int								_type = -1;
 
 	void SetMesh(CMesh *pMesh);
 	void SetShader(CShader *pShader);
@@ -471,18 +486,24 @@ public:
 		m_bEmpExit = false;
 		m_AnimationDegree = 1080.0f;
 
-		if (m_ppSirenBell) m_ppSirenBell->m_xmf4x4ToParent = _initialSirenBellTransform;
-		if (m_ppSirenCap) m_ppSirenCap->m_xmf4x4ToParent = _initialSirenCapTransform;
+		if (m_ppSirenBell)
+		{
+			m_ppSirenBell->m_xmf4x4ToParent = _initialSirenBellTransform;
+		}
+		if (m_ppSirenCap)
+		{
+			m_ppSirenCap->m_xmf4x4ToParent = _initialSirenCapTransform;
+		}
 		UpdateTransform(NULL);
 	}
 };
 
-#define DOOR_ANIMATION_TIME 5.0f
-
 class CFrontDoor : public CGameObject
 {
 private:
-	float m_AnimationDistance = DOOR_ANIMATION_TIME;
+	static constexpr float InitialAnimationDistance = 5.0f;
+
+	float m_AnimationDistance = InitialAnimationDistance;
 	CGameObject* m_pLeftDoorFrame = NULL;
 	CGameObject* m_pRightDoorFrame = NULL;
 	XMFLOAT4X4 _initialLeftDoorTransform = Matrix4x4::Identity();
@@ -497,9 +518,15 @@ public:
 	virtual void ResetState()
 	{
 		m_bEmpExit = false;
-		m_AnimationDistance = DOOR_ANIMATION_TIME;
-		if (m_pLeftDoorFrame) m_pLeftDoorFrame->m_xmf4x4ToParent = _initialLeftDoorTransform;
-		if (m_pRightDoorFrame) m_pRightDoorFrame->m_xmf4x4ToParent = _initialRightDoorTransform;
+		m_AnimationDistance = InitialAnimationDistance;
+		if (m_pLeftDoorFrame)
+		{
+			m_pLeftDoorFrame->m_xmf4x4ToParent = _initialLeftDoorTransform;
+		}
+		if (m_pRightDoorFrame)
+		{
+			m_pRightDoorFrame->m_xmf4x4ToParent = _initialRightDoorTransform;
+		}
 		UpdateTransform(NULL);
 	}
 };
@@ -542,16 +569,20 @@ public:
 	{
 		m_bEmpExit = false;
 		m_AnimationDistance = 1.5f;
-		if (m_pShutter) m_pShutter->m_xmf4x4ToParent = _initialShutterTransform;
+		if (m_pShutter)
+		{
+			m_pShutter->m_xmf4x4ToParent = _initialShutterTransform;
+		}
 		UpdateTransform(NULL);
 	}
 };
 
-#define HIT_EFFECT_SCALE_MAX 1.0f
-#define HIT_EFFECT_SCALE_INCREMENT 0.1f;
 class CHitEffect : public CGameObject
 {
 private:
+	static constexpr float MaxScale = 1.0f;
+	static constexpr float ScaleIncrement = 0.1f;
+
 private:
 	float		m_fDistance = 0.0f;
 	XMFLOAT3	m_xmf3Look = XMFLOAT3(0.0f, 0.0f, 1.0f);

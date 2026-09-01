@@ -17,8 +17,11 @@ namespace game_object_ownership
 		[[nodiscard]] bool Release() noexcept
 		{
 			assert(_value >= 0);
-			if (_value == 0) return true; // Legacy adoption: zero still owns one lifetime claim.
-			return --_value == 0;
+		    if (_value == 0)
+		    {
+			    return true; // Legacy adoption: zero still owns one lifetime claim.
+		    }
+		    return --_value == 0;
 		}
 
 		[[nodiscard]] bool Empty() const noexcept { return _value == 0; }
@@ -30,8 +33,11 @@ namespace game_object_ownership
 	template <typename T>
 	void AttachChild(T& owner, T* child, bool addReference) noexcept
 	{
-		if (!child) return;
-		assert(child != &owner);
+	    if (!child)
+	    {
+		    return;
+	    }
+	    assert(child != &owner);
 
 		if (addReference)
 		{
@@ -66,17 +72,26 @@ namespace game_object_ownership
 		parent = nullptr;
 		child = nullptr;
 		sibling = nullptr;
-		if (ownedChild) ownedChild->Release();
-		if (ownedSibling) ownedSibling->Release();
-	}
+	    if (ownedChild)
+	    {
+		    ownedChild->Release();
+	    }
+	    if (ownedSibling)
+	    {
+		    ownedSibling->Release();
+	    }
+    }
 
 	template <typename T>
 	struct Releaser
 	{
 		void operator()(T* object) const noexcept
 		{
-			if (object) object->Release();
-		}
+		    if (object)
+		    {
+			    object->Release();
+		    }
+	    }
 	};
 
 	template <typename T>

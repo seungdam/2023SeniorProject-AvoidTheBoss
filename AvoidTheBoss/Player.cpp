@@ -6,7 +6,7 @@
 
 CPlayer::CPlayer()
 {
-	m_type = 0;
+	_type = 0;
 	_position = XMFLOAT3(0.0f, 0.25f, 0.0f);
 
 	_right = XMFLOAT3(1.0f, 0.0f, 0.0f);
@@ -50,15 +50,30 @@ void CPlayer::Move(const int16& dwDirection, float fDistance)
 	{
 		//화살표 키 ‘↑’를 누르면 로컬 z-축 방향으로 이동(전진)한다. ‘↓’를 누르면 반대 방향으로 이동한다.
 
-		if (LOBYTE(dwDirection) & KEY_FORWARD) xmf3Shift = Vector3::Add(xmf3Shift, _look, fDistance);
-		if (LOBYTE(dwDirection) & KEY_BACKWARD) xmf3Shift = Vector3::Add(xmf3Shift, _look, -fDistance);
-		if (LOBYTE(dwDirection) & KEY_RIGHT) xmf3Shift = Vector3::Add(xmf3Shift, _right, fDistance);
-		if (LOBYTE(dwDirection) & KEY_LEFT) xmf3Shift = Vector3::Add(xmf3Shift, _right, -fDistance);
+		if (LOBYTE(dwDirection) & KEY_FORWARD)
+		{
+			xmf3Shift = Vector3::Add(xmf3Shift, _look, fDistance);
+		}
+		if (LOBYTE(dwDirection) & KEY_BACKWARD)
+		{
+			xmf3Shift = Vector3::Add(xmf3Shift, _look, -fDistance);
+		}
+		if (LOBYTE(dwDirection) & KEY_RIGHT)
+		{
+			xmf3Shift = Vector3::Add(xmf3Shift, _right, fDistance);
+		}
+		if (LOBYTE(dwDirection) & KEY_LEFT)
+		{
+			xmf3Shift = Vector3::Add(xmf3Shift, _right, -fDistance);
+		}
 		//플레이어를 현재 위치 벡터에서 xmf3Shift 벡터만큼 이동한다
 		_velocity = XMFLOAT3(0, 0, 0);
 		SetVelocity(xmf3Shift);
 	}
-	else SetVelocity(xmf3Shift);
+	else
+	{
+		SetVelocity(xmf3Shift);
+	}
 }
 
 void CPlayer::Update(float fTimeElapsed, CLIENT_TYPE ptype)
@@ -74,20 +89,42 @@ void CPlayer::Rotate(float x, float y, float z)
 	if (x != 0.0f)
 	{
 		_pitch += x;
-		if (_pitch > +89.0f) { x -= (_pitch - 89.0f); _pitch = +89.0f; }
-		if (_pitch < -89.0f) { x -= (_pitch + 89.0f); _pitch = -89.0f; }
+		if (_pitch > +89.0f)
+		{
+			x -= (_pitch - 89.0f);
+			_pitch = +89.0f;
+		}
+		if (_pitch < -89.0f)
+		{
+			x -= (_pitch + 89.0f);
+			_pitch = -89.0f;
+		}
 	}
 	if (y != 0.0f)
 	{
 		_yaw += y;
-		if (_yaw > 360.0f) _yaw -= 360.0f;
-		if (_yaw < 0.0f) _yaw += 360.0f;
+		if (_yaw > 360.0f)
+		{
+			_yaw -= 360.0f;
+		}
+		if (_yaw < 0.0f)
+		{
+			_yaw += 360.0f;
+		}
 	}
 	if (z != 0.0f)
 	{
 		_roll += z;
-		if (_roll > +20.0f) { z -= (_roll - 20.0f); _roll = +20.0f; }
-		if (_roll < -20.0f) { z -= (_roll + 20.0f); _roll = -20.0f; }
+		if (_roll > +20.0f)
+		{
+			z -= (_roll - 20.0f);
+			_roll = +20.0f;
+		}
+		if (_roll < -20.0f)
+		{
+			z -= (_roll + 20.0f);
+			_roll = -20.0f;
+		}
 	}
 
 	/*플레이어를 회전한다. 플레이어의 로컬 y-축(Up 벡터)을 기준으로 로컬 z-축(Look 벡터)와
@@ -160,8 +197,6 @@ uint8 CVirtualPlayer::ProcessInput()
 {
 	return uint8();
 }
-#define _WITH_DEBUG_CALLBACK_DATA
-
 void CSoundCallbackHandler::HandleCallback(void*, float)
 {
 }

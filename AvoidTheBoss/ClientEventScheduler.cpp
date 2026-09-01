@@ -30,7 +30,10 @@ void ClientEventScheduler::DoTasks()
 {
 	while (!_taskQueue.empty())
 	{
-		if (GetCurrentTick() < _taskQueue.top()._executeAt) break;
+		if (GetCurrentTick() < _taskQueue.top()._executeAt)
+		{
+			break;
+		}
 
 		ScheduledClientEvent scheduled = _taskQueue.top();
 		_taskQueue.pop();
@@ -40,6 +43,9 @@ void ClientEventScheduler::DoTasks()
 
 void ClientEventScheduler::Clear() noexcept
 {
-	while (!_taskQueue.empty()) _taskQueue.pop();
+	while (!_taskQueue.empty())
+	{
+		_taskQueue.pop();
+	}
 	_nextSequence = 0;
 }

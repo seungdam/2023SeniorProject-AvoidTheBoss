@@ -23,8 +23,14 @@ void GameCore::Initialize(
 	ClientNetworker& networker,
 	UIManager& ui)
 {
-	if (_sceneManager) throw std::logic_error("GameCore is already initialized");
-	if (!device || !commandList) throw std::invalid_argument("GameCore requires a device and command list");
+	if (_sceneManager)
+	{
+		throw std::logic_error("GameCore is already initialized");
+	}
+	if (!device || !commandList)
+	{
+		throw std::invalid_argument("GameCore requires a device and command list");
+	}
 
 	auto sceneManager = std::make_unique<SceneManager>();
 	sceneManager->BuildScene(device, commandList, *this, networker, ui);
@@ -42,41 +48,60 @@ void GameCore::Shutdown() noexcept
 
 void GameCore::ReleaseUploadBuffers()
 {
-	if (_sceneManager) _sceneManager->ReleaseUpBuffers();
+	if (_sceneManager)
+	{
+		_sceneManager->ReleaseUpBuffers();
+	}
 }
 
 void GameCore::ProcessInput(HWND window)
 {
-	if (_sceneManager) _sceneManager->ProcessInput(window, CurrentScene());
+	if (_sceneManager)
+	{
+		_sceneManager->ProcessInput(window, CurrentScene());
+	}
 }
 
 void GameCore::Update(HWND window)
 {
-	if (_sceneManager) _sceneManager->Update(window, CurrentScene());
+	if (_sceneManager)
+	{
+		_sceneManager->Update(window, CurrentScene());
+	}
 }
 
 void GameCore::Animate()
 {
-	if (_sceneManager) _sceneManager->Animate(CurrentScene());
+	if (_sceneManager)
+	{
+		_sceneManager->Animate(CurrentScene());
+	}
 }
 
 void GameCore::Render(ID3D12GraphicsCommandList4* commandList, const bool raster)
 {
-	if (_sceneManager) _sceneManager->Render(commandList, CurrentScene(), raster);
+	if (_sceneManager)
+	{
+		_sceneManager->Render(commandList, CurrentScene(), raster);
+	}
 }
 
 void GameCore::ProcessMouseMessage(
 	HWND window, const UINT message, const WPARAM wParam, const LPARAM lParam)
 {
-	if (CScene* scene = Scene(CurrentScene()))
+	if (CScene *scene = Scene(CurrentScene()))
+	{
 		scene->OnProcessingMouseMessage(window, message, wParam, lParam);
+	}
 }
 
 void GameCore::ProcessKeyboardMessage(
 	HWND window, const UINT message, const WPARAM wParam, const LPARAM lParam)
 {
-	if (CScene* scene = Scene(CurrentScene()))
+	if (CScene *scene = Scene(CurrentScene()))
+	{
 		scene->OnProcessingKeyboardMessage(window, message, wParam, lParam);
+	}
 }
 
 CScene* GameCore::Scene(const SceneId scene) const noexcept
@@ -93,7 +118,9 @@ void GameCore::ChangeScene(const SceneId scene)
 {
 	const int32 sceneIndex = SceneIndex(scene);
 	if (sceneIndex < 0 || sceneIndex >= SceneManager::SceneCount)
+	{
 		throw std::out_of_range("GameCore scene index is out of range");
+	}
 	_currentScene.store(scene, std::memory_order_release);
 	SoundManager::GetInstance().PlayBackGroundSound(sceneIndex);
 }
@@ -129,7 +156,9 @@ ClientFrameSnapshot GameCore::CaptureClientFrameSnapshot(const int32 playerIndex
 		snapshot._behavior = player->GetBehavior();
 		snapshot._hidden = player->IsHidden();
 		if (playerIndex > 0)
+		{
 			snapshot._rescuing = static_cast<CEmployee*>(player)->GetRescueOn();
+		}
 	}
 	if (camera)
 	{
@@ -154,7 +183,10 @@ ClientFrameSnapshot GameCore::CaptureClientFrameSnapshot(const int32 playerIndex
 
 int32 GameCore::CurrentLocalPlayerIndex() const noexcept
 {
-	if (CurrentScene() != SceneId::InGame) return -1;
+	if (CurrentScene() != SceneId::InGame)
+	{
+		return -1;
+	}
 	const auto* gameScene = static_cast<const CGameScene*>(Scene(SceneId::InGame));
 	return gameScene ? gameScene->GetLocalPlayerIndex() : -1;
 }

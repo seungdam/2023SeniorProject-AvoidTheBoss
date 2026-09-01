@@ -14,35 +14,43 @@ void SceneManager::Render(
 	ID3D12GraphicsCommandList4* pd3dCommandList, const atb::SceneId scene, const bool Raster)
 {
 	const int32 idx = atb::SceneIndex(scene);
-	m_pScenes[idx]->Render(pd3dCommandList, m_pScenes[idx]->GetRenderCamera(), Raster);
+	_pScenes[idx]->Render(pd3dCommandList, _pScenes[idx]->GetRenderCamera(), Raster);
 }
 
 void SceneManager::Update(HWND& hWnd, const atb::SceneId scene)
 {
-	m_pScenes[atb::SceneIndex(scene)]->Update(hWnd);
+	_pScenes[atb::SceneIndex(scene)]->Update(hWnd);
 }
 
 void SceneManager::ProcessInput(HWND& hWnd, const atb::SceneId scene)
 {
-	m_pScenes[atb::SceneIndex(scene)]->ProcessInput(hWnd);
+	_pScenes[atb::SceneIndex(scene)]->ProcessInput(hWnd);
 }
 
 CScene* SceneManager::GetScene(const atb::SceneId scene) const noexcept
 {
 	const int32 index = atb::SceneIndex(scene);
-	return index >= 0 && index < SceneCount ? m_pScenes[index] : nullptr;
+	return index >= 0 && index < SceneCount ? _pScenes[index] : nullptr;
 }
 
 void SceneManager::ReleaseUpBuffers()
 {
-	for (auto* scene : m_pScenes)
-		if (scene) scene->ReleaseUploadBuffers();
+	for (auto *scene : _pScenes)
+	{
+		if (scene)
+		{
+			scene->ReleaseUploadBuffers();
+		}
+	}
 }
 void SceneManager::ReleaseScene()
 {
-	for (auto& scene : m_pScenes)
+	for (auto& scene : _pScenes)
 	{
-		if (!scene) continue;
+		if (!scene)
+		{
+			continue;
+		}
 		scene->ReleaseObjects();
 		delete scene;
 		scene = nullptr;
@@ -50,7 +58,7 @@ void SceneManager::ReleaseScene()
 }
 void SceneManager::Animate(const atb::SceneId scene)
 {
-	m_pScenes[atb::SceneIndex(scene)]->AnimateObjects();
+	_pScenes[atb::SceneIndex(scene)]->AnimateObjects();
 }
 
 void SceneManager::BuildScene(
@@ -67,31 +75,31 @@ void SceneManager::BuildScene(
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] TITLE scene build\n");
 #endif
-	m_pScenes[atb::SceneIndex(atb::SceneId::Title)] = new CTitleScene(gameCore, networker, ui);
-	m_pScenes[atb::SceneIndex(atb::SceneId::Title)]->BuildObjects(pd3dDevice, pd3dCommandList);
+	_pScenes[atb::SceneIndex(atb::SceneId::Title)] = new CTitleScene(gameCore, networker, ui);
+	_pScenes[atb::SceneIndex(atb::SceneId::Title)]->BuildObjects(pd3dDevice, pd3dCommandList);
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] LOBBY scene build\n");
 #endif
-	m_pScenes[atb::SceneIndex(atb::SceneId::Lobby)] = new CLobbyScene(gameCore, networker, ui);
-	m_pScenes[atb::SceneIndex(atb::SceneId::Lobby)]->BuildObjects(pd3dDevice, pd3dCommandList);
+	_pScenes[atb::SceneIndex(atb::SceneId::Lobby)] = new CLobbyScene(gameCore, networker, ui);
+	_pScenes[atb::SceneIndex(atb::SceneId::Lobby)]->BuildObjects(pd3dDevice, pd3dCommandList);
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] ROOM scene build\n");
 #endif
-	m_pScenes[atb::SceneIndex(atb::SceneId::Room)] = new CRoomScene(gameCore, networker, ui);
-	m_pScenes[atb::SceneIndex(atb::SceneId::Room)]->BuildObjects(pd3dDevice, pd3dCommandList);
+	_pScenes[atb::SceneIndex(atb::SceneId::Room)] = new CRoomScene(gameCore, networker, ui);
+	_pScenes[atb::SceneIndex(atb::SceneId::Room)]->BuildObjects(pd3dDevice, pd3dCommandList);
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] INGAME scene build\n");
 #endif
-	m_pScenes[atb::SceneIndex(atb::SceneId::InGame)] = new CGameScene(gameCore, networker, ui);
-	m_pScenes[atb::SceneIndex(atb::SceneId::InGame)]->BuildObjects(pd3dDevice, pd3dCommandList);
+	_pScenes[atb::SceneIndex(atb::SceneId::InGame)] = new CGameScene(gameCore, networker, ui);
+	_pScenes[atb::SceneIndex(atb::SceneId::InGame)]->BuildObjects(pd3dDevice, pd3dCommandList);
 
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] RESULT scene build\n");
 #endif
-	m_pScenes[atb::SceneIndex(atb::SceneId::Result)] = new CResultScene(gameCore, ui);
-	m_pScenes[atb::SceneIndex(atb::SceneId::Result)]->BuildObjects(pd3dDevice, pd3dCommandList);
-	static_cast<CGameScene*>(m_pScenes[atb::SceneIndex(atb::SceneId::InGame)])->SetResultScene(
-		*static_cast<CResultScene*>(m_pScenes[atb::SceneIndex(atb::SceneId::Result)]));
+	_pScenes[atb::SceneIndex(atb::SceneId::Result)] = new CResultScene(gameCore, ui);
+	_pScenes[atb::SceneIndex(atb::SceneId::Result)]->BuildObjects(pd3dDevice, pd3dCommandList);
+	static_cast<CGameScene*>(_pScenes[atb::SceneIndex(atb::SceneId::InGame)])->SetResultScene(
+		*static_cast<CResultScene*>(_pScenes[atb::SceneIndex(atb::SceneId::Result)]));
 #if defined(_DEBUG)
 	::OutputDebugStringA("[Phase 0] scene build complete\n");
 #endif

@@ -132,7 +132,10 @@ void CGameFramework::FrameAdvance()
 	// Packet handlers may replace GPU-backed scene objects, so wait before dispatch.
 	_d3d12Renderer.WaitForPreviousFrame();
 
-	if (_packetDispatcher) _networker.DispatchPackets(*_packetDispatcher);
+	if (_packetDispatcher)
+	{
+		_networker.DispatchPackets(*_packetDispatcher);
+	}
 	ProcessInput();
 	UpdateObject();
 	AnimateObjects();
@@ -158,13 +161,19 @@ void CGameFramework::FrameAdvance()
 	_d2dRenderer.EndFrame();
 
 	const HRESULT presentResult = _d3d12Renderer.Present();
-	if (g_clientTestMode.Enabled()) g_clientTestMode.OnPresent(presentResult);
+	if (g_clientTestMode.Enabled())
+	{
+		g_clientTestMode.OnPresent(presentResult);
+	}
 	_d3d12Renderer.MoveToNextFrame();
 }
 
 void CGameFramework::FinalizeClientTest()
 {
-	if (!g_clientTestMode.Enabled()) return;
+	if (!g_clientTestMode.Enabled())
+	{
+		return;
+	}
 
 	std::uint32_t errorCount = 0;
 	bool infoQueueAvailable = false;
@@ -243,7 +252,10 @@ void CGameFramework::OnProcessingMouseMessage(
 void CGameFramework::OnProcessingKeyboardMessage(
 	HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
-	if (nMessageID == WM_KEYUP && wParam == VK_ESCAPE) ::PostQuitMessage(0);
+	if (nMessageID == WM_KEYUP && wParam == VK_ESCAPE)
+	{
+		::PostQuitMessage(0);
+	}
 	// F9 remains disabled until D3D11On12 wrapped targets support resize.
 	_gameCore.ProcessKeyboardMessage(hWnd, nMessageID, wParam, lParam);
 }
@@ -279,7 +291,10 @@ void CGameFramework::CheckRaytracingSupport()
 
 void CGameFramework::OnKeyDown(const UINT8 key)
 {
-	if (key == VK_NUMPAD0) _raster = !_raster;
+	if (key == VK_NUMPAD0)
+	{
+		_raster = !_raster;
+	}
 }
 
 void CGameFramework::ChangeSwapChainState()

@@ -47,7 +47,7 @@ public : // SceneInterface 상속 함수
 	bool SetCameraMode(DWORD mode);
 	void SetFogEnabled(bool enabled) noexcept { _camera.SetFogEnabled(enabled); }
 	void ToggleFog() noexcept { _camera.ToggleFog(); }
-public: // 오승담 작성 함수
+public:
 	CPlayer* GetScenePlayerBySid(const int32 sid);
 	CPlayer* GetScenePlayerByIdx(const int32 idx);
 	CPlayer* GetLocalPlayer();

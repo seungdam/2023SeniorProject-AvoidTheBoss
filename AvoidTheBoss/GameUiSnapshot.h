@@ -4,8 +4,11 @@
 #include <cstddef>
 #include <optional>
 
-inline constexpr std::size_t kGameUiPlayerCount = 4;
-inline constexpr std::size_t kLobbyUiRoomCount = 5;
+namespace atb::client::ui
+{
+inline constexpr std::size_t GamePlayerCount = 4;
+inline constexpr std::size_t LobbyRoomSlotCount = 5;
+}
 
 struct LobbyRoomUiSnapshot
 {
@@ -15,7 +18,7 @@ struct LobbyRoomUiSnapshot
 
 struct LobbyUiSnapshot
 {
-	std::array<std::optional<LobbyRoomUiSnapshot>, kLobbyUiRoomCount> rooms;
+	std::array<std::optional<LobbyRoomUiSnapshot>, atb::client::ui::LobbyRoomSlotCount> rooms;
 };
 
 struct RoomMemberUiSnapshot
@@ -26,7 +29,7 @@ struct RoomMemberUiSnapshot
 
 struct RoomUiSnapshot
 {
-	std::array<RoomMemberUiSnapshot, kGameUiPlayerCount> members;
+	std::array<RoomMemberUiSnapshot, atb::client::ui::GamePlayerCount> members;
 };
 
 struct ResultUiSnapshot
@@ -55,6 +58,6 @@ struct EmployeeUiSnapshot
 struct GameUiSnapshot
 {
 	std::optional<std::size_t> localPlayerIndex;
-	std::array<std::optional<PlayerUiSnapshot>, kGameUiPlayerCount> players;
+	std::array<std::optional<PlayerUiSnapshot>, atb::client::ui::GamePlayerCount> players;
 	std::optional<EmployeeUiSnapshot> localEmployee;
 };

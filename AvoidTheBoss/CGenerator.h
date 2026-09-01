@@ -2,12 +2,13 @@
 #include "GameObject.h"
 #include "GeneratorState.h"
 
-#define BUTTON_ANIM_FRAME 50
-#define GENERATOR_PIPE_ANIM_FRAM 16
-#define GENERATOR_BODY_ANIM_FRAM 16
 class CGenerator : public CGameObject
 {
 public:
+	static constexpr int ButtonAnimationFrameCount = 50;
+	static constexpr int PipeAnimationFrameCount = 16;
+	static constexpr int BodyAnimationFrameCount = 16;
+
 	float radius = 0.0f;
 	int m_nPipe = 3;
 	XMFLOAT4 	xmf4NormalVector;
@@ -21,7 +22,7 @@ private:
 public:
 	bool m_nPipeStartAnimation[3];
 public:
-	int  m_nButtonAnimationCount = BUTTON_ANIM_FRAME;
+	int  m_nButtonAnimationCount = ButtonAnimationFrameCount;
 	int  m_nGenerPipeAnimationCount[3];
 	int  m_nGenerBodyAnimationCount = 0;
 	float m_AnimationDegree = 0.0f;

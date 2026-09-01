@@ -67,8 +67,14 @@ public:
 		_center = center;
 		_area.Center = center;
 		_area.Extents = XMFLOAT3(volume / 2 , volume / 2, volume / 2);
-		if (_curLevel == 0) _parentTree = this;
-		if (_curLevel == _maxLevel) _node = new LeafNode();
+		if (_curLevel == 0)
+		{
+			_parentTree = this;
+		}
+		if (_curLevel == _maxLevel)
+		{
+			_node = new LeafNode();
+		}
 	};
 	OcTree(OcTree* parent, int32 level, XMFLOAT3 center, float volume) : _parentTree(parent), _curLevel(level), _volume(volume)
 	{
@@ -76,7 +82,10 @@ public:
 		_area.Center = center;
 		_area.Extents = XMFLOAT3(volume / 2, volume / 2, volume / 2);
 
-		if (_curLevel == _maxLevel) _node = new LeafNode();
+		if (_curLevel == _maxLevel)
+		{
+			_node = new LeafNode();
+		}
 	};
 	void ReadBoundingBoxInfoFromFile(const char*);
 	void AddBoundingBox(DirectX::BoundingBox aabb);

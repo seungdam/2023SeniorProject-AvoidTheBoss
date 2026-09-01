@@ -14,8 +14,6 @@ struct TracerVector3 final
 class TracerVisualState final
 {
 public:
-	static constexpr std::size_t Capacity = 1;
-
 	TracerVisualState(float speedUnitsPerSecond, float maxRange) noexcept;
 
 	[[nodiscard]] bool Spawn(TracerVector3 origin, TracerVector3 direction) noexcept;

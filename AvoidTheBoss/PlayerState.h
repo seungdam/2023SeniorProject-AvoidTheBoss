@@ -36,7 +36,10 @@ struct PlayerState
 
 	[[nodiscard]] bool ApplyDamage() noexcept
 	{
-		if (health <= 0) return false;
+		if (health <= 0)
+		{
+			return false;
+		}
 		--health;
 		return true;
 	}

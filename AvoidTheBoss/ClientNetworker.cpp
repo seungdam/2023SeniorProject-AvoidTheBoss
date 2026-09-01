@@ -20,9 +20,14 @@ ClientNetworker::~ClientNetworker() noexcept
 
 void ClientNetworker::Initialize(const char* ipv4Address)
 {
-	if (_core) throw std::logic_error("ClientNetworker is already initialized");
+	if (_core)
+	{
+		throw std::logic_error("ClientNetworker is already initialized");
+	}
 	if (!ipv4Address || *ipv4Address == '\0')
+	{
 		throw std::invalid_argument("ClientNetworker requires an IPv4 address");
+	}
 
 	auto core = std::make_unique<ClientIocpCore>();
 	core->InitConnect(ipv4Address);
@@ -31,15 +36,20 @@ void ClientNetworker::Initialize(const char* ipv4Address)
 	try
 	{
 		_core->DoConnect();
-		_worker.Launch([this]
-			{
-				while (_core->Processing(NetworkPollIntervalMs)) {}
-			});
+		_worker.Launch(
+		    [this]
+		    {
+			    while (_core->Processing(NetworkPollIntervalMs))
+			    {
+			    }
+		    });
 	}
 	catch (...)
 	{
 		_core->Disconnect();
-		while (_core->Processing(NetworkPollIntervalMs)) {}
+		while (_core->Processing(NetworkPollIntervalMs))
+		{
+		}
 		_core.reset();
 		throw;
 	}
@@ -47,7 +57,10 @@ void ClientNetworker::Initialize(const char* ipv4Address)
 
 void ClientNetworker::Shutdown() noexcept
 {
-	if (!_core) return;
+	if (!_core)
+	{
+		return;
+	}
 	_core->Disconnect();
 	_worker.Join();
 	_core.reset();
@@ -65,7 +78,10 @@ bool ClientNetworker::Send(void* packet)
 
 void ClientNetworker::DispatchPackets(ClientPacketDispatcher& dispatcher)
 {
-	if (_core) _core->DispatchPackets(dispatcher);
+	if (_core)
+	{
+		_core->DispatchPackets(dispatcher);
+	}
 }
 
 bool ClientNetworker::IsInitialized() const noexcept

@@ -28,8 +28,14 @@ Window::~Window() noexcept
 
 void Window::Initialize(HINSTANCE instance, MessageHandler messageHandler)
 {
-	if (_window || _classAtom) throw std::logic_error("Window is already initialized");
-	if (!instance || !messageHandler) throw std::invalid_argument("Window requires an instance and message handler");
+	if (_window || _classAtom)
+	{
+		throw std::logic_error("Window is already initialized");
+	}
+	if (!instance || !messageHandler)
+	{
+		throw std::invalid_argument("Window requires an instance and message handler");
+	}
 
 	auto pendingMessageHandler = std::move(messageHandler);
 	_instance = instance;
@@ -66,7 +72,7 @@ void Window::Initialize(HINSTANCE instance, MessageHandler messageHandler)
 
 	// Preserve the original borderless result without changing style during WM_CREATE.
 	constexpr DWORD style = WS_MINIMIZEBOX | WS_SYSMENU;
-	RECT rectangle{ 0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT };
+	RECT rectangle{ 0, 0, atb::client::config::DefaultWindowWidth, atb::client::config::DefaultWindowHeight };
 	if (!::AdjustWindowRect(&rectangle, style, FALSE))
 	{
 		const DWORD error = ::GetLastError();
@@ -100,20 +106,28 @@ void Window::Initialize(HINSTANCE instance, MessageHandler messageHandler)
 
 void Window::Show(const int showCommand) const
 {
-	if (!_window) throw std::logic_error("Window is not initialized");
+	if (!_window)
+	{
+		throw std::logic_error("Window is not initialized");
+	}
 	::ShowWindow(_window, showCommand);
 	::UpdateWindow(_window);
 }
 
 void Window::Shutdown() noexcept
 {
-	if (_window && ::IsWindow(_window)) ::DestroyWindow(_window);
+	if (_window && ::IsWindow(_window))
+	{
+		::DestroyWindow(_window);
+	}
 	_window = nullptr;
 	_accelerators = nullptr;
 	_messageHandler = {};
 
 	if (_classAtom && _instance)
+	{
 		::UnregisterClassW(MAKEINTATOM(_classAtom), _instance);
+	}
 	_classAtom = 0;
 	_instance = nullptr;
 }
@@ -164,7 +178,10 @@ LRESULT CALLBACK Window::WindowProcedure(
 		self = reinterpret_cast<Window*>(::GetWindowLongPtrW(window, GWLP_USERDATA));
 	}
 
-	if (!self) return ::DefWindowProcW(window, message, wParam, lParam);
+	if (!self)
+	{
+		return ::DefWindowProcW(window, message, wParam, lParam);
+	}
 	const LRESULT result = self->HandleMessage(window, message, wParam, lParam);
 	if (message == WM_NCDESTROY)
 	{

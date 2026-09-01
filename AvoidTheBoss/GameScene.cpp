@@ -20,11 +20,6 @@
 
 #include <utility>
 
-
-
-
-#define MAPVOLUME 50
-
 CGameScene::CGameScene(atb::GameCore& gameCore, atb::ClientNetworker& networker, UIManager& ui)
 	: _gameCore(gameCore), _networker(networker), _ui(ui)
 {
@@ -40,18 +35,29 @@ CGameScene::~CGameScene()
 void CGameScene::ReleaseUploadBuffers()
 {
 	CScene::ReleaseUploadBuffers();
-	for (auto* player : _players)
-		if (player) player->ReleaseUploadBuffers();
+	for (auto *player : _players)
+	{
+		if (player)
+		{
+			player->ReleaseUploadBuffers();
+		}
+	}
 }
 
 void CGameScene::ReleaseObjects()
 {
-	if (_jobQueue) _jobQueue->Clear();
+	if (_jobQueue)
+	{
+		_jobQueue->Clear();
+	}
 	_camera.ReleaseShaderVariables();
 
 	for (auto& player : _players)
 	{
-		if (player) player->Release();
+		if (player)
+		{
+			player->Release();
+		}
 		player = nullptr;
 	}
 	delete[] _generators;
@@ -101,7 +107,10 @@ void CGameScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM 
 			//“F9” 키가 눌려지면 윈도우 모드와 전체화면 모드의 전환을 처리한다.
 			break;
 		case VK_F1:
-			if (!_gameCore.TogglePacketDelay()) _jobQueue->Clear();
+			if (!_gameCore.TogglePacketDelay())
+			{
+				_jobQueue->Clear();
+			}
 			break;
 		}
 		break;
@@ -123,7 +132,7 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 	XMFLOAT4 fAmbientExist = XMFLOAT4(0.0f, 0.7f, 0.1f, 1.0f);
 	XMFLOAT4 f4DiffuseExist = XMFLOAT4(0.0f, 0.7f, 0.1f, 1.0f);
 	m_pLights[0].m_bEnable = true;
-	m_pLights[0].m_nType = POINT_LIGHT;
+	m_pLights[0].m_nType = LIGHT::PointType;
 	m_pLights[0].m_fRange = 4.5f;
 	m_pLights[0].m_xmf4Ambient = fAmbientExist;
 	m_pLights[0].m_xmf4Diffuse = f4DiffuseExist;
@@ -132,7 +141,7 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 	m_pLights[0].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
 
 	m_pLights[10].m_bEnable = true;
-	m_pLights[10].m_nType = POINT_LIGHT;
+	m_pLights[10].m_nType = LIGHT::PointType;
 	m_pLights[10].m_fRange = 4.5f;
 	m_pLights[10].m_xmf4Ambient = fAmbientExist;
 	m_pLights[10].m_xmf4Diffuse = f4DiffuseExist;
@@ -142,7 +151,7 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 
 	// 입구 문틈 햇빛 효과
 	m_pLights[1].m_bEnable = true;
-	m_pLights[1].m_nType = SPOT_LIGHT;
+	m_pLights[1].m_nType = LIGHT::SpotType;
 	m_pLights[1].m_fRange = 35.0f;
 	m_pLights[1].m_xmf4Ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
 	m_pLights[1].m_xmf4Diffuse = XMFLOAT4(1.0f, 0.53f, 0.27f, 1.0f);
@@ -156,7 +165,7 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 
 	// 전역 조명
 	m_pLights[2].m_bEnable = true;
-	m_pLights[2].m_nType = DIRECTIONAL_LIGHT;
+	m_pLights[2].m_nType = LIGHT::DirectionalType;
 	m_pLights[2].m_xmf4Ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
 	m_pLights[2].m_xmf4Diffuse = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
 	m_pLights[2].m_xmf4Specular = XMFLOAT4(0.4f, 0.4f, 0.4f, 0.0f);
@@ -166,7 +175,7 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 	XMFLOAT4 fAmbientGen = XMFLOAT4(0.7f, 0.3f, 0.3f, 1.0f);
 	XMFLOAT4 f4DiffuseGen = XMFLOAT4(0.7f, 0.3f, 0.3f, 1.0f);
 	m_pLights[4].m_bEnable = true;
-	m_pLights[4].m_nType = POINT_LIGHT;
+	m_pLights[4].m_nType = LIGHT::PointType;
 	m_pLights[4].m_fRange = 3.5f;
 	m_pLights[4].m_xmf4Ambient = fAmbientGen;
 	m_pLights[4].m_xmf4Diffuse = f4DiffuseGen;
@@ -175,7 +184,7 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 	m_pLights[4].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
 
 	m_pLights[5].m_bEnable = true;
-	m_pLights[5].m_nType = POINT_LIGHT;
+	m_pLights[5].m_nType = LIGHT::PointType;
 	m_pLights[5].m_fRange = 3.5f;
 	m_pLights[5].m_xmf4Ambient = fAmbientGen;
 	m_pLights[5].m_xmf4Diffuse = f4DiffuseGen;
@@ -184,7 +193,7 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 	m_pLights[5].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.001f, 0.0001f);
 
 	m_pLights[6].m_bEnable = true;
-	m_pLights[6].m_nType = POINT_LIGHT;
+	m_pLights[6].m_nType = LIGHT::PointType;
 	m_pLights[6].m_fRange = 3.5f;
 	m_pLights[6].m_xmf4Ambient = fAmbientGen;
 	m_pLights[6].m_xmf4Diffuse = f4DiffuseGen;
@@ -201,7 +210,7 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 	float fphiWin = (float)cos(XMConvertToRadians(25.0f)); // 강도를 감쇠하기 시작하는 각도 (스포트라이트의 내부 원뿔 각도)
 	float fThetaWin = (float)cos(XMConvertToRadians(10.0f)); // 강도를 감쇠하기 시작하는 각도(외부 원뿔 각도)
 	m_pLights[7].m_bEnable = false;
-	m_pLights[7].m_nType = SPOT_LIGHT;
+	m_pLights[7].m_nType = LIGHT::SpotType;
 	m_pLights[7].m_fRange = fRangeWin;
 	m_pLights[7].m_xmf4Ambient = fAmbientWin;
 	m_pLights[7].m_xmf4Diffuse = f4DiffuseWin;
@@ -214,7 +223,7 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 	m_pLights[7].m_fTheta = fThetaWin;
 
 	m_pLights[8].m_bEnable = true;
-	m_pLights[8].m_nType = SPOT_LIGHT;
+	m_pLights[8].m_nType = LIGHT::SpotType;
 	m_pLights[8].m_fRange = fRangeWin + 10.0f;
 	m_pLights[8].m_xmf4Ambient = fAmbientWin;
 	m_pLights[8].m_xmf4Diffuse = f4DiffuseWin;
@@ -227,7 +236,7 @@ void CGameScene::BuildDefaultLightsAndMaterials()
 	m_pLights[8].m_fTheta = fThetaWin;
 
 	m_pLights[9].m_bEnable = false;
-	m_pLights[9].m_nType = SPOT_LIGHT;
+	m_pLights[9].m_nType = LIGHT::SpotType;
 	m_pLights[9].m_fRange = fRangeWin;
 	m_pLights[9].m_xmf4Ambient = fAmbientWin;
 	m_pLights[9].m_xmf4Diffuse = f4DiffuseWin;
@@ -303,7 +312,7 @@ void CGameScene::BuildObjects(ID3D12Device5* pd3dDevice,ID3D12GraphicsCommandLis
 
 	for (int i = 0; i < _generatorCount; ++i)
 	{
-		_generators[i] = ((CGenerator*)pGeneratorObjectsShader->m_ppObjects[i]);
+		_generators[i] = ((CGenerator*)pGeneratorObjectsShader->_ppObjects[i]);
 		_generators[i]->SetIndex(i);
 	}
 
@@ -313,8 +322,8 @@ void CGameScene::BuildObjects(ID3D12Device5* pd3dDevice,ID3D12GraphicsCommandLis
 		{
 			if (m_ppShaders[1] && m_ppShaders[5])
 			{
-				((CBullet*)(pBulletObjectShader->m_ppObjects[0]))->SetHitEffect((CHitEffect*)pHitEffectObjectsShader->m_ppObjects[0]);
-				((CBoss*)_players[i])->_bullet = (CBullet*)pBulletObjectShader->m_ppObjects[0];
+				((CBullet*)(pBulletObjectShader->_ppObjects[0]))->SetHitEffect((CHitEffect*)pHitEffectObjectsShader->_ppObjects[0]);
+				((CBoss*)_players[i])->_bullet = (CBullet*)pBulletObjectShader->_ppObjects[0];
 			}
 		}
 		else
@@ -327,7 +336,7 @@ void CGameScene::BuildObjects(ID3D12Device5* pd3dDevice,ID3D12GraphicsCommandLis
 			((CEmployee*)_players[i])->_switches[2].radius = 0.5f;
 		}
 	}
-	ThrowIfFailed(_camera.SetMode(FIRST_PERSON_CAMERA) ? S_OK : E_INVALIDARG);
+	ThrowIfFailed(_camera.SetMode(CCamera::FirstPersonMode) ? S_OK : E_INVALIDARG);
 	_camera.CreateShaderVariables(pd3dDevice, pd3dCommandList);
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 
@@ -337,7 +346,10 @@ void CGameScene::BuildObjects(ID3D12Device5* pd3dDevice,ID3D12GraphicsCommandLis
 void CGameScene::ProcessInput(HWND& hWnd)
 {
 	CPlayer* localPlayer = GetLocalPlayer();
-	if (!localPlayer) return;
+	if (!localPlayer)
+	{
+		return;
+	}
 
 	//if (hWnd != ::GetActiveWindow()) return;
 
@@ -370,7 +382,9 @@ void CGameScene::ProcessInput(HWND& hWnd)
 	//============  플레이어에게 최종 키입력 처리 ============
 	keyInput = localPlayer->ProcessInput(); // 입력된 키를 기반으로 인풋 처리 진행
 	if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::G) == static_cast<uint8>(KEY_STATUS::KEY_PRESS))
+	{
 		ToggleFog();
+	}
 
 	// ============ 패킷 송신 파트 ===================
 	// 이동 키 입력에 변화가 있거나 키 입력 중 회전을 수행하는 경우에만.. 이동 관련 패킷을 전송한다.
@@ -398,9 +412,15 @@ void CGameScene::Update(HWND& hWnd)
 
 	for (int k = 0; k < PLAYERNUM; ++k)
 	{
-		_players[k]->m_IsFirst = _players[k] == localPlayer && _camera.GetMode() == FIRST_PERSON_CAMERA;
-		if (k == _localPlayerIndex) _players[k]->Update(_timer.GetTimeElapsed(), CLIENT_TYPE::OWNER);
-		else _players[k]->Update(_timer.GetTimeElapsed(), CLIENT_TYPE::OTHER_PLAYER);
+		_players[k]->m_IsFirst = _players[k] == localPlayer && _camera.GetMode() == CCamera::FirstPersonMode;
+		if (k == _localPlayerIndex)
+		{
+			_players[k]->Update(_timer.GetTimeElapsed(), CLIENT_TYPE::OWNER);
+		}
+		else
+		{
+			_players[k]->Update(_timer.GetTimeElapsed(), CLIENT_TYPE::OTHER_PLAYER);
+		}
 	}
 	if (localPlayer)
 	{
@@ -410,14 +430,19 @@ void CGameScene::Update(HWND& hWnd)
 	for (int k = 0; k < _generatorCount; ++k)
 	{
 		if (_generators[k]->TickState(_timer.GetTimeElapsed()) == GeneratorTransition::Activated)
+		{
 			HandleGeneratorActivated(k, true);
+		}
 	}
 
 
 
 	_ui.UpdateGameSceneUI(CreateUiSnapshot());
 
-	if (_employeeExitReady) ExitReady();
+	if (_employeeExitReady)
+	{
+		ExitReady();
+	}
 	// 평균 프레임 레이트 출력
 	std::wstring str = L"[";
 	str.append(std::to_wstring(m_sid));
@@ -430,12 +455,20 @@ void CGameScene::Update(HWND& hWnd)
 
 void CGameScene::AnimateObjects()
 {
-	for (int i = 0; i < m_nShaders; i++) if (m_ppShaders[i]) m_ppShaders[i]->AnimateObjects(_timer.GetTimeElapsed());
+	for (int i = 0; i < m_nShaders; i++)
+	{
+		if (m_ppShaders[i])
+		{
+			m_ppShaders[i]->AnimateObjects(_timer.GetTimeElapsed());
+		}
+	}
 
 	for (int i = 0; i < PLAYERNUM; i++)
 	{
-		if(_players[i])
+		if (_players[i])
+		{
 			_players[i]->Animate(_timer.GetTimeElapsed());
+		}
 	}
 	//if (m_pLights)
 	//{
@@ -446,10 +479,19 @@ void CGameScene::AnimateObjects()
 
 void CGameScene::Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pCamera, bool bRaster)
 {
-	if (!pCamera) return;
+	if (!pCamera)
+	{
+		return;
+	}
 
-	if (m_pd3dGraphicsRootSignature) pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
-	if (m_pd3dCbvSrvDescriptorHeap) pd3dCommandList->SetDescriptorHeaps(1, &m_pd3dCbvSrvDescriptorHeap);
+	if (m_pd3dGraphicsRootSignature)
+	{
+		pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
+	}
+	if (m_pd3dCbvSrvDescriptorHeap)
+	{
+		pd3dCommandList->SetDescriptorHeaps(1, &m_pd3dCbvSrvDescriptorHeap);
+	}
 
 	pCamera->SetViewportsAndScissorRects(pd3dCommandList);
 	pCamera->UpdateShaderVariables(pd3dCommandList);
@@ -459,11 +501,26 @@ void CGameScene::Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pC
 	D3D12_GPU_VIRTUAL_ADDRESS d3dcbLightsGpuVirtualAddress = m_pd3dcbLights->GetGPUVirtualAddress();
 	pd3dCommandList->SetGraphicsRootConstantBufferView(2, d3dcbLightsGpuVirtualAddress); //Lights
 
-	if (m_pSkyBox) m_pSkyBox->Render(pd3dCommandList, pCamera,bRaster);
+	if (m_pSkyBox)
+	{
+		m_pSkyBox->Render(pd3dCommandList, pCamera, bRaster);
+	}
 
-	for (int i = 0; i < m_nGameObjects; i++) if (m_ppGameObjects[i]) m_ppGameObjects[i]->Render(pd3dCommandList, pCamera, bRaster);
+	for (int i = 0; i < m_nGameObjects; i++)
+	{
+		if (m_ppGameObjects[i])
+		{
+			m_ppGameObjects[i]->Render(pd3dCommandList, pCamera, bRaster);
+		}
+	}
 
-	for (int i = 0; i < m_nShaders; i++) if (m_ppShaders[i]) m_ppShaders[i]->Render(pd3dCommandList, pCamera, bRaster);
+	for (int i = 0; i < m_nShaders; i++)
+	{
+		if (m_ppShaders[i])
+		{
+			m_ppShaders[i]->Render(pd3dCommandList, pCamera, bRaster);
+		}
+	}
 
 	for (int i = 0; i < m_nHierarchicalGameObjects; i++)
 	{
@@ -472,12 +529,21 @@ void CGameScene::Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pC
 			m_ppHierarchicalGameObjects[i]->Animate(m_fElapsedTime);
 			if (!m_ppHierarchicalGameObjects[i]->m_IsFirst)
 			{
-				if (!m_ppHierarchicalGameObjects[i]->m_pSkinnedAnimationController) m_ppHierarchicalGameObjects[i]->UpdateTransform(NULL);
-				if (!m_ppHierarchicalGameObjects[i]->m_pSkinnedAnimationController1) m_ppHierarchicalGameObjects[i]->UpdateTransform(NULL);
+				if (!m_ppHierarchicalGameObjects[i]->m_pSkinnedAnimationController)
+				{
+					m_ppHierarchicalGameObjects[i]->UpdateTransform(NULL);
+				}
+				if (!m_ppHierarchicalGameObjects[i]->m_pSkinnedAnimationController1)
+				{
+					m_ppHierarchicalGameObjects[i]->UpdateTransform(NULL);
+				}
 			}
 			else
 			{
-				if (!m_ppHierarchicalGameObjects[i]->m_pSkinnedAnimationController2) m_ppHierarchicalGameObjects[i]->UpdateTransform(NULL);
+				if (!m_ppHierarchicalGameObjects[i]->m_pSkinnedAnimationController2)
+				{
+					m_ppHierarchicalGameObjects[i]->UpdateTransform(NULL);
+				}
 			}
 
 			m_ppHierarchicalGameObjects[i]->Render(pd3dCommandList, pCamera, bRaster);
@@ -486,7 +552,10 @@ void CGameScene::Render(ID3D12GraphicsCommandList4* pd3dCommandList, CCamera* pC
 
 	for (int i = 0; i < PLAYERNUM; ++i)
 	{
-		if (!_players[i]->IsHidden()) _players[i]->Render(pd3dCommandList, pCamera, bRaster);
+		if (!_players[i]->IsHidden())
+		{
+			_players[i]->Render(pd3dCommandList, pCamera, bRaster);
+		}
 	}
 }
 
@@ -504,7 +573,10 @@ CPlayer* CGameScene::GetScenePlayerBySid(const int32 sid)
 
 CPlayer* CGameScene::GetScenePlayerByIdx(const int32 idx)
 {
-	if (idx < 0 || idx >= PLAYERNUM) return nullptr;
+	if (idx < 0 || idx >= PLAYERNUM)
+	{
+		return nullptr;
+	}
 	return _players[idx];
 }
 
@@ -519,7 +591,10 @@ GameUiSnapshot CGameScene::CreateUiSnapshot() const
 	for (std::size_t index = 0; index < snapshot.players.size(); ++index)
 	{
 		const CPlayer* player = _players[index];
-		if (player) snapshot.players[index] = PlayerUiSnapshot{ player->GetHealth() };
+		if (player)
+		{
+			snapshot.players[index] = PlayerUiSnapshot{player->GetHealth()};
+		}
 	}
 
 	if (_localPlayerIndex < 0 || _localPlayerIndex >= static_cast<int16>(snapshot.players.size()) ||
@@ -529,10 +604,16 @@ GameUiSnapshot CGameScene::CreateUiSnapshot() const
 	}
 
 	snapshot.localPlayerIndex = static_cast<std::size_t>(_localPlayerIndex);
-	if (_localPlayerIndex == 0) return snapshot;
+	if (_localPlayerIndex == 0)
+	{
+		return snapshot;
+	}
 
 	const auto* employee = dynamic_cast<const CEmployee*>(_players[_localPlayerIndex]);
-	if (!employee) return snapshot;
+	if (!employee)
+	{
+		return snapshot;
+	}
 
 	EmployeeUiSnapshot employeeSnapshot;
 	employeeSnapshot.invincible = employee->_invincible;
@@ -554,8 +635,10 @@ GameUiSnapshot CGameScene::CreateUiSnapshot() const
 		const int32 targetIndex = employee->GetRescuingEmployeeIndex();
 		if (targetIndex > 0 && targetIndex < PLAYERNUM)
 		{
-			if (const auto* target = dynamic_cast<const CEmployee*>(_players[targetIndex]))
+			if (const auto *target = dynamic_cast<const CEmployee *>(_players[targetIndex]))
+			{
 				employeeSnapshot.rescueGauge = target->GetRescueGauge();
+			}
 		}
 	}
 	else if (employeeSnapshot.beingRescued)
@@ -574,7 +657,10 @@ CCamera* CGameScene::GetRenderCamera()
 
 bool CGameScene::SetCameraMode(const DWORD mode)
 {
-	if (!_camera.SetMode(mode)) return false;
+	if (!_camera.SetMode(mode))
+	{
+		return false;
+	}
 	if (CPlayer* localPlayer = GetLocalPlayer())
 	{
 		_camera.Update(*localPlayer, 0.0f);
@@ -585,7 +671,10 @@ bool CGameScene::SetCameraMode(const DWORD mode)
 
 CGenerator* CGameScene::GetSceneGenByIdx(const int32 idx)
 {
-	if (!_generators || idx < 0 || idx >= _generatorCount) return nullptr;
+	if (!_generators || idx < 0 || idx >= _generatorCount)
+	{
+		return nullptr;
+	}
 	return _generators[idx];
 }
 
@@ -593,30 +682,46 @@ bool CGameScene::ApplyPlayerMove(const int32 playerIndex, const uint8 key,
 	const XMFLOAT3& direction)
 {
 	CPlayer* player = GetScenePlayerByIdx(playerIndex);
-	if (!player) return false;
+	if (!player)
+	{
+		return false;
+	}
 
 	player->SetDirection(direction);
 	if (player->GetPlayerType() == PLAYER_TYPE::BOSS)
+	{
 		static_cast<CBoss*>(player)->Move(key, BOSS_VELOCITY);
+	}
 	else
+	{
 		static_cast<CEmployee*>(player)->Move(key, EMPLOYEE_VELOCITY);
+	}
 	return true;
 }
 
 bool CGameScene::ApplyPlayerPosition(const int32 playerIndex, const XMFLOAT3& position)
 {
 	CPlayer* player = GetScenePlayerByIdx(playerIndex);
-	if (!player) return false;
+	if (!player)
+	{
+		return false;
+	}
 
 	XMFLOAT3 offset = Vector3::Subtract(player->GetPosition(), position);
-	if (Vector3::Length(offset) > 0.2f) player->SetPosition(position);
+	if (Vector3::Length(offset) > 0.2f)
+	{
+		player->SetPosition(position);
+	}
 	return true;
 }
 
 bool CGameScene::ApplyPlayerRotation(const int32 playerIndex, const float angle)
 {
 	CPlayer* player = GetScenePlayerByIdx(playerIndex);
-	if (!player) return false;
+	if (!player)
+	{
+		return false;
+	}
 
 	player->Rotate(0.0f, angle, 0.0f);
 	return true;
@@ -625,21 +730,33 @@ bool CGameScene::ApplyPlayerRotation(const int32 playerIndex, const float angle)
 bool CGameScene::ApplyPlayerAnimation(const int32 playerIndex, const uint8 track)
 {
 	CPlayer* player = GetScenePlayerByIdx(playerIndex);
-	if (!player) return false;
+	if (!player)
+	{
+		return false;
+	}
 
 	if (playerIndex == 0)
 	{
-		if (track != static_cast<uint8>(ANIMTRACK::ATTACK_ANIM)) return false;
+		if (track != static_cast<uint8>(ANIMTRACK::ATTACK_ANIM))
+		{
+			return false;
+		}
 		static_cast<CBoss*>(player)->SetAttackAnimOtherClient();
 		return true;
 	}
 
 	if (track == static_cast<uint8>(ANIMTRACK::GEN_ANIM))
+	{
 		player->SetBehavior(PLAYER_BEHAVIOR::SWITCH_INTER);
+	}
 	else if (track == static_cast<uint8>(ANIMTRACK::RESCUE))
+	{
 		player->SetBehavior(PLAYER_BEHAVIOR::RESCUE);
+	}
 	else
+	{
 		player->SetBehavior(PLAYER_BEHAVIOR::IDLE);
+	}
 	return true;
 }
 
@@ -672,7 +789,10 @@ bool CGameScene::ApplyInteraction(const uint8 eventId)
 	{
 		CPlayer* player = GetScenePlayerByIdx(
 			eventId - static_cast<uint8>(EVENT_TYPE::HIDE_PLAYER_ONE));
-		if (!player) return false;
+		if (!player)
+		{
+			return false;
+		}
 		player->SetHealth(0);
 		player->SetHidden(true);
 		return true;
@@ -681,7 +801,10 @@ bool CGameScene::ApplyInteraction(const uint8 eventId)
 	case EVENT_TYPE::ATTACK_EVENT:
 	{
 		auto* boss = static_cast<CBoss*>(GetScenePlayerByIdx(0));
-		if (!boss) return false;
+		if (!boss)
+		{
+			return false;
+		}
 		boss->SetAttackAnimOtherClient();
 		return true;
 	}
@@ -692,7 +815,10 @@ bool CGameScene::ApplyInteraction(const uint8 eventId)
 	{
 		auto* employee = static_cast<CEmployee*>(GetScenePlayerByIdx(
 			eventId - static_cast<uint8>(EVENT_TYPE::ATTACKED_PLAYER_ONE)));
-		if (!employee) return false;
+		if (!employee)
+		{
+			return false;
+		}
 		employee->PlayerAttacked();
 		return true;
 	}
@@ -703,7 +829,10 @@ bool CGameScene::ApplyInteraction(const uint8 eventId)
 	{
 		auto* employee = static_cast<CEmployee*>(GetScenePlayerByIdx(
 			eventId - static_cast<uint8>(EVENT_TYPE::RESCUE_PLAYER_ONE)));
-		if (!employee) return false;
+		if (!employee)
+		{
+			return false;
+		}
 		employee->RescueOn(true);
 		return true;
 	}
@@ -714,7 +843,10 @@ bool CGameScene::ApplyInteraction(const uint8 eventId)
 	{
 		auto* employee = static_cast<CEmployee*>(GetScenePlayerByIdx(
 			eventId - static_cast<uint8>(EVENT_TYPE::RESCUE_CANCEL_PLAYER_ONE)));
-		if (!employee) return false;
+		if (!employee)
+		{
+			return false;
+		}
 		employee->RescueOn(false);
 		return true;
 	}
@@ -725,9 +857,12 @@ bool CGameScene::ApplyInteraction(const uint8 eventId)
 	{
 		auto* employee = static_cast<CEmployee*>(GetScenePlayerByIdx(
 			eventId - static_cast<uint8>(EVENT_TYPE::ALIVE_PLAYER_ONE)));
-		if (!employee) return false;
+		if (!employee)
+		{
+			return false;
+		}
 		employee->SetBehavior(PLAYER_BEHAVIOR::STAND);
-		employee->_standAnimationFrames = EMPLOYEE_STAND_TIME;
+		employee->_standAnimationFrames = CEmployee::StandAnimationFrameCount;
 		employee->RestoreHealth();
 		return true;
 	}
@@ -738,7 +873,10 @@ bool CGameScene::ApplyInteraction(const uint8 eventId)
 	{
 		auto* employee = static_cast<CEmployee*>(GetScenePlayerByIdx(
 			eventId - static_cast<uint8>(EVENT_TYPE::EXIT_PLAYER_ONE)));
-		if (!employee) return false;
+		if (!employee)
+		{
+			return false;
+		}
 		employee->SetBehavior(PLAYER_BEHAVIOR::EXIT);
 		return true;
 	}
@@ -757,24 +895,37 @@ bool CGameScene::SetGeneratorInteraction(const int32 index, const bool interacti
 	const bool advancesProgress)
 {
 	CGenerator* generator = GetSceneGenByIdx(index);
-	if (!generator) return false;
+	if (!generator)
+	{
+		return false;
+	}
 
 	const bool phaseChanged = interacting
 		? generator->BeginInteraction(advancesProgress)
 		: generator->EndInteraction();
-	if (!phaseChanged) return true;
+	if (!phaseChanged)
+	{
+		return true;
+	}
 
 	if (interacting)
+	{
 		SoundManager::GetInstance().PlayObjectSound(17, 8 + index);
+	}
 	else
+	{
 		SoundManager::SoundStop(8 + index);
+	}
 	return true;
 }
 
 bool CGameScene::ApplyGeneratorActivationFromNetwork(const int32 index)
 {
 	CGenerator* generator = GetSceneGenByIdx(index);
-	if (!generator || !generator->Activate()) return false;
+	if (!generator || !generator->Activate())
+	{
+		return false;
+	}
 
 	HandleGeneratorActivated(index, false);
 	return true;
@@ -792,30 +943,52 @@ void CGameScene::HandleGeneratorActivated(const int32 index, const bool notifySe
 
 		CPlayer* localPlayer = GetLocalPlayer();
 		if (localPlayer && localPlayer->GetPlayerType() == PLAYER_TYPE::EMPLOYEE)
+		{
 			++static_cast<CEmployee*>(localPlayer)->_activatedGeneratorCount;
+		}
 	}
 
-	if (_activeGeneratorCount < _generatorCount) ++_activeGeneratorCount;
+	if (_activeGeneratorCount < _generatorCount)
+	{
+		++_activeGeneratorCount;
+	}
 	_employeeExitReady = _activeGeneratorCount >= GENCNT;
 	SoundManager::GetInstance().SetVolum(8 + index, 0.1f);
 }
 
 bool CGameScene::InitGame(const S2C_GAMESTART* packet, int32 sid)
 {
-	if (!packet || sid < 0 || _localPlayerIndex >= 0) return false;
+	if (!packet || sid < 0 || _localPlayerIndex >= 0)
+	{
+		return false;
+	}
 	_jobQueue->Clear();
 
 	int16 resolvedPlayerIdx = -1;
 	for (int i = 0; i < PLAYERNUM; ++i)
 	{
-		if (!_players[i] || packet->sids[i] < 0) return false;
+		if (!_players[i] || packet->sids[i] < 0)
+		{
+			return false;
+		}
 		for (int j = 0; j < i; ++j)
-			if (packet->sids[i] == packet->sids[j]) return false;
-		if (packet->sids[i] == sid) resolvedPlayerIdx = static_cast<int16>(i);
+		{
+			if (packet->sids[i] == packet->sids[j])
+			{
+				return false;
+			}
+		}
+		if (packet->sids[i] == sid)
+		{
+			resolvedPlayerIdx = static_cast<int16>(i);
+		}
 	}
 
 	CPlayer* localPlayer = GetScenePlayerByIdx(resolvedPlayerIdx);
-	if (!localPlayer) return false;
+	if (!localPlayer)
+	{
+		return false;
+	}
 
 	for (int i = 0; i < PLAYERNUM; ++i)
 	{
@@ -828,12 +1001,21 @@ bool CGameScene::InitGame(const S2C_GAMESTART* packet, int32 sid)
 	std::cout << "PLAYER_IDX: " << _localPlayerIndex << "\n";
 
 	_players[0]->SetPosition(XMFLOAT3(0, 0, -18));
-	if(_players[1] != nullptr)_players[1]->SetPosition(XMFLOAT3(10, 0, -18));
-	if(_players[2] != nullptr)_players[2]->SetPosition(XMFLOAT3(15, 0, -18));
-	if(_players[3] != nullptr)_players[3]->SetPosition(XMFLOAT3(20, 0, -18));
+	if (_players[1] != nullptr)
+	{
+		_players[1]->SetPosition(XMFLOAT3(10, 0, -18));
+	}
+	if (_players[2] != nullptr)
+	{
+		_players[2]->SetPosition(XMFLOAT3(15, 0, -18));
+	}
+	if (_players[3] != nullptr)
+	{
+		_players[3]->SetPosition(XMFLOAT3(20, 0, -18));
+	}
 	_camera.SetViewerIndex(_localPlayerIndex);
 	_camera.SetFogEnabled(true);
-	SetCameraMode(FIRST_PERSON_CAMERA);
+	SetCameraMode(CCamera::FirstPersonMode);
 	localPlayer->SetClientType(CLIENT_TYPE::OWNER);
 	return true;
 }
@@ -855,9 +1037,12 @@ bool CGameScene::IsActive() const noexcept
 
 void CGameScene::SetEmployeeResultStats(const int32 activeGeneratorCount, const int32 deathCount) noexcept
 {
-	if (!_resultScene) return;
-	_resultScene->m_activeCnt = activeGeneratorCount;
-	_resultScene->m_deadCnt = deathCount;
+	if (!_resultScene)
+	{
+		return;
+	}
+	_resultScene->_activeCount = activeGeneratorCount;
+	_resultScene->_deathCount = deathCount;
 }
 
 void CGameScene::ExitReady()
@@ -875,12 +1060,15 @@ void CGameScene::ExitReady()
 		for (int j = 0; j < m_nShaders; j++)
 		{
 			CStandardObjectsShader* pShaderObjects = (CStandardObjectsShader*)m_ppShaders[j];
-			for (int i = 0; i < pShaderObjects->m_nObjects; i++)
+			for (int i = 0; i < pShaderObjects->_objectCount; i++)
 			{
-				if (pShaderObjects->m_ppObjects[i])
+				if (pShaderObjects->_ppObjects[i])
 				{
-					if ((pShaderObjects->m_ppObjects[i]->objLayer == Layout::SIREN) || (pShaderObjects->m_ppObjects[i]->objLayer == Layout::DOOR))
-						pShaderObjects->m_ppObjects[i]->m_bEmpExit = true;
+					if ((pShaderObjects->_ppObjects[i]->objLayer == Layout::SIREN) ||
+					    (pShaderObjects->_ppObjects[i]->objLayer == Layout::DOOR))
+					{
+						pShaderObjects->_ppObjects[i]->m_bEmpExit = true;
+					}
 				}
 			}
 		}
@@ -890,16 +1078,35 @@ void CGameScene::ExitReady()
 bool CGameScene::ResetGame()
 {
 	CPlayer* localPlayer = GetLocalPlayer();
-	if (!localPlayer) return false;
+	if (!localPlayer)
+	{
+		return false;
+	}
 
 	_jobQueue->Clear();
 	// 플레이어 상태 초기화
-	for (auto& i : _players) if(i) i->ResetState();
+	for (auto &i : _players)
+	{
+		if (i)
+		{
+			i->ResetState();
+		}
+	}
 	if (m_ppShaders)
+	{
 		for (int i = 0; i < m_nShaders; ++i)
-			if (m_ppShaders[i]) m_ppShaders[i]->ResetState();
+		{
+			if (m_ppShaders[i])
+			{
+				m_ppShaders[i]->ResetState();
+			}
+		}
+	}
 
-	if (!SetCameraMode(FIRST_PERSON_CAMERA)) return false;
+	if (!SetCameraMode(CCamera::FirstPersonMode))
+	{
+		return false;
+	}
 	_camera.ResetPose(*localPlayer);
 	_camera.SetViewerIndex(-1);
 	_camera.SetFogEnabled(false);
@@ -919,7 +1126,10 @@ bool CGameScene::ResetGame()
 	_exitedPlayerCount = 0;
 	_remainingPlayerCount = 0;
 	_activeGeneratorCount = 0;
-	for (const int channel : { 7, 11, 12, 13, 14, 15 }) SoundManager::SoundStop(channel);
+	for (const int channel : {7, 11, 12, 13, 14, 15})
+	{
+		SoundManager::SoundStop(channel);
+	}
 
 #if defined(_DEBUG)
 	const XMFLOAT3 right = localPlayer->GetRightVector();
@@ -933,7 +1143,7 @@ bool CGameScene::ResetGame()
 		localPlayer->GetPosition(), XMFLOAT3(0.0f, 1.25f * UNIT, 0.0f));
 	XMFLOAT3 cameraOffset = Vector3::Subtract(_camera.GetPosition(), expectedCameraPosition);
 	assert(Vector3::Length(cameraOffset) < 0.0001f);
-	assert(_camera.GetMode() == FIRST_PERSON_CAMERA);
+	assert(_camera.GetMode() == CCamera::FirstPersonMode);
 	assert(_currentFrame == 0);
 	const auto* bullet = static_cast<const CBoss*>(_players[0])->_bullet;
 	assert(!bullet || !bullet->GetOnShoot());

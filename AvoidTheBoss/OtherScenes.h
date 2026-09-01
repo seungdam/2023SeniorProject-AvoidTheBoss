@@ -10,22 +10,16 @@ class ClientNetworker;
 class GameCore;
 }
 
-const int32 MAX_ROOM = 100;
-
 class CLobbyScene : public CScene
 {
+	static constexpr int32 RoomCapacity = 100;
+
 	struct Room
 	{
 		int32 member = 0;
 		int32 idx = 0;
 		ROOM_STATUS status = ROOM_STATUS::EMPTY;
 	};
-public:
-	int32	 m_curPage = 0;
-	int32	 m_lastPage = 0;
-	Room	 m_rooms[MAX_ROOM];
-	int32	 m_selected_rm = -1;
-	CPlayer* m_player = NULL;
 public:
 	CLobbyScene(atb::GameCore& gameCore, atb::ClientNetworker& networker, UIManager& ui)
 		: _gameCore(gameCore), _networker(networker), _ui(ui) {}
@@ -45,29 +39,34 @@ public:
 	[[nodiscard]] LobbyUiSnapshot CreateUiSnapshot() const;
 	void UpdateRoomStatus(int32 rn, int32 mem)
 	{
-		m_rooms[rn].member = mem;
-		for (int i = 0; i < 5; ++i)UpdateRoomText(i, -1);
+		_rooms[rn].member = mem;
+		for (int i = 0; i < 5; ++i)
+		{
+			UpdateRoomText(i, -1);
+		}
 	};
+
 
 private:
 	atb::GameCore& _gameCore;
 	atb::ClientNetworker& _networker;
 	UIManager& _ui;
+public:
+	int32	 _curPage = 0;
+	int32	 _prevPage = 0;
+	Room	 _rooms[RoomCapacity];
+	int32	 _selectedRoomNumber = -1;
+	CPlayer* _pPlayer = NULL;
+
 };
 
 class CTitleScene : public CScene
 {
-	int32 focus = 0;
-	bool cap = false;
 
-
-
-	Timer m_timer;
 public:
-	std::mutex loginLock;
-	bool m_login = false;
-	CTitleScene(atb::GameCore& gameCore, atb::ClientNetworker& networker, UIManager& ui)
-		: _gameCore(gameCore), _networker(networker), _ui(ui) {}
+	std::mutex _loginLock;
+	bool _isLogin = false;
+	CTitleScene(atb::GameCore& gameCore, atb::ClientNetworker& networker, UIManager& ui) : _gameCore(gameCore), _networker(networker), _ui(ui) {}
 	~CTitleScene() {}
 
 	virtual void ReleaseUploadBuffers() {};
@@ -79,6 +78,9 @@ public:
 	virtual void MouseAction(const POINT& mp) override;
 
 private:
+	int32	_focus = 0;
+	bool	_cap = false;
+	Timer	_timer;
 	atb::GameCore& _gameCore;
 	atb::ClientNetworker& _networker;
 	UIManager& _ui;
@@ -88,18 +90,18 @@ class CRoomScene : public CScene
 {
 	struct Member
 	{
-		int32 m_sid = -1;
+		int32 _sid = -1;
 		bool isReady = false;
 	};
-public:
-	Member m_members[4];
-	std::mutex m_memLock;
-	int32 m_rmnum = 0;
+
 public:
 	CRoomScene(atb::GameCore& gameCore, atb::ClientNetworker& networker, UIManager& ui)
 		: _gameCore(gameCore), _networker(networker), _ui(ui)
 	{
-		for (auto& i : m_members) i.isReady = false;
+		for (auto& i : _members)
+		{
+			i.isReady = false;
+		}
 	}
 	~CRoomScene() {}
 
@@ -109,9 +111,12 @@ public:
 	[[nodiscard]] RoomUiSnapshot CreateUiSnapshot();
 	virtual void UpdateReady(int32 sid, bool val)
 	{
-		for (auto& i : m_members)
+		for (auto& i : _members)
 		{
-			if(sid == i.m_sid) i.isReady = val;
+			if (sid == i._sid)
+			{
+				i.isReady = val;
+			}
 		}
 	}
 	virtual void ReleaseUploadBuffers() {};
@@ -123,26 +128,15 @@ private:
 	atb::GameCore& _gameCore;
 	atb::ClientNetworker& _networker;
 	UIManager& _ui;
+public:
+	Member _members[4];
+	std::mutex _memLock;
+	int32 _roomNumber = 0;
 };
 
 class CResultScene : public CScene
 {
-public:
-	int32 m_pidx = -1;
-	int32 m_case = 0; // 1  escape 2 arrested
 
-
-	// 사장
-	// 탈출 직원 수
-	int32 m_exitPlayerCnt = 0;
-	// 죽인 횟수
-
-	// 직원
-	int32 m_deadCnt;   //  죽은 횟수
-	int32 m_activeCnt; //  발전기 활성화 횟수
-
-	Timer m_timer;
-	float m_showTime = 4.0f; // 결과창 보여주는 시각
 
 public:
 	CResultScene(atb::GameCore& gameCore, UIManager& ui)
@@ -161,4 +155,18 @@ public:
 private:
 	atb::GameCore& _gameCore;
 	UIManager& _ui;
+public:
+	int32 _playerIdx = -1;
+	int32 _gameResult = 0; // 1  escape 2 arrested
+	// 사장
+	// 탈출 직원 수
+	int32 _exitPlayerCount = 0;
+	// 죽인 횟수
+
+	// 직원
+	int32 _deathCount;   //  죽은 횟수
+	int32 _activeCount; //  발전기 활성화 횟수
+
+	Timer _timer;
+	float _showTime = 4.0f; // 결과창 보여주는 시각
 };

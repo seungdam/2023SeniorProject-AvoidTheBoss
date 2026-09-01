@@ -7,8 +7,8 @@ CCamera::CCamera()
 {
 	_view = Matrix4x4::Identity();
 	_projection = Matrix4x4::Identity();
-	_viewport = { 0, 0, FRAME_BUFFER_WIDTH , FRAME_BUFFER_HEIGHT, 0.0f, 1.0f }; // 화면 영역 설정, 깊이 값 설정 0~1.0f (Z값)
-	_scissorRect = { 0, 0, FRAME_BUFFER_WIDTH , FRAME_BUFFER_HEIGHT };
+	_viewport = { 0, 0, atb::client::config::DefaultWindowWidth , atb::client::config::DefaultWindowHeight, 0.0f, 1.0f }; // 화면 영역 설정, 깊이 값 설정 0~1.0f (Z값)
+	_scissorRect = { 0, 0, atb::client::config::DefaultWindowWidth , atb::client::config::DefaultWindowHeight };
 	_position = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	_right = XMFLOAT3(1.0f, 0.0f, 0.0f);
 	_look = XMFLOAT3(0.0f, 0.0f, 1.0f);
@@ -27,7 +27,10 @@ void CCamera::CreateShaderVariables(ID3D12Device5* pd3dDevice, ID3D12GraphicsCom
 	ReleaseShaderVariables();
 	UINT ncbElementBytes = ((sizeof(VS_CB_CAMERA_INFO) + 255) & ~255); //256의 배수
 	_constantBuffer.Attach(::CreateBufferResource(pd3dDevice, pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, NULL));
-	if (!_constantBuffer) ThrowIfFailed(E_OUTOFMEMORY);
+	if (!_constantBuffer)
+	{
+		ThrowIfFailed(E_OUTOFMEMORY);
+	}
 	ThrowIfFailed(_constantBuffer->Map(0, NULL, reinterpret_cast<void**>(&_mappedConstants)));
 	++_bufferCreateCount;
 }
@@ -56,12 +59,18 @@ void CCamera::UpdateShaderVariables(ID3D12GraphicsCommandList4* pd3dCommandList)
 
 	XMFLOAT4 fogOption; // id , on off, start, end;
 
-
-
-	if (_viewerIndex == 0 && _fogEnabled)	fogOption =	XMFLOAT4   {1.f,     2.f,     12.f  ,1};
-	else if (_viewerIndex > 0 && _fogEnabled) fogOption = XMFLOAT4  {1.f ,   2.f,      7.f  ,1};
-	else if(_viewerIndex < 0 || !_fogEnabled) fogOption = XMFLOAT4  { -1.f , 0.f,     0.f  ,1};
-
+	if (_viewerIndex == 0 && _fogEnabled)
+	{
+		fogOption = XMFLOAT4{1.f, 2.f, 12.f, 1};
+	}
+	else if (_viewerIndex > 0 && _fogEnabled)
+	{
+		fogOption = XMFLOAT4{1.f, 2.f, 7.f, 1};
+	}
+	else if (_viewerIndex < 0 || !_fogEnabled)
+	{
+		fogOption = XMFLOAT4{-1.f, 0.f, 0.f, 1};
+	}
 
 	::memcpy(&_mappedConstants->_fogOptions, &fogOption, sizeof(XMFLOAT4));
 
@@ -74,13 +83,13 @@ bool CCamera::SetMode(const DWORD mode)
 {
 	switch (mode)
 	{
-	case FIRST_PERSON_CAMERA:
+	case CCamera::FirstPersonMode:
 		_offset = XMFLOAT3(0.0f, 1.25f * UNIT, 0.0f);
-		GenerateProjectionMatrix(0.01f, 5000.0f, ASPECT_RATIO, 60.0f);
+		GenerateProjectionMatrix(0.01f, 5000.0f, CCamera::DefaultAspectRatio, 60.0f);
 		break;
-	case THIRD_PERSON_CAMERA:
+	case CCamera::ThirdPersonMode:
 		_offset = XMFLOAT3(0.0f, 1.7f * UNIT, -5.0f * UNIT);
-		GenerateProjectionMatrix(1.01f, 5000.0f, ASPECT_RATIO, 60.0f);
+		GenerateProjectionMatrix(1.01f, 5000.0f, CCamera::DefaultAspectRatio, 60.0f);
 		break;
 	default:
 		return false;
@@ -88,8 +97,8 @@ bool CCamera::SetMode(const DWORD mode)
 
 	_mode = mode;
 	_timeLag = 0.0f;
-	SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
-	SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
+	SetViewport(0, 0, atb::client::config::DefaultWindowWidth, atb::client::config::DefaultWindowHeight, 0.0f, 1.0f);
+	SetScissorRect(0, 0, atb::client::config::DefaultWindowWidth, atb::client::config::DefaultWindowHeight);
 	return true;
 }
 
@@ -187,14 +196,17 @@ void CCamera::Update(const CPlayer& target, const float fTimeElapsed)
 	XMFLOAT3 xmf3Offset = Vector3::TransformCoord(_offset, xmf4x4Rotate);
 	XMFLOAT3 xmf3Position = Vector3::Add(target.GetPosition(), xmf3Offset);
 
-	if (_mode == FIRST_PERSON_CAMERA)
+	if (_mode == CCamera::FirstPersonMode)
 	{
 		_look = target.GetLookVector();
 		_position = xmf3Position;
 		return;
 	}
 
-	if (_mode != THIRD_PERSON_CAMERA) return;
+	if (_mode != CCamera::ThirdPersonMode)
+	{
+		return;
+	}
 
 	XMFLOAT3 xmf3Direction = Vector3::Subtract(xmf3Position, _position);
 	const float fLength = Vector3::Length(xmf3Direction);
@@ -203,7 +215,10 @@ void CCamera::Update(const CPlayer& target, const float fTimeElapsed)
 		xmf3Direction = Vector3::Normalize(xmf3Direction);
 		const float fTimeLagScale = (_timeLag > 0.0f) ? fTimeElapsed / _timeLag : 1.0f;
 		float fDistance = fLength * fTimeLagScale;
-		if (fDistance > fLength || fLength < 0.01f) fDistance = fLength;
+		if (fDistance > fLength || fLength < 0.01f)
+		{
+			fDistance = fLength;
+		}
 		_position = Vector3::Add(_position, xmf3Direction, fDistance);
 	}
 
@@ -213,7 +228,10 @@ void CCamera::Update(const CPlayer& target, const float fTimeElapsed)
 
 void CCamera::Rotate(const CPlayer& target, const float x, const float y, const float z)
 {
-	if (_mode != FIRST_PERSON_CAMERA) return;
+	if (_mode != CCamera::FirstPersonMode)
+	{
+		return;
+	}
 
 	//x축회전 - 카메라 로컬 x 기준 고개 위아래, y축회전 - 플레이어 y축 기준 좌우 회전, z축회전 - 플레이어 로컬 z축 기준 회전 (린 Lean - 몸통을 그래도 한 채 카메라만 살짝 내밀어 적 살피기인데, 그냥 쵸파가 빼꼼 볼때 사선으로 서서 오브젝트에 가려진 시야를 넓히는 것과 비슷하다)
 

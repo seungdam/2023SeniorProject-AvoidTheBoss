@@ -38,6 +38,6 @@ private:
 	friend class atb::GameCore;
 	CScene* GetScene(atb::SceneId scene) const noexcept;
 
-	CScene* m_pScenes[SceneCount]{};
+	CScene* _pScenes[SceneCount]{};
 };
 

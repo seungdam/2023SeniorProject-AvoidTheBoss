@@ -6,6 +6,9 @@ class CGameScene;
 class CBoss : public CPlayer
 {
 	friend class ClientSession;
+public:
+	static constexpr int32 StandAttackFrameCount = 25;
+
 private:
 	CGameScene& _ownerScene;
 	CGameObject* _rightHand = NULL;

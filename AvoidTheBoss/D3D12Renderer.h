@@ -12,8 +12,8 @@ namespace atb
 class D3D12Renderer final
 {
 public:
-	static constexpr UINT FrameCount = 2;
-	using BackBufferViews = std::array<ID3D12Resource*, FrameCount>;
+	static constexpr UINT BackBufferCount = 2;
+	using BackBufferViews = std::array<ID3D12Resource*, BackBufferCount>;
 
 	D3D12Renderer() = default;
 	~D3D12Renderer() noexcept;
@@ -70,7 +70,7 @@ private:
 
 	UINT _frameIndex = 0;
 
-	std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, FrameCount> _backBuffers;
+	std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, BackBufferCount> _backBuffers;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> _rtvHeap;
 	UINT _rtvDescriptorSize = 0;
 

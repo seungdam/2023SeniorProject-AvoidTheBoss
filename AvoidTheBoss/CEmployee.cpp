@@ -8,6 +8,23 @@
 #include "InputManager.h"
 #include "SoundManager.h"
 
+namespace
+{
+constexpr std::array<const char*, 4> FirstPersonCharacterModelPaths{
+	"null",
+	"Model/Character/Character_Helmet_1st_View.bin",
+	"Model/Character/Character_Mask_1st_View.bin",
+	"Model/Character/Character_Cap_1st_View.bin"
+};
+
+constexpr std::array<const char*, 4> ThirdPersonCharacterModelPaths{
+	"null",
+	"Model/Character/Character_Helmet.bin",
+	"Model/Character/Character_Mask.bin",
+	"Model/Character/Character_Cap.bin"
+};
+}
+
 CEmployee::CEmployee(
 	ID3D12Device5* pd3dDevice,
 	ID3D12GraphicsCommandList4* pd3dCommandList,
@@ -21,7 +38,7 @@ CEmployee::CEmployee(
 
 	// 1 인칭 애니메이션 로드
 		//달리기, 버튼, 느리게 걷기, 대기
-		CLoadedModelInfo* pEmployeeModel1v = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, g_pstrFirstCharactorRefernece[(int)_characterType], NULL, Layout::PLAYER);
+		CLoadedModelInfo* pEmployeeModel1v = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, FirstPersonCharacterModelPaths[(int)_characterType], NULL, Layout::PLAYER);
 		SetChild(pEmployeeModel1v->m_pModelRootObject, true);
 
 		m_pSkinnedAnimationController2 = new CAnimationController(pd3dDevice, pd3dCommandList, 4, pEmployeeModel1v);
@@ -31,7 +48,7 @@ CEmployee::CEmployee(
 		m_pSkinnedAnimationController2->SetTrackAnimationSet(3, 1);//button
 
 	// 3인칭 애니메이션 로드
-		CLoadedModelInfo* pEmployeeModel3v = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, g_pstrThirdCharactorRefernece[(int)_characterType], NULL, Layout::PLAYER);
+		CLoadedModelInfo* pEmployeeModel3v = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, ThirdPersonCharacterModelPaths[(int)_characterType], NULL, Layout::PLAYER);
 		SetChild(pEmployeeModel3v->m_pModelRootObject, true);
 
 		m_pSkinnedAnimationController1 = new CAnimationController(pd3dDevice, pd3dCommandList, 8, pEmployeeModel3v);
@@ -62,8 +79,14 @@ CEmployee::CEmployee(
 	m_pSkinnedAnimationController1->SetTrackEnable(6, false);
 	m_pSkinnedAnimationController1->SetTrackEnable(7, false);
 
-	if (pEmployeeModel1v)delete pEmployeeModel1v;
-	if (pEmployeeModel3v)delete pEmployeeModel3v;
+	if (pEmployeeModel1v)
+	{
+		delete pEmployeeModel1v;
+	}
+	if (pEmployeeModel3v)
+	{
+		delete pEmployeeModel3v;
+	}
 }
 
 CEmployee::~CEmployee()
@@ -79,15 +102,33 @@ uint8 CEmployee::ProcessInput()
 	uint8 dir = 0;
 	if (!IsSeMiBehavior() && !IsMovable())
 	{
-		if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::W) > 0)  dir |= KEY_FORWARD;
-		if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::A) > 0)  dir |= KEY_LEFT;
-		if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::S) > 0)  dir |= KEY_BACKWARD;
-		if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::D) > 0)  dir |= KEY_RIGHT;
+		if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::W) > 0)
+		{
+			dir |= KEY_FORWARD;
+		}
+		if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::A) > 0)
+		{
+			dir |= KEY_LEFT;
+		}
+		if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::S) > 0)
+		{
+			dir |= KEY_BACKWARD;
+		}
+		if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::D) > 0)
+		{
+			dir |= KEY_RIGHT;
+		}
 
 		if (GetBehavior() != (int32)PLAYER_BEHAVIOR::ATTACKED)
 		{
-			if (dir) SetBehavior(PLAYER_BEHAVIOR::RUN);
-			else	 SetBehavior(PLAYER_BEHAVIOR::IDLE);
+			if (dir)
+			{
+				SetBehavior(PLAYER_BEHAVIOR::RUN);
+			}
+			else
+			{
+				SetBehavior(PLAYER_BEHAVIOR::IDLE);
+			}
 		}
 		// 구조 작업이나 발전기 상호작용을 수행하고 있다면
 
@@ -108,9 +149,18 @@ void CEmployee::Move(const int16& dwDirection, float fDistance)
 	{
 		if (false == IsSeMiBehavior())
 		{
-			if ((int32)PLAYER_BEHAVIOR::ATTACKED == GetBehavior() && _attackedAnimationFrames >= 0);
-			else if (LOBYTE(dwDirection)) SetBehavior(PLAYER_BEHAVIOR::RUN);
-			else if(!LOBYTE(dwDirection)) SetBehavior(PLAYER_BEHAVIOR::IDLE);
+			if ((int32)PLAYER_BEHAVIOR::ATTACKED == GetBehavior() && _attackedAnimationFrames >= 0)
+			{
+				;
+			}
+			else if (LOBYTE(dwDirection))
+			{
+				SetBehavior(PLAYER_BEHAVIOR::RUN);
+			}
+			else if (!LOBYTE(dwDirection))
+			{
+				SetBehavior(PLAYER_BEHAVIOR::IDLE);
+			}
 		}
 	}
 
@@ -147,7 +197,10 @@ void CEmployee::LateUpdate(float fTimeElapsed, CLIENT_TYPE ptype)
 	if (_invincible)
 	{
 		_uiCooldown -= fTimeElapsed;
-		if (_uiCooldown <= 0) _uiCooldown = 0.f;
+		if (_uiCooldown <= 0)
+		{
+			_uiCooldown = 0.f;
+		}
 	}
 	else
 	{
@@ -166,7 +219,7 @@ void CEmployee::LateUpdate(float fTimeElapsed, CLIENT_TYPE ptype)
 			_beingRescued = false;
 
 			SetBehavior(PLAYER_BEHAVIOR::STAND);
-			_standAnimationFrames = EMPLOYEE_STAND_TIME;
+			_standAnimationFrames = CEmployee::StandAnimationFrameCount;
 
 			SC_EVENTPACKET packet;
 			packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
@@ -181,7 +234,7 @@ void CEmployee::LateUpdate(float fTimeElapsed, CLIENT_TYPE ptype)
 	{
 		// 결과 씬에 넘겨주기
 		_ownerScene.SetEmployeeResultStats(_activatedGeneratorCount, _deathCount);
-		_ownerScene.SetCameraMode(FIRST_PERSON_CAMERA);
+		_ownerScene.SetCameraMode(CCamera::FirstPersonMode);
 
 		if (GetPosition().x < -28 || GetPosition().x > 28 || GetPosition().z > 28 || GetPosition().z < -28)
 		{
@@ -189,7 +242,9 @@ void CEmployee::LateUpdate(float fTimeElapsed, CLIENT_TYPE ptype)
 			SetBehavior(PLAYER_BEHAVIOR::EXIT);
 			_moveSoundActive = false;
 			if (CLIENT_TYPE::OWNER == _state.clientType)
+			{
 				SoundManager::SoundStop(14);
+			}
 			SC_EVENTPACKET packet;
 			packet.size = sizeof(SC_EVENTPACKET);
 			packet.type = (uint8)SC_GAME_PACKET_TYPE::GAMEEVENT;
@@ -199,11 +254,20 @@ void CEmployee::LateUpdate(float fTimeElapsed, CLIENT_TYPE ptype)
 		}
 	}
 
-	if (ptype == CLIENT_TYPE::OWNER) _velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	if (ptype == CLIENT_TYPE::OWNER)
+	{
+		_velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	}
 	else if (ptype == CLIENT_TYPE::OTHER_PLAYER)
 	{
-		if (_state.behavior != (int32)PLAYER_BEHAVIOR::SWITCH_INTER) SetGenInteraction(false);
-		if (_state.behavior == (int32)PLAYER_BEHAVIOR::EXIT) _state.hidden = true;
+		if (_state.behavior != (int32)PLAYER_BEHAVIOR::SWITCH_INTER)
+		{
+			SetGenInteraction(false);
+		}
+		if (_state.behavior == (int32)PLAYER_BEHAVIOR::EXIT)
+		{
+			_state.hidden = true;
+		}
 	}
 }
 
@@ -214,13 +278,19 @@ void CEmployee::SetIdleAnimTrack()
 {
 	if (CLIENT_TYPE::OWNER == _state.clientType)
 	{
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, true);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -232,13 +302,19 @@ void CEmployee::SetIdleAnimTrack()
 	}
 	else if (CLIENT_TYPE::OTHER_PLAYER == _state.clientType)
 	{
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, true);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -269,13 +345,19 @@ void CEmployee::SetRunAnimTrack()
 {
 	if (CLIENT_TYPE::OWNER == _state.clientType)
 	{
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, true);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -287,13 +369,19 @@ void CEmployee::SetRunAnimTrack()
 	}
 	else if (CLIENT_TYPE::OTHER_PLAYER == _state.clientType)
 	{
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, true);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -323,13 +411,19 @@ void CEmployee::SetAttackedAnimTrack()
 {
 	if (CLIENT_TYPE::OWNER == _state.clientType)
 	{
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, true);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -341,13 +435,19 @@ void CEmployee::SetAttackedAnimTrack()
 	}
 	else if (CLIENT_TYPE::OTHER_PLAYER == _state.clientType)
 	{
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -379,13 +479,19 @@ void CEmployee::SetInteractionAnimTrack()
 	// 발전기 상호작용
 	if (CLIENT_TYPE::OWNER == _state.clientType)
 	{
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, true);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -397,13 +503,19 @@ void CEmployee::SetInteractionAnimTrack()
 	}
 	else if (CLIENT_TYPE::OTHER_PLAYER == _state.clientType)
 	{
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -425,13 +537,19 @@ void CEmployee::SetCrawlAnimTrack()
 	if (CLIENT_TYPE::OWNER == _state.clientType && m_IsFirst)
 	{
 		// 일단 아이들 상태 애니메이션 재생하도록 한다.
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, true);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -443,13 +561,19 @@ void CEmployee::SetCrawlAnimTrack()
 	else if (CLIENT_TYPE::OWNER == _state.clientType && !m_IsFirst)
 	{
 		// 일단 아이들 상태 애니메이션 재생하도록 한다.
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -463,13 +587,19 @@ void CEmployee::SetCrawlAnimTrack()
 	// 만약 그냥 다른 플레이어라면 ~
 	if (CLIENT_TYPE::OTHER_PLAYER == _state.clientType)
 	{
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -499,13 +629,19 @@ void CEmployee::SetDownAnimTrack()
 {
 	if (CLIENT_TYPE::OWNER == _state.clientType && m_IsFirst)
 	{
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, true);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -518,13 +654,19 @@ void CEmployee::SetDownAnimTrack()
 	else if (CLIENT_TYPE::OWNER == _state.clientType && !m_IsFirst)
 	{
 		// 일단 아이들 상태 애니메이션 재생하도록 한다.
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, true);
@@ -538,13 +680,19 @@ void CEmployee::SetDownAnimTrack()
 
 	if (CLIENT_TYPE::OTHER_PLAYER == _state.clientType)
 	{
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, true);
@@ -574,13 +722,19 @@ void CEmployee::SetStandAnimTrack()
 	// 일어나기
 	if (CLIENT_TYPE::OWNER == _state.clientType && m_IsFirst)
 	{
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, true); // Idle 애니메이션 재생하도록
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -592,13 +746,19 @@ void CEmployee::SetStandAnimTrack()
 	}
 	else if (CLIENT_TYPE::OWNER == _state.clientType && !m_IsFirst) // 3인칭
 	{
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false); // Idle 애니메이션 재생하도록
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -612,13 +772,19 @@ void CEmployee::SetStandAnimTrack()
 
 	if (CLIENT_TYPE::OTHER_PLAYER == _state.clientType)
 	{
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -648,13 +814,19 @@ void CEmployee::SetExitMotionAnimTrack()
 	if (CLIENT_TYPE::OWNER == _state.clientType && m_IsFirst)
 	{
 		// 일단 아이들 상태 애니메이션 재생하도록 한다.
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, true);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -666,13 +838,19 @@ void CEmployee::SetExitMotionAnimTrack()
 	else if (CLIENT_TYPE::OWNER == _state.clientType && !m_IsFirst)
 	{
 		// 일단 아이들 상태 애니메이션 재생하도록 한다.
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -686,13 +864,19 @@ void CEmployee::SetExitMotionAnimTrack()
 	// 만약 그냥 다른 플레이어라면 ~
 	if (CLIENT_TYPE::OTHER_PLAYER == _state.clientType)
 	{
-		if (m_pSkinnedAnimationController2 == nullptr) return;
+		if (m_pSkinnedAnimationController2 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController2->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(2, false);
 		m_pSkinnedAnimationController2->SetTrackEnable(3, false);
 
-		if (m_pSkinnedAnimationController1 == nullptr) return;
+		if (m_pSkinnedAnimationController1 == nullptr)
+		{
+			return;
+		}
 		m_pSkinnedAnimationController1->SetTrackEnable(0, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(1, false);
 		m_pSkinnedAnimationController1->SetTrackEnable(2, false);
@@ -746,12 +930,14 @@ void CEmployee::AnimTrackUpdate()
 		SetInteractionAnimTrack();
 		break;
 	case (int32)PLAYER_BEHAVIOR::ATTACKED:
-		if (_attackedAnimationFrames == EMPLOYEE_ATTACKED_TIME)
+		if (_attackedAnimationFrames == CEmployee::AttackedAnimationFrameCount)
 		{
 			SetAttackedAnimTrack();
 			_attackedAnimationFrames--;
-			if (CLIENT_TYPE::OWNER == _state.clientType )
+			if (CLIENT_TYPE::OWNER == _state.clientType)
+			{
 				SoundManager::GetInstance().PlayObjectSound(13, 15);
+			}
 		}
 		else
 		{
@@ -766,18 +952,20 @@ void CEmployee::AnimTrackUpdate()
 		}
 		break;
 	case (int32)PLAYER_BEHAVIOR::DOWN:
-		if (_downAnimationFrames == EMPLOYEE_DOWN_TIME)
+		if (_downAnimationFrames == CEmployee::DownAnimationFrameCount)
 		{
 			SetDownAnimTrack();
 			_downAnimationFrames--;
 		}
-		else if (_downAnimationFrames < EMPLOYEE_DOWN_TIME)
+		else if (_downAnimationFrames < CEmployee::DownAnimationFrameCount)
 		{
 			_downAnimationFrames--;
 			if (_downAnimationFrames <= 0)
 			{
-				if (CLIENT_TYPE::OWNER == _state.clientType )
+				if (CLIENT_TYPE::OWNER == _state.clientType)
+				{
 					SoundManager::GetInstance().PlayObjectSound(7, 15);
+				}
 				SetBehavior(PLAYER_BEHAVIOR::CRAWL);
 			}
 		}
@@ -785,7 +973,9 @@ void CEmployee::AnimTrackUpdate()
 	case (int32)PLAYER_BEHAVIOR::CRAWL:
 		SetCrawlAnimTrack();
 		if (CLIENT_TYPE::OWNER == _state.clientType)
+		{
 			_ownerScene.SetFogEnabled(false);
+		}
 		break;
 
 	case (int32)PLAYER_BEHAVIOR::EXIT:
@@ -797,19 +987,22 @@ void CEmployee::AnimTrackUpdate()
 		SetExitMotionAnimTrack();
 		break;
 	case (int32)PLAYER_BEHAVIOR::STAND:
-		if (_standAnimationFrames == EMPLOYEE_STAND_TIME)
+		if (_standAnimationFrames == CEmployee::StandAnimationFrameCount)
 		{
 			SetStandAnimTrack();
 			_standAnimationFrames--;
 		}
 		else
 		{
-			if(_standAnimationFrames > 0) _standAnimationFrames--;
+			if (_standAnimationFrames > 0)
+			{
+				_standAnimationFrames--;
+			}
 			if (_standAnimationFrames <= 0)
 			{
 				if (CLIENT_TYPE::OWNER == _state.clientType)
 				{
-					_ownerScene.SetCameraMode(FIRST_PERSON_CAMERA);
+					_ownerScene.SetCameraMode(CCamera::FirstPersonMode);
 					_ownerScene.SetFogEnabled(true);
 				}
 				SetBehavior(PLAYER_BEHAVIOR::IDLE);
@@ -851,7 +1044,10 @@ CGenerator* CEmployee::GetAvailGen()
 					return nullptr;
 				}
 			}
-			else _inGeneratorArea = false;
+			else
+			{
+				_inGeneratorArea = false;
+			}
 		}
 	}
 	_inGeneratorArea = false;
@@ -867,7 +1063,10 @@ CEmployee* CEmployee::GetAvailEMP()
 	{
 
 		CEmployee* p = static_cast<CEmployee*>(_ownerScene.GetScenePlayerByIdx(i));
-		if (p == nullptr || i == _state.playerIndex) continue;
+		if (p == nullptr || i == _state.playerIndex)
+		{
+			continue;
+		}
 		XMFLOAT3 ppos = p->GetPosition();
 		ppos = Vector3::Subtract(_position, ppos);
 		float dist = Vector3::Length(ppos);
@@ -897,7 +1096,7 @@ void CEmployee::PlayerAttacked()
 		else
 		{
 			SetBehavior(PLAYER_BEHAVIOR::ATTACKED);
-			_attackedAnimationFrames = EMPLOYEE_ATTACKED_TIME;
+			_attackedAnimationFrames = CEmployee::AttackedAnimationFrameCount;
 		}
 	}
 }
@@ -906,19 +1105,22 @@ void CEmployee::PlayerDown()
 {
 	if (CLIENT_TYPE::OWNER == _state.clientType)
 	{
-		_ownerScene.SetCameraMode(THIRD_PERSON_CAMERA);
+		_ownerScene.SetCameraMode(CCamera::ThirdPersonMode);
 		_ownerScene.SetFogEnabled(true);
 	}
 
 	SetBehavior(PLAYER_BEHAVIOR::DOWN);
-	_downAnimationFrames = EMPLOYEE_DOWN_TIME;
+	_downAnimationFrames = CEmployee::DownAnimationFrameCount;
 }
 
 bool CEmployee::GenTasking()
 {
 	CGenerator* targetGen = GetAvailGen();
 
-	if(targetGen)std::cout << targetGen->GetIndex() << "Available\n";
+	if (targetGen)
+	{
+		std::cout << targetGen->GetIndex() << "Available\n";
+	}
 
 	//  F키를 눌렀고, 구하기 상호작용 중이 아닐 때
 	if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::F) > 0 && !GetIsPlayerOnRescueInter())
@@ -926,7 +1128,10 @@ bool CEmployee::GenTasking()
 
 		if (targetGen)
 		{
-			if (!_ownerScene.SetGeneratorInteraction(_currentGeneratorIndex, true, true)) return false;
+			if (!_ownerScene.SetGeneratorInteraction(_currentGeneratorIndex, true, true))
+			{
+				return false;
+			}
 			SetGenInteraction(true); // 캐릭터 상호작용 애니메이션 재생을 활성화 한다.
 			SetBehavior(PLAYER_BEHAVIOR::SWITCH_INTER);
 

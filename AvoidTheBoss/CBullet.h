@@ -5,16 +5,17 @@
 #include "GameObject.h"
 #include "TracerVisualState.h"
 
-#define BULLET_DISTANCE 3.7f
-#define BULLET_NUMBER 1
-#define BULLET_SPEED_UNITS_PER_SECOND 18.0f
-
 class CBullet : public CGameObject
 {
+public:
+	static constexpr float MaxRange = 3.7f;
+	static constexpr std::size_t PoolCapacity = 1;
+	static constexpr float SpeedUnitsPerSecond = 18.0f;
+
 private:
 	atb::client::TracerVisualState _tracer{
-		BULLET_SPEED_UNITS_PER_SECOND,
-		BULLET_DISTANCE
+		SpeedUnitsPerSecond,
+		MaxRange
 	};
 	bool _spawnRequested = false;
 	XMFLOAT4X4 _initialTransform = Matrix4x4::Identity();
@@ -44,6 +45,9 @@ public:
 		_tracer.Reset();
 		m_xmf4x4ToParent = _initialTransform;
 		UpdateTransform(nullptr);
-		if (m_pHitEffect) m_pHitEffect->ResetState();
+		if (m_pHitEffect)
+		{
+			m_pHitEffect->ResetState();
+		}
 	}
 };

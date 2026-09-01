@@ -15,9 +15,14 @@ void D2DRenderer::Initialize(
 	ID3D12CommandQueue* commandQueue,
 	const std::span<ID3D12Resource* const> renderTargets)
 {
-	if (IsInitialized()) throw std::logic_error("D2DRenderer is already initialized");
+	if (IsInitialized())
+	{
+		throw std::logic_error("D2DRenderer is already initialized");
+	}
 	if (!device || !commandQueue || renderTargets.empty())
+	{
 		throw std::invalid_argument("D2DRenderer requires a device, queue, and render targets");
+	}
 
 	try
 	{
@@ -64,7 +69,10 @@ void D2DRenderer::Initialize(
 
 		for (std::size_t index = 0; index < renderTargets.size(); ++index)
 		{
-			if (!renderTargets[index]) throw std::invalid_argument("D2DRenderer received a null render target");
+			if (!renderTargets[index])
+			{
+				throw std::invalid_argument("D2DRenderer received a null render target");
+			}
 
 			D3D11_RESOURCE_FLAGS flags{ D3D11_BIND_RENDER_TARGET };
 			ThrowIfFailed(_d3d11On12Device->CreateWrappedResource(
@@ -100,8 +108,14 @@ void D2DRenderer::Shutdown() noexcept
 		_frameActive = false;
 	}
 
-	if (_d2dContext) _d2dContext->SetTarget(nullptr);
-	if (_d3d11Context) _d3d11Context->Flush();
+	if (_d2dContext)
+	{
+		_d2dContext->SetTarget(nullptr);
+	}
+	if (_d3d11Context)
+	{
+		_d3d11Context->Flush();
+	}
 	_d2dRenderTargets.clear();
 	_wrappedRenderTargets.clear();
 	_writeFactory.Reset();
@@ -115,10 +129,18 @@ void D2DRenderer::Shutdown() noexcept
 
 void D2DRenderer::BeginFrame(const UINT frameIndex)
 {
-	if (!IsInitialized()) throw std::logic_error("D2DRenderer is not initialized");
-	if (_frameActive) throw std::logic_error("D2DRenderer frame is already active");
+	if (!IsInitialized())
+	{
+		throw std::logic_error("D2DRenderer is not initialized");
+	}
+	if (_frameActive)
+	{
+		throw std::logic_error("D2DRenderer frame is already active");
+	}
 	if (frameIndex >= _wrappedRenderTargets.size())
+	{
 		throw std::out_of_range("D2DRenderer frame index is out of range");
+	}
 
 	_activeFrameIndex = frameIndex;
 	ID3D11Resource* resources[] = { _wrappedRenderTargets[frameIndex].Get() };
@@ -130,7 +152,10 @@ void D2DRenderer::BeginFrame(const UINT frameIndex)
 
 void D2DRenderer::EndFrame()
 {
-	if (!_frameActive) throw std::logic_error("D2DRenderer frame is not active");
+	if (!_frameActive)
+	{
+		throw std::logic_error("D2DRenderer frame is not active");
+	}
 
 	const HRESULT drawResult = _d2dContext->EndDraw();
 	ID3D11Resource* resources[] = { _wrappedRenderTargets[_activeFrameIndex].Get() };

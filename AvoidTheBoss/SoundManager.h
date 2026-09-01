@@ -4,7 +4,7 @@ class CSound;
 class SoundManager
 {
 protected:
-	static CSound* m_pSound;
+	static CSound* _pSound;
 private:
 	SoundManager();
 	SoundManager(const SoundManager& ref) {}
@@ -13,8 +13,8 @@ private:
 public:
 	static SoundManager& GetInstance()
 	{
-	static SoundManager instance;
-	return instance;
+		static SoundManager instance;
+		return instance;
 	}
 	static void SoundSystem();
 	static void PlayBackGroundSound(int32 Scene); //  배경음악 재생용 호출 함수

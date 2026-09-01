@@ -14,8 +14,7 @@ public:
 	virtual ~CShader();
 
 private:
-	int
-		m_nReferences = 0;
+	int m_nReferences = 0;
 
 public:
 	void AddRef() { m_nReferences++; }
@@ -59,14 +58,14 @@ public:
 	virtual void ResetState() {}
 
 protected:
-	ID3DBlob							*m_pd3dVertexShaderBlob = NULL;
-	ID3DBlob							*m_pd3dPixelShaderBlob = NULL;
+	ID3DBlob							*_pd3dVertexShaderBlob = NULL;
+	ID3DBlob							*_pd3dPixelShaderBlob = NULL;
 
-	ID3D12PipelineState					*m_pd3dPipelineState = NULL;
+	ID3D12PipelineState					*_pd3dPipelineState = NULL;
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC	m_d3dPipelineStateDesc;
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC	_d3dPipelineStateDesc;
 
-	float								m_fElapsedTime = 0.0f;
+	float								_fElapsedTime = 0.0f;
 };
 
 
@@ -121,8 +120,8 @@ public:
 
 	virtual void Render(ID3D12GraphicsCommandList4  *pd3dCommandList, CCamera *pCamera,bool bRaster);
 	virtual void ResetState();
-	CGameObject						**m_ppObjects = 0;
-	int								m_nObjects = 0;
+	CGameObject						**_ppObjects = 0;
+	int								_objectCount = 0;
 };
 
 class CMapObjectsShader : public CStandardObjectsShader
@@ -230,6 +229,6 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList4  *pd3dCommandList, CCamera *pCamera,bool bRaster);
 
 protected:
-	CGameObject						**m_ppObjects = 0;
-	int								m_nObjects = 0;
+	CGameObject						**_ppObjects = 0;
+	int								_objectCounts = 0;
 };

@@ -110,7 +110,7 @@ void ClientSession::ResetForReconnect(const SOCKET socket)
 		_resumeSid.store(_sid, std::memory_order_release);
 		_sock = socket;
 		_sid = -1;
-		_prevRemain = 0;
+		_prevRemainBytes = 0;
 		_stopping.store(false, std::memory_order_release);
 	}
 	std::lock_guard packetLock(_packetMutex);
@@ -120,7 +120,10 @@ void ClientSession::ResetForReconnect(const SOCKET socket)
 bool ClientSession::QueuePacket(const char* packet, const std::size_t packetSize)
 {
 	std::lock_guard packetLock(_packetMutex);
-	if (_pendingPackets.size() >= MaxPendingPackets) return false;
+	if (_pendingPackets.size() >= MaxPendingPackets)
+	{
+		return false;
+	}
 	_pendingPackets.emplace_back(packet, packet + packetSize);
 	return true;
 }
@@ -133,7 +136,10 @@ void ClientSession::DispatchPackets(atb::ClientPacketDispatcher& dispatcher)
 		packets.swap(_pendingPackets);
 	}
 
-	for (auto& packet : packets) dispatcher.Apply(*this, packet.data());
+	for (auto &packet : packets)
+	{
+		dispatcher.Apply(*this, packet.data());
+	}
 }
 
 void ClientSession::Stop()
@@ -162,27 +168,39 @@ void ClientSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 					resume.size = sizeof(resume);
 					resume.type = static_cast<uint8>(C_TITLE_PACKET_TYPE::ACQ_RESUME);
 					resume.resumeToken = GetResumeToken();
-					if (!DoSend(&resume)) g_clientTestMode.OnProtocolFailure("failed to send resume request");
+					if (!DoSend(&resume))
+					{
+						g_clientTestMode.OnProtocolFailure("failed to send resume request");
+					}
 				}
-				else g_clientTestMode.OnConnected(*this); // Connect하고 Do recv 수행
+				else
+				{
+					g_clientTestMode.OnConnected(*this); // Connect하고 Do recv 수행
+				}
 			}
-			else g_clientTestMode.OnProtocolFailure("failed to start the first receive");
+			else
+			{
+				g_clientTestMode.OnProtocolFailure("failed to start the first receive");
+			}
 		}
 	}
 	break;
 	case EventType::Recv:
 	{
-		if (IsStopping()) break;
+		if (IsStopping())
+		{
+			break;
+		}
 		RecvEvent* rev = static_cast<RecvEvent*>(iocpEvent);
-		if (numOfBytes < 0 || _prevRemain < 0 || _prevRemain > BUFSIZE || numOfBytes > BUFSIZE - _prevRemain)
+		if (numOfBytes < 0 || _prevRemainBytes < 0 || _prevRemainBytes > BUFSIZE || numOfBytes > BUFSIZE - _prevRemainBytes)
 		{
 			std::cerr << "Invalid receive buffer state\n";
-			_prevRemain = 0;
+			_prevRemainBytes = 0;
 			RequestStop();
 			return;
 		}
 
-		auto remainBytes = numOfBytes + _prevRemain;
+		auto remainBytes = numOfBytes + _prevRemainBytes;
 		char* p = rev->_rbuf;
 		while (remainBytes >= PacketHeaderSize)
 		{
@@ -192,12 +210,15 @@ void ClientSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 			if (cbPacketSize < PacketHeaderSize)
 			{
 				std::cerr << "Rejected packet: invalid size " << static_cast<int32>(cbPacketSize) << "\n";
-				_prevRemain = 0;
+				_prevRemainBytes = 0;
 				RequestStop();
 				return;
 			}
 
-			if (cbPacketSize > remainBytes) break;
+			if (cbPacketSize > remainBytes)
+			{
+				break;
+			}
 
 			const std::size_t expected_size = GetExpectedServerPacketSize(packetType);
 			if (expected_size == 0)
@@ -209,7 +230,7 @@ void ClientSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 				std::cerr << "Rejected packet type " << static_cast<int32>(packetType)
 					<< ": expected " << expected_size
 					<< " bytes, received " << static_cast<int32>(cbPacketSize) << "\n";
-				_prevRemain = 0;
+				_prevRemainBytes = 0;
 				RequestStop();
 				return;
 			}
@@ -227,7 +248,7 @@ void ClientSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 				{
 					::OutputDebugStringA("[Network] Pending packet queue overflow\n");
 					std::cerr << "Pending packet queue overflow\n";
-					_prevRemain = 0;
+					_prevRemainBytes = 0;
 					RequestStop();
 					return;
 				}
@@ -236,12 +257,15 @@ void ClientSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 			p += cbPacketSize;
 			remainBytes -= cbPacketSize;
 		}
-		_prevRemain = remainBytes;
+		_prevRemainBytes = remainBytes;
 		if (remainBytes > 0)
 		{
 			memmove(rev->_rbuf, p, remainBytes);
 		}
-		if (!IsStopping()) DoRecv();
+		if (!IsStopping())
+		{
+			DoRecv();
+		}
 	}
 	break;
 	case EventType::Send:
@@ -255,13 +279,20 @@ void ClientSession::Processing(IocpEvent* iocpEvent, int32 numOfBytes)
 
 bool ClientSession::DoSend(void* packet)
 {
-	if (IsStopping()) return false;
+	if (IsStopping())
+	{
+		return false;
+	}
 	DWORD sendLen(0);
 	DWORD flag(0);
 	SendEvent* sev = new SendEvent(reinterpret_cast<char*>(packet));
 	sev->_sid = GetSid();
 	std::shared_lock socketLock(_lock);
-	if (_sock == INVALID_SOCKET) { delete sev; return false; }
+	if (_sock == INVALID_SOCKET)
+	{
+		delete sev;
+		return false;
+	}
 	BeginIO();
 	if (WSASend(_sock, &sev->_sWsaBuf, 1, &sendLen, flag, static_cast<LPWSAOVERLAPPED>(sev), NULL) == SOCKET_ERROR)
 	{
@@ -281,17 +312,23 @@ bool ClientSession::DoSend(void* packet)
 
 bool ClientSession::DoRecv()
 {
-	if (IsStopping()) return false;
+	if (IsStopping())
+	{
+		return false;
+	}
 	_rev.Init();
 	const auto [cid, sid] = GetIdentity();
 	_rev._sid = sid;
 	_rev._cid = cid;
 	DWORD recvBytes(0);
 	DWORD flag(0);
-	_rev._rWsaBuf.buf = _rev._rbuf + _prevRemain;
-	_rev._rWsaBuf.len = BUFSIZE - _prevRemain;
+	_rev._rWsaBuf.buf = _rev._rbuf + _prevRemainBytes;
+	_rev._rWsaBuf.len = BUFSIZE - _prevRemainBytes;
 	std::shared_lock socketLock(_lock);
-	if (_sock == INVALID_SOCKET) return false;
+	if (_sock == INVALID_SOCKET)
+	{
+		return false;
+	}
 	BeginIO();
 	if (WSARecv(_sock, &_rev._rWsaBuf, 1, &recvBytes, &flag, static_cast<LPWSAOVERLAPPED>(&_rev), NULL) == SOCKET_ERROR)
 	{

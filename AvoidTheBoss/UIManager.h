@@ -9,8 +9,6 @@
 // D2D를 활용해서 이미지를 그린다.
 // LobbyButton
 
-const int32 MAX_HP = 3;
-
 struct UITextBlock
 {
     std::wstring                    m_pstrText; // 출력할 텍스처
@@ -52,7 +50,6 @@ struct InGameUI
     bool                            m_hide = false;
 };
 
-#define FULL_UI_OPACITY_VALUE 0.8f
 class UIManager
 {
 public:
@@ -77,7 +74,10 @@ public:
         RoomLeave
     };
 
-    static constexpr int32 LobbyRoomSlotCount = static_cast<int32>(kLobbyUiRoomCount);
+    static constexpr int32 LobbyRoomSlotCount =
+        static_cast<int32>(atb::client::ui::LobbyRoomSlotCount);
+    static constexpr int32 HealthIconCount = 3;
+    static constexpr float FullOpacity = 0.8f;
 
     UIManager(ID2D1DeviceContext2* d2dContext, IDWriteFactory* writeFactory, UINT nWidth, UINT nHeight);
     ~UIManager();
@@ -115,81 +115,81 @@ private:
     void InitializeResources();
 
     // WindowInfo
-    float                           m_fWidth = 0.0f;
-    float                           m_fHeight = 0.0f;
+    float                           wndWidth = 0.0f;
+    float                           wndHeight = 0.0f;
 
     // D2DRenderer가 소유하며 UIManager보다 오래 산다.
-    ID2D1DeviceContext2*            m_pd2dDeviceContext = nullptr;
-    IDWriteFactory*                 m_pd2dWriteFactory = nullptr;
+    ID2D1DeviceContext2*            _pd2dDeviceContext = nullptr;
+    IDWriteFactory*                 _pd2dWriteFactory = nullptr;
 
     // TextBlock
-    UINT                           m_nTextBlocks = 0;
-    IDWriteTextFormat*             m_TitleTextFormat = nullptr;
-    IDWriteTextFormat*             m_LobbyTextFormat = nullptr;
+    UINT                           _textBlockCount = 0;
+    IDWriteTextFormat*             _pTitleTextFormat = nullptr;
+    IDWriteTextFormat*             _pLobbySceneTextFormat = nullptr;
 
 
 
     // 배경 레이어 비트맵들
-    UIBackGround m_backGround[5];
+    UIBackGround _backGroundBitmaps[5];
 
     // 타이틀 전용
-    ANIMButton m_LoginResult[3];
+    ANIMButton _loginPopUpBtns[3];
 
     // 버튼 비트맵들
-    UIButton m_TitleButtons[3];
+    UIButton _titleSceneBtns[3];
 
     // 로비 전용
-    UIButton m_LobbyButtons[3];
-    UITextBlock m_RoomListTextBlock[5];
+    UIButton _lobbySceneBtns[3];
+    UITextBlock _roomListTextBlocks[5];
 
-    int32 m_lastRoomPage = 0;
-    int32 m_selectedLayout = -1;
-    D2D1_RECT_F m_RoomListLayout[5];
+    int32 _lastRoomPage = 0;
+    int32 _selectedRow = -1;
+    D2D1_RECT_F _roomListLayout[5];
 
     // 방 전용
-    UIButton m_RoomButtons[2];
+    UIButton _roomBtns[2];
 
     // 인 게임
-    InGameUI m_RescueIcon; // 살리기 UI
-    InGameUI m_CharCrossHead; // 조준선 UI
+    InGameUI _rescueIcon; // 살리기 UI
+    InGameUI _crossHeadIcon; // 조준선 UI
 
-    int m_nAttackedUI = 5; // 피격 UI 텍스쳐 수
-    InGameUI m_AttackedEffect[5]; // 피격 UI 텍스쳐
+    int _attackedUICount = 5; // 피격 UI 텍스쳐 수
+    InGameUI _attackedEffects[5]; // 피격 UI 텍스쳐
 
-    float m_AttackedOpacity[5]; // 피격 UI 투명도
-    float m_CrossHeadOpacity = 0.8f; // 조준선 투명도
+    float _attackedEffectOpacity[5]; // 피격 UI 투명도
+    float _crossHeadOpacity = 0.8f; // 조준선 투명도
 
 
     // 인 게임 전용
-    UIButton                   m_GenerateUIButtons[23];
-    UIButton                   m_CharProfile[4]; // 다른 캐릭터 초상화 표시
+    UIButton                   _generateBtns[23];
+    UIButton                   _charProfileBtns[4]; // 다른 캐릭터 초상화 표시
 
-    ID2D1Bitmap*               m_CharStatusBitmaps[3] = {}; // 비트맵 리소스를 가져와서 공유한다.
-    ID2D1Bitmap*               m_HpBitmap = nullptr;
+    ID2D1Bitmap*               _charStatusBitmaps[3] = {}; // 비트맵 리소스를 가져와서 공유한다.
+    ID2D1Bitmap*               _HpBitmap = nullptr;
 
     D2D_RECT_F                 m_myProfileLayout; // 자기 캐릭터 레이아웃
 
     InGameUI                   m_CharStatus[3]; // 캐릭터 상태
-    InGameUI                   m_HPUi[MAX_HP];    // 캐릭터 HP
+    InGameUI                   m_HPUi[HealthIconCount];    // 캐릭터 HP
     GuageUI                    m_RescueGuage;
 
     // 동적으로 바뀌는 텍스트 버튼들 Id,PW
-    UITextBlock                m_IDPWTextBlocks[2];
+    UITextBlock                _idpwTextBlocks[2];
     // 레디 버튼
-    UIButton                   m_ReadyBitmaps[4];
-    UIButton                   m_ReadyCard[4];
+    UIButton                   _readyBtns[4];
+    UIButton                   _userCardBtns[4];
 
 
     // 결과창
-    UITextBlock m_ResultTextBlock[2];
-    RoomUiSnapshot m_roomUiSnapshot;
-    ResultUiSnapshot m_resultUiSnapshot;
+    UITextBlock _resultTextBlocks[2];
+    RoomUiSnapshot _roomUiSnapshot;
+    ResultUiSnapshot _resultUiSnapshot;
 
     // 레이어 위치 출력을 위한 브러시
-    ID2D1SolidColorBrush* redBrush = nullptr; // 빨강
-    ID2D1SolidColorBrush* grayBrush = nullptr; // 회색
-    ID2D1SolidColorBrush* blackBrush = nullptr; // 회색
-    ID2D1SolidColorBrush* whiteBrush = nullptr;
-    ID2D1SolidColorBrush* greenBrush = nullptr;
+    ID2D1SolidColorBrush* _redBrush = nullptr; // 빨강
+    ID2D1SolidColorBrush* _grayBrush = nullptr; // 회색
+    ID2D1SolidColorBrush* _blackBrush = nullptr; // 회색
+    ID2D1SolidColorBrush* _whiteBrush = nullptr;
+    ID2D1SolidColorBrush* _greenBrush = nullptr;
 };
 

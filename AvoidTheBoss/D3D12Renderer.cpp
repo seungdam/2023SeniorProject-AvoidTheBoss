@@ -13,15 +13,23 @@ D3D12Renderer::~D3D12Renderer() noexcept
 
 void D3D12Renderer::Initialize(HWND window)
 {
-	if (IsInitialized()) throw std::logic_error("D3D12Renderer is already initialized");
-	if (!window) throw std::invalid_argument("D3D12Renderer requires a valid HWND");
+	if (IsInitialized())
+	{
+		throw std::logic_error("D3D12Renderer is already initialized");
+	}
+	if (!window)
+	{
+		throw std::invalid_argument("D3D12Renderer requires a valid HWND");
+	}
 
 	try
 	{
 		_window = window;
 		RECT clientRect{};
 		if (!::GetClientRect(_window, &clientRect))
+		{
 			ThrowIfFailed(HRESULT_FROM_WIN32(::GetLastError()));
+		}
 		_width = static_cast<UINT>(clientRect.right - clientRect.left);
 		_height = static_cast<UINT>(clientRect.bottom - clientRect.top);
 
@@ -53,11 +61,17 @@ void D3D12Renderer::Shutdown() noexcept
 		}
 	}
 
-	if (_swapChain) _swapChain->SetFullscreenState(FALSE, nullptr);
+	if (_swapChain)
+	{
+		_swapChain->SetFullscreenState(FALSE, nullptr);
+	}
 
 	_depthStencilBuffer.Reset();
 	_dsvHeap.Reset();
-	for (auto& backBuffer : _backBuffers) backBuffer.Reset();
+	for (auto &backBuffer : _backBuffers)
+	{
+		backBuffer.Reset();
+	}
 	_rtvHeap.Reset();
 
 	_commandList.Reset();
@@ -102,12 +116,18 @@ void D3D12Renderer::CreateDevice()
 	for (UINT index = 0;; ++index)
 	{
 		const HRESULT enumResult = _factory->EnumAdapters1(index, adapter.ReleaseAndGetAddressOf());
-		if (enumResult == DXGI_ERROR_NOT_FOUND) break;
+		if (enumResult == DXGI_ERROR_NOT_FOUND)
+		{
+			break;
+		}
 		ThrowIfFailed(enumResult);
 
 		DXGI_ADAPTER_DESC1 description{};
 		ThrowIfFailed(adapter->GetDesc1(&description));
-		if (description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) continue;
+		if (description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+		{
+			continue;
+		}
 
 		if (SUCCEEDED(::D3D12CreateDevice(
 			adapter.Get(), D3D_FEATURE_LEVEL_12_0,
@@ -152,7 +172,10 @@ void D3D12Renderer::CreateDevice()
 	ThrowIfFailed(_device->CreateFence(
 		0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(_fence.ReleaseAndGetAddressOf())));
 	_fenceEvent = ::CreateEvent(nullptr, FALSE, FALSE, nullptr);
-	if (!_fenceEvent) ThrowIfFailed(HRESULT_FROM_WIN32(::GetLastError()));
+	if (!_fenceEvent)
+	{
+		ThrowIfFailed(HRESULT_FROM_WIN32(::GetLastError()));
+	}
 
 #if defined(_DEBUG)
 	SetName(_fence.Get(), L"GameClient Frame Fence");
@@ -191,7 +214,7 @@ void D3D12Renderer::CreateCommandQueueAndList()
 void D3D12Renderer::CreateDescriptorHeaps()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC description{};
-	description.NumDescriptors = FrameCount;
+	description.NumDescriptors = BackBufferCount;
 	description.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	description.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	ThrowIfFailed(_device->CreateDescriptorHeap(
@@ -217,7 +240,7 @@ void D3D12Renderer::CreateSwapChain()
 	description.SampleDesc.Count = 1;
 	description.SampleDesc.Quality = 0;
 	description.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	description.BufferCount = FrameCount;
+	description.BufferCount = BackBufferCount;
 	description.Scaling = DXGI_SCALING_NONE;
 	description.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	description.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
@@ -241,7 +264,7 @@ void D3D12Renderer::CreateSwapChain()
 	ThrowIfFailed(swapChain.As(&_swapChain));
 #else
 	DXGI_SWAP_CHAIN_DESC description{};
-	description.BufferCount = FrameCount;
+	description.BufferCount = BackBufferCount;
 	description.BufferDesc.Width = _width;
 	description.BufferDesc.Height = _height;
 	description.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -268,7 +291,7 @@ void D3D12Renderer::CreateSwapChain()
 void D3D12Renderer::CreateRenderTargetViews()
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = _rtvHeap->GetCPUDescriptorHandleForHeapStart();
-	for (UINT index = 0; index < FrameCount; ++index)
+	for (UINT index = 0; index < BackBufferCount; ++index)
 	{
 		_backBuffers[index].Reset();
 		ThrowIfFailed(_swapChain->GetBuffer(
@@ -406,10 +429,15 @@ void D3D12Renderer::WaitForGpuComplete()
 
 void D3D12Renderer::WaitForFenceValue(UINT64 fenceValue)
 {
-	if (_fence->GetCompletedValue() >= fenceValue) return;
+	if (_fence->GetCompletedValue() >= fenceValue)
+	{
+		return;
+	}
 	ThrowIfFailed(_fence->SetEventOnCompletion(fenceValue, _fenceEvent));
 	if (::WaitForSingleObject(_fenceEvent, INFINITE) == WAIT_FAILED)
+	{
 		ThrowIfFailed(HRESULT_FROM_WIN32(::GetLastError()));
+	}
 }
 
 void D3D12Renderer::ChangeSwapChainState()
@@ -430,14 +458,17 @@ void D3D12Renderer::ChangeSwapChainState()
 	target.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	ThrowIfFailed(_swapChain->ResizeTarget(&target));
 
-	for (auto& backBuffer : _backBuffers) backBuffer.Reset();
+	for (auto &backBuffer : _backBuffers)
+	{
+		backBuffer.Reset();
+	}
 	DXGI_SWAP_CHAIN_DESC description{};
 	ThrowIfFailed(_swapChain->GetDesc(&description));
 #ifdef _WITH_ONLY_RESIZE_BACKBUFFERS
 	ThrowIfFailed(_swapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0));
 #else
 	ThrowIfFailed(_swapChain->ResizeBuffers(
-		FrameCount, _width, _height, description.BufferDesc.Format, description.Flags));
+		BackBufferCount, _width, _height, description.BufferDesc.Format, description.Flags));
 #endif
 	_frameIndex = _swapChain->GetCurrentBackBufferIndex();
 	CreateRenderTargetViews();
@@ -449,7 +480,9 @@ void D3D12Renderer::CheckRaytracingSupport() const
 	ThrowIfFailed(_device->CheckFeatureSupport(
 		D3D12_FEATURE_D3D12_OPTIONS5, &options, sizeof(options)));
 	if (options.RaytracingTier < D3D12_RAYTRACING_TIER_1_0)
+	{
 		throw std::runtime_error("Raytracing not supported on device");
+	}
 }
 
 bool D3D12Renderer::IsInitialized() const noexcept
@@ -470,7 +503,10 @@ ID3D12CommandQueue* D3D12Renderer::CommandQueue() const noexcept
 D3D12Renderer::BackBufferViews D3D12Renderer::BackBuffers() const noexcept
 {
 	BackBufferViews views{};
-	for (UINT index = 0; index < FrameCount; ++index) views[index] = _backBuffers[index].Get();
+	for (UINT index = 0; index < BackBufferCount; ++index)
+	{
+		views[index] = _backBuffers[index].Get();
+	}
 	return views;
 }
 

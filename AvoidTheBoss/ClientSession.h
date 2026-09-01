@@ -38,8 +38,8 @@ public:
 	bool IsStopping() const { return _stopping.load(); }
 	void Stop();
 public:
-	int16 _myRm = -1;
-	int32 _prevRemain = 0;
+	int16 _myRoomNumber = -1;
+	int32 _prevRemainBytes = 0;
 	int16  _loginOk = -3;
 private:
 	bool QueuePacket(const char* packet, std::size_t packetSize);

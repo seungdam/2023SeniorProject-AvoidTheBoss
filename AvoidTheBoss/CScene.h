@@ -2,16 +2,14 @@
 #include "GameObject.h"
 #include "Shader.h"
 
-#define MAX_LIGHTS			16
-
-#define POINT_LIGHT			1
-#define SPOT_LIGHT			2
-#define DIRECTIONAL_LIGHT	3
-
 class CSound;
 
 struct LIGHT
 {
+	static constexpr int PointType = 1;
+	static constexpr int SpotType = 2;
+	static constexpr int DirectionalType = 3;
+
 	XMFLOAT4				m_xmf4Ambient;
 	XMFLOAT4				m_xmf4Diffuse;
 	XMFLOAT4				m_xmf4Specular;
@@ -28,7 +26,9 @@ struct LIGHT
 };
 struct LIGHTS
 {
-	LIGHT					m_pLights[MAX_LIGHTS];
+	static constexpr std::size_t MaxLightCount = 16;
+
+	LIGHT					m_pLights[MaxLightCount];
 	XMFLOAT4				m_xmf4GlobalAmbient;
 	int						m_nLights;
 };

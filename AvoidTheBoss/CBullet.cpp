@@ -9,7 +9,10 @@ void CBullet::SetHitEffect(CHitEffect* hitEffect) noexcept
 {
 	m_pHitEffect = hitEffect;
 	_initialTransform = m_xmf4x4ToParent;
-	if (m_pHitEffect) m_pHitEffect->CaptureInitialTransform();
+	if (m_pHitEffect)
+	{
+		m_pHitEffect->CaptureInitialTransform();
+	}
 }
 
 void CBullet::Update(float fTimeElapsed)
@@ -27,7 +30,10 @@ void CBullet::Update(float fTimeElapsed)
 		}
 	}
 
-	if (m_pHitEffect) m_pHitEffect->Update(fTimeElapsed);
+	if (m_pHitEffect)
+	{
+		m_pHitEffect->Update(fTimeElapsed);
+	}
 }
 
 bool CBullet::Spawn(const XMFLOAT3& origin, const XMFLOAT3& direction) noexcept
@@ -35,6 +41,9 @@ bool CBullet::Spawn(const XMFLOAT3& origin, const XMFLOAT3& direction) noexcept
 	const bool spawned = _tracer.Spawn(
 		{ origin.x, origin.y, origin.z },
 		{ direction.x, direction.y, direction.z });
-	if (spawned) SetPosition(origin);
+	if (spawned)
+	{
+		SetPosition(origin);
+	}
 	return spawned;
 }

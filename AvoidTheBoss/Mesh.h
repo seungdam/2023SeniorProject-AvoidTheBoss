@@ -8,27 +8,21 @@ class CGameObject;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-#define VERTEXT_POSITION				0x0001
-#define VERTEXT_COLOR					0x0002
-#define VERTEXT_NORMAL					0x0004
-#define VERTEXT_TANGENT					0x0008
-#define VERTEXT_TEXTURE_COORD0			0x0010
-#define VERTEXT_TEXTURE_COORD1			0x0020
-
-#define VERTEXT_BONE_INDEX_WEIGHT		0x1000
-
-#define VERTEXT_TEXTURE					(VERTEXT_POSITION | VERTEXT_TEXTURE_COORD0)
-#define VERTEXT_DETAIL					(VERTEXT_POSITION | VERTEXT_TEXTURE_COORD0 | VERTEXT_TEXTURE_COORD1)
-#define VERTEXT_NORMAL_TEXTURE			(VERTEXT_POSITION | VERTEXT_NORMAL | VERTEXT_TEXTURE_COORD0)
-#define VERTEXT_NORMAL_TANGENT_TEXTURE	(VERTEXT_POSITION | VERTEXT_NORMAL | VERTEXT_TANGENT | VERTEXT_TEXTURE_COORD0)
-#define VERTEXT_NORMAL_DETAIL			(VERTEXT_POSITION | VERTEXT_NORMAL | VERTEXT_TEXTURE_COORD0 | VERTEXT_TEXTURE_COORD1)
-#define VERTEXT_NORMAL_TANGENT__DETAIL	(VERTEXT_POSITION | VERTEXT_NORMAL | VERTEXT_TANGENT | VERTEXT_TEXTURE_COORD0 | VERTEXT_TEXTURE_COORD1)
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 class CMesh
 {
 public:
+	static constexpr UINT Position = 0x0001;
+	static constexpr UINT Color = 0x0002;
+	static constexpr UINT Normal = 0x0004;
+	static constexpr UINT Tangent = 0x0008;
+	static constexpr UINT TextureCoordinate0 = 0x0010;
+	static constexpr UINT TextureCoordinate1 = 0x0020;
+	static constexpr UINT BoneIndexWeight = 0x1000;
+	static constexpr UINT NormalTangentTexture = Position | Normal | Tangent | TextureCoordinate0;
+	static constexpr UINT MaxSkinningBoneCount = 128;
+
 	CMesh(ID3D12Device5 *pd3dDevice,	ID3D12GraphicsCommandList4* pd3dCommandList);
 	virtual ~CMesh();
 
@@ -37,7 +31,13 @@ private:
 
 public:
 	void AddRef() { m_nReferences++; }
-	void Release() { if (--m_nReferences <= 0) delete this; }
+	void Release()
+	{
+		if (--m_nReferences <= 0)
+		{
+			delete this;
+		}
+	}
 
 public:
 	char							m_pstrMeshName[64] = { 0 };
@@ -135,8 +135,6 @@ public:
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-#define SKINNED_ANIMATION_BONES		128
-
 class CSkinnedMesh : public CStandardMesh
 {
 public:

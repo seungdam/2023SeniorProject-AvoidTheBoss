@@ -8,6 +8,10 @@ class CGameScene;
 class CEmployee : public CPlayer
 {
 public:
+	static constexpr int32 AttackedAnimationFrameCount = 30;
+	static constexpr int32 DownAnimationFrameCount = 20;
+	static constexpr int32 StandAnimationFrameCount = 30;
+
 	bool _generatorInteractionActive = false; // F키를 눌렀다 땠는지 확인하는 용도
 	bool _rescueInteractionActive = false;
 public:
@@ -69,8 +73,10 @@ public:
 	// 깨우기
 	void RescueOn(bool value)
 	{
-		if(_beingRescued != value ) _beingRescued = value;
-
+		if (_beingRescued != value)
+		{
+			_beingRescued = value;
+		}
 	}
 	void ResetRescueGuage() { _rescueGauge = 0; }
 	bool GetRescueOn() const noexcept { return _beingRescued; }

@@ -42,7 +42,10 @@ struct GeneratorState
 
 	[[nodiscard]] bool BeginInteraction(bool shouldAdvanceProgress) noexcept
 	{
-		if (phase == GeneratorPhase::Activated) return false;
+		if (phase == GeneratorPhase::Activated)
+		{
+			return false;
+		}
 
 		const bool changed = phase == GeneratorPhase::Idle;
 		phase = GeneratorPhase::Interacting;
@@ -52,7 +55,10 @@ struct GeneratorState
 
 	[[nodiscard]] bool EndInteraction() noexcept
 	{
-		if (phase != GeneratorPhase::Interacting) return false;
+		if (phase != GeneratorPhase::Interacting)
+		{
+			return false;
+		}
 
 		phase = GeneratorPhase::Idle;
 		advancesProgress = false;
@@ -61,7 +67,10 @@ struct GeneratorState
 
 	[[nodiscard]] bool Activate() noexcept
 	{
-		if (phase == GeneratorPhase::Activated) return false;
+		if (phase == GeneratorPhase::Activated)
+		{
+			return false;
+		}
 
 		progress = maxProgress;
 		phase = GeneratorPhase::Activated;
@@ -74,11 +83,15 @@ struct GeneratorState
 		if (phase != GeneratorPhase::Interacting || !advancesProgress ||
 			!std::isfinite(deltaSeconds) || deltaSeconds <= 0.0f ||
 			!std::isfinite(progressPerSecond) || progressPerSecond <= 0.0f ||
-			!std::isfinite(maxProgress) || maxProgress <= 0.0f)
+			!std::isfinite(maxProgress) || maxProgress <= 0.0f) {
 			return GeneratorTransition::None;
+}
 
 		progress += progressPerSecond * deltaSeconds;
-		if (progress < maxProgress) return GeneratorTransition::None;
+		if (progress < maxProgress)
+		{
+			return GeneratorTransition::None;
+		}
 
 		(void)Activate();
 		return GeneratorTransition::Activated;

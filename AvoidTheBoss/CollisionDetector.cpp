@@ -18,7 +18,8 @@ void OcTree::ReadBoundingBoxInfoFromFile(const char* filename)
 	int i = 0;
 	std::ifstream infile(filename);
 	std::string line;
-	while (getline(infile, line)) {
+	while (getline(infile, line))
+	{
 		// find the CENTER and EXTENTS substrings
 		size_t centerDelimeter = line.find("Center:");
 		size_t extentsDelimeter = line.find("Extents:");
@@ -49,7 +50,9 @@ void OcTree::ReadBoundingBoxInfoFromFile(const char* filename)
 			size_t extentsYend = line.find(",", extentsXend + 1);
 			size_t extentsZend = line.find(")", extentsYend);
 
-			if (extentsStart != std::string::npos && extentsXend != std::string::npos && extentsYend != std::string::npos && extentsZend != std::string::npos) {
+			if (extentsStart != std::string::npos && extentsXend != std::string::npos &&
+			    extentsYend != std::string::npos && extentsZend != std::string::npos)
+			{
 				ex = std::strtof(line.substr(extentsStart + 1, extentsXend - extentsStart - 1).c_str(), nullptr);
 				ey = std::strtof(line.substr(extentsXend + 1, extentsYend - extentsXend - 1).c_str(), nullptr);
 				ez = std::strtof(line.substr(extentsYend + 1, extentsZend - extentsYend - 1).c_str(), nullptr);
@@ -77,14 +80,20 @@ void OcTree::AddBoundingBox(DirectX::BoundingBox aabb)
 	{
 		if (_area.Intersects(aabb))
 		{
-			for (auto& i : _childTree) i->AddBoundingBox(aabb);
+			for (auto &i : _childTree)
+			{
+				i->AddBoundingBox(aabb);
+			}
 		}
 	}
 }
 
 void OcTree::BuildTree()
 {
-	if(_curLevel < _maxLevel) BuildChildTree();
+	if (_curLevel < _maxLevel)
+	{
+		BuildChildTree();
+	}
 }
 
 void OcTree::BuildChildTree()
@@ -110,8 +119,14 @@ float clamp(float pos, float min, float max)
 {
 	float val = (pos < min ? min : pos);
 	val = val > max ? max : val;
-	if (val != min && val != max) return ((val - min) > (max - val) ? max : min);
-	else return val;
+	if (val != min && val != max)
+	{
+		return ((val - min) > (max - val) ? max : min);
+	}
+	else
+	{
+		return val;
+	}
 }
 
 bool OcTree::CheckCollision(DirectX::BoundingSphere& playerBox, XMFLOAT3& playerPos)
@@ -138,22 +153,45 @@ bool OcTree::CheckCollision(DirectX::BoundingSphere& playerBox, XMFLOAT3& player
 
 					//// 플레이어 좌표기준으로 얼만큼 거리인지 구한다.
 					XMFLOAT3 closeDist{ 0,0,0 };
-					if (centerVec.x >= 0) closeDist.x = centerVec.x - closeX; // 좌측에 있을 경우
-					else  closeDist.x = closeX - centerVec.x; // 우측에 있을 경우
-
-
-					if (centerVec.z >= 0) closeDist.z = centerVec.z - closeZ;
-					else  closeDist.z = closeZ - centerVec.z;
-
-					if (::fabs(playerBox.Radius - fabs(closeDist.x)) < ::fabs(playerBox.Radius - fabs(closeDist.z))) // offset 수치가 작은 쪽으로 계산.
+					if (centerVec.x >= 0)
 					{
-						if(centerVec.x < 0) playerBox.Center.x -= ::fabs((playerBox.Radius - closeDist.x)) * 1.2f;
-						else playerBox.Center.x += ::fabs((playerBox.Radius - closeDist.x)) * 1.2f;
+						closeDist.x = centerVec.x - closeX; // 좌측에 있을 경우
 					}
 					else
 					{
-						if(centerVec.z < 0) playerBox.Center.z -= ::fabs((playerBox.Radius - closeDist.z)) * 1.2f;
-						else  playerBox.Center.z += ::fabs((playerBox.Radius - closeDist.z)) * 1.2f;
+						closeDist.x = closeX - centerVec.x; // 우측에 있을 경우
+					}
+
+					if (centerVec.z >= 0)
+					{
+						closeDist.z = centerVec.z - closeZ;
+					}
+					else
+					{
+						closeDist.z = closeZ - centerVec.z;
+					}
+
+					if (::fabs(playerBox.Radius - fabs(closeDist.x)) < ::fabs(playerBox.Radius - fabs(closeDist.z))) // offset 수치가 작은 쪽으로 계산.
+					{
+						if (centerVec.x < 0)
+						{
+							playerBox.Center.x -= ::fabs((playerBox.Radius - closeDist.x)) * 1.2f;
+						}
+						else
+						{
+							playerBox.Center.x += ::fabs((playerBox.Radius - closeDist.x)) * 1.2f;
+						}
+					}
+					else
+					{
+						if (centerVec.z < 0)
+						{
+							playerBox.Center.z -= ::fabs((playerBox.Radius - closeDist.z)) * 1.2f;
+						}
+						else
+						{
+							playerBox.Center.z += ::fabs((playerBox.Radius - closeDist.z)) * 1.2f;
+						}
 					}
 
 					playerPos = playerBox.Center;
@@ -162,7 +200,10 @@ bool OcTree::CheckCollision(DirectX::BoundingSphere& playerBox, XMFLOAT3& player
 			}
 			return rVal2;
 		}
-		else return false;
+		else
+		{
+			return false;
+		}
 	}
 	else if (_curLevel < _maxLevel)
 	{

@@ -1,12 +1,6 @@
 ﻿#pragma once
 
-//프레임 버퍼의 크기와 종횡비(Aspect Ratio)를 나타내는 상수를 다음과 같이 선언한
-#define ASPECT_RATIO (float(FRAME_BUFFER_WIDTH) / float(FRAME_BUFFER_HEIGHT))
-
-//카메라의 종류(모드: Mode)를 나타내는 상수를 다음과 같이 선언한다.
-#define FIRST_PERSON_CAMERA		0x01
-#define SPACESHIP_CAMERA		0x02
-#define THIRD_PERSON_CAMERA		0x03
+#include "ClientConfig.h"
 
 //---카메라 상수 버퍼를 위한 구조체
 struct VS_CB_CAMERA_INFO
@@ -20,9 +14,15 @@ struct VS_CB_CAMERA_INFO
 
 class CPlayer;
 
-#define FOG_RENDER_CYCLE_TIME 60
 class CCamera final
 {
+public:
+	static constexpr DWORD FirstPersonMode = 0x01;
+	static constexpr DWORD ThirdPersonMode = 0x03;
+	static constexpr float DefaultAspectRatio =
+		static_cast<float>(atb::client::config::DefaultWindowWidth) /
+		static_cast<float>(atb::client::config::DefaultWindowHeight);
+
 private:
 	//카메라의 종류(1인칭 카메라, 스페이스-쉽 카메라, 3인칭 카메라)를 나타낸다.
 	DWORD _mode = 0x00;
