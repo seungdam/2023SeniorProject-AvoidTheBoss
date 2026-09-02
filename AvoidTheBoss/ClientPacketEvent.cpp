@@ -15,7 +15,7 @@ void moveEvent::Task(CGameScene* scene)
 {
 	if (CanApplyTo(scene))
 	{
-		scene->ApplyPlayerMove(_playerIndex, _key, _direction);
+		scene->ApplyPlayerMove(playerIndex, key, direction);
 	}
 }
 
@@ -23,7 +23,7 @@ void posEvent::Task(CGameScene* scene)
 {
 	if (CanApplyTo(scene))
 	{
-		scene->ApplyPlayerPosition(_playerIndex, _position);
+		scene->ApplyPlayerPosition(playerIndex, position);
 	}
 }
 
@@ -31,7 +31,7 @@ void rotateEvent::Task(CGameScene* scene)
 {
 	if (CanApplyTo(scene))
 	{
-		scene->ApplyPlayerRotation(_playerIndex, _angle);
+		scene->ApplyPlayerRotation(playerIndex, angle);
 	}
 }
 
@@ -39,7 +39,7 @@ void animationEvent::Task(CGameScene* scene)
 {
 	if (CanApplyTo(scene))
 	{
-		scene->ApplyPlayerAnimation(_playerIndex, _track);
+		scene->ApplyPlayerAnimation(playerIndex, track);
 	}
 }
 
@@ -47,7 +47,7 @@ void InteractionEvent::Task(CGameScene* scene)
 {
 	if (CanApplyTo(scene))
 	{
-		scene->ApplyInteraction(_eventId);
+		scene->ApplyInteraction(eventId);
 	}
 }
 
@@ -55,7 +55,7 @@ void FrameEvent::Task(CGameScene* scene)
 {
 	if (CanApplyTo(scene))
 	{
-		scene->ApplyWorldFrame(_worldFrame);
+		scene->ApplyWorldFrame(worldFrame);
 	}
 }
 
@@ -63,6 +63,6 @@ void DelayEvent::Task(CGameScene* scene)
 {
 	if (scene)
 	{
-		scene->SendPacket(&_packet);
+		scene->SendPacket(&packet);
 	}
 }

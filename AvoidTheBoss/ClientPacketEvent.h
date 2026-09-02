@@ -9,54 +9,54 @@ class CGameScene;
 
 struct moveEvent
 {
-	int32 _playerIndex = -1;
-	uint8 _key = 0;
-	DirectX::XMFLOAT3 _direction{ 0.0f, 0.0f, 0.0f };
+	int32 playerIndex = -1;
+	uint8 key = 0;
+	DirectX::XMFLOAT3 direction{ 0.0f, 0.0f, 0.0f };
 
 	void Task(CGameScene* scene);
 };
 
 struct posEvent
 {
-	int32 _playerIndex = -1;
-	DirectX::XMFLOAT3 _position{ 0.0f, 0.0f, 0.0f };
+	int32 playerIndex = -1;
+	DirectX::XMFLOAT3 position{ 0.0f, 0.0f, 0.0f };
 
 	void Task(CGameScene* scene);
 };
 
 struct rotateEvent
 {
-	int32 _playerIndex = -1;
-	float _angle = 0.0f;
+	int32 playerIndex = -1;
+	float angle = 0.0f;
 
 	void Task(CGameScene* scene);
 };
 
 struct animationEvent
 {
-	int32 _playerIndex = -1;
-	uint8 _track = 0;
+	int32 playerIndex = -1;
+	uint8 track = 0;
 
 	void Task(CGameScene* scene);
 };
 
 struct InteractionEvent
 {
-	uint8 _eventId = static_cast<uint8>(-1);
+	uint8 eventId = static_cast<uint8>(-1);
 
 	void Task(CGameScene* scene);
 };
 
 struct FrameEvent
 {
-	int32 _worldFrame = -1;
+	int32 worldFrame = -1;
 
 	void Task(CGameScene* scene);
 };
 
 struct DelayEvent
 {
-	C2S_ATTACK _packet{};
+	C2S_ATTACK packet{};
 
 	void Task(CGameScene* scene);
 };
