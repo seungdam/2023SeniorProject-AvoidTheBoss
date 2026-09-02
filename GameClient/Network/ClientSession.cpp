@@ -2,7 +2,7 @@
 // 네트워크 관련 헤더
 #include "SocketUtil.h"
 #include "ClientPacketDispatcher.h"
-#include "../ClientSession.h"
+#include "ClientSession.h"
 #include "../Diagnostics/ClientTestMode.h"
 // 이벤트 처리관련 헤더
 #include "IocpEvent.h"

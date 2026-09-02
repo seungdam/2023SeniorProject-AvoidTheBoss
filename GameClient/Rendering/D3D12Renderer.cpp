@@ -1,5 +1,5 @@
 #include "../Platform/pch.h"
-#include "../D3D12Renderer.h"
+#include "D3D12Renderer.h"
 
 #include "../Platform/D3D12Helpers.h"
 #include "../Platform/DXSampleHelper.h"

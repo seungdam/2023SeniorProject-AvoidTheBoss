@@ -1,5 +1,5 @@
-﻿#include "../Rendering/pch.h"
-#include "../DDSTextureLoader12.h"
+﻿#include "pch.h"
+#include "DDSTextureLoader12.h"
 
 
 #ifdef _MSC_VER

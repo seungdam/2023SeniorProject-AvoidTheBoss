@@ -1,5 +1,5 @@
 ﻿#include "../Platform/pch.h"
-#include "../InputManager.h"
+#include "InputManager.h"
 
 
 void InputManager::InputStatusUpdate()

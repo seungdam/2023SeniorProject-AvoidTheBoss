@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "../ClientSession.h"
+#include "ClientSession.h"
 #include "IocpCore.h"
 
 #include <atomic>

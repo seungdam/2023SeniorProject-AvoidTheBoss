@@ -3,7 +3,7 @@
 #include "../Rendering/Camera.h"
 #include "../Gameplay/CBoss.h"
 #include "../Gameplay/CEmployee.h"
-#include "../CScene.h"
+#include "CScene.h"
 #include "../Rendering/Shader.h"
 #include <Windowsx.h>
 

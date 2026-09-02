@@ -1,12 +1,12 @@
 #include "../Platform/pch.h"
-#include "../CEmployee.h"
-#include "../CGenerator.h"
+#include "CEmployee.h"
+#include "CGenerator.h"
 #include "../Audio/CSound.h"
 
 #include "../Scenes/GameScene.h"
 
-#include "../InputManager.h"
-#include "SoundManager.h"
+#include "InputManager.h"
+#include "Audio/SoundManager.h"
 
 namespace
 {

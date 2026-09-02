@@ -1,14 +1,13 @@
 ﻿#include "../Platform/pch.h"
 
-#include "../Player.h"
+#include "Gameplay/Player.h"
 #include "../Network/ClientNetworker.h"
 #include "../Core/GameCore.h"
 
 #include "../Gameplay/InputManager.h"
-#include "../SoundManager.h"
+#include "Audio/SoundManager.h"
 #include "../UI/UIManager.h"
-#include "../OtherScenes.h"
-#include "../SoundManager.h"
+#include "OtherScenes.h"
 #include "../Audio/CSound.h"
 
 

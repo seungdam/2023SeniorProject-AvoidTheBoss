@@ -1,6 +1,6 @@
 #include "../Platform/pch.h"
 #include "../Rendering/Camera.h"
-#include "../ClientTestMode.h"
+#include "ClientTestMode.h"
 
 #include "../Network/ClientSession.h"
 #include "../Core/SceneId.h"

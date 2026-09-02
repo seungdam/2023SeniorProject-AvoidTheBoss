@@ -1,5 +1,5 @@
 #include "../Platform/pch.h"
-#include "../GameFramework.h"
+#include "GameFramework.h"
 
 #include "../Diagnostics/ClientTestMode.h"
 #include "../Audio/SoundManager.h"

@@ -1,5 +1,5 @@
 ﻿#include "../Platform/pch.h"
-#include "../CSound.h"
+#include "CSound.h"
 
 CSound::CSound() = default;
 CSound::~CSound() = default;

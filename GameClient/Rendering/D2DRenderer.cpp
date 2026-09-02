@@ -1,5 +1,5 @@
 #include "../Platform/pch.h"
-#include "../D2DRenderer.h"
+#include "D2DRenderer.h"
 
 #include "../Platform/DXSampleHelper.h"
 

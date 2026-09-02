@@ -1,9 +1,9 @@
 #include "../Platform/pch.h"
-#include "../CBoss.h"
-#include "../CEmployee.h"
-#include "../CBullet.h"
+#include "CBoss.h"
+#include "CEmployee.h"
+#include "CBullet.h"
 
-#include "../InputManager.h"
+#include "InputManager.h"
 #include "../Audio/SoundManager.h"
 #include "../Scenes/GameScene.h"
 

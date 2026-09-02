@@ -1,5 +1,5 @@
 #include "../Platform/pch.h"
-#include "../ClientPacketEvent.h"
+#include "ClientPacketEvent.h"
 
 #include "../Scenes/GameScene.h"
 

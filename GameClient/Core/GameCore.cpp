@@ -1,11 +1,11 @@
 #include "../Platform/pch.h"
-#include "../GameCore.h"
+#include "GameCore.h"
 
 #include "../Gameplay/CEmployee.h"
 #include "../Network/ClientNetworker.h"
 #include "../Diagnostics/ClientTestMode.h"
 #include "../Scenes/GameScene.h"
-#include "../SceneManager.h"
+#include "SceneManager.h"
 #include "../Audio/SoundManager.h"
 
 namespace atb

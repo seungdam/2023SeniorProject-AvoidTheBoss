@@ -1,6 +1,6 @@
 #include "../Platform/pch.h"
 #include "../Gameplay/Player.h"
-#include "../Camera.h"
+#include "Camera.h"
 #include "../Platform/DXSampleHelper.h"
 
 CCamera::CCamera()

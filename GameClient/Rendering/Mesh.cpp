@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 
 #include "../Platform/pch.h"
-#include "../Mesh.h"
+#include "Mesh.h"
 #include "GameObject.h"
 
 

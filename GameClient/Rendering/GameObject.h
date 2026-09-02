@@ -6,7 +6,7 @@
 
 #include "Mesh.h"
 #include "Camera.h"
-#include "../GameObjectOwnership.h"
+#include "GameObjectOwnership.h"
 
 
 extern std::vector<DirectX::BoundingBox> bv;

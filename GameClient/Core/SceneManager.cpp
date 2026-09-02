@@ -1,5 +1,5 @@
 ﻿#include "../Platform/pch.h"
-#include "../SceneManager.h"
+#include "SceneManager.h"
 #include "../Scenes/CScene.h"
 #include "../Scenes/GameScene.h"
 #include "../Scenes/OtherScenes.h"

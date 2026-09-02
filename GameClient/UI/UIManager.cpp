@@ -1,5 +1,5 @@
 ﻿#include "../Platform/pch.h"
-#include "../UIManager.h"
+#include "UIManager.h"
 #include "../Core/SceneId.h"
 
 #include "../Platform/DXSampleHelper.h"

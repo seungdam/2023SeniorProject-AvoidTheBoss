@@ -1,6 +1,6 @@
 #include "../Platform/pch.h"
 #include "../Rendering/Shader.h"
-#include "../Player.h"
+#include "Player.h"
 #include "CBullet.h"
 
 

@@ -1,22 +1,22 @@
 #include "../Platform/pch.h"
 #include "../Platform/DXSampleHelper.h"
-#include "../GameScene.h"
+#include "GameScene.h"
 #include "../Network/ClientNetworker.h"
 #include "../Core/GameCore.h"
 #include "OtherScenes.h"
 #include "../UI/UIManager.h"
 #include "../Gameplay/InputManager.h"
-#include "../SoundManager.h"
+#include "Audio/SoundManager.h"
 #include "../Audio/CSound.h"
 
 //네트워크 관련
 #include "../Network/ClientEventScheduler.h"
 
 // 객체 관련
-#include "../CBullet.h"
+#include "Gameplay/CBullet.h"
 #include "../Gameplay/CBoss.h"
 #include "../Gameplay/CEmployee.h"
-#include "../CGenerator.h"
+#include "Gameplay/CGenerator.h"
 
 #include <utility>
 

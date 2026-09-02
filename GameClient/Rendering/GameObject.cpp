@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 
 #include "../Platform/pch.h"
-#include "../GameObject.h"
+#include "GameObject.h"
 #include "Shader.h"
 #include "../Audio/CSound.h"
 #include "../Scenes/CScene.h"

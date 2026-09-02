@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "../SceneId.h"
+#include "SceneId.h"
 
 class CSound;
 class CScene;

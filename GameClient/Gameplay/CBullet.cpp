@@ -1,6 +1,6 @@
 #include "../Platform/pch.h"
 #include "../Rendering/GameObject.h"
-#include "../CBullet.h"
+#include "CBullet.h"
 
 CBullet::CBullet() = default;
 CBullet::~CBullet() = default;

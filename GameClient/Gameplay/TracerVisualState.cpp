@@ -1,4 +1,4 @@
-#include "../TracerVisualState.h"
+#include "TracerVisualState.h"
 
 #include <algorithm>
 #include <cmath>

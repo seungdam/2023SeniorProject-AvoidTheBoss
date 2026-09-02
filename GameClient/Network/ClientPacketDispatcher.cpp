@@ -1,13 +1,13 @@
 #include "../Platform/pch.h"
 
-#include "../ClientPacketDispatcher.h"
-#include "../ClientSession.h"
+#include "ClientPacketDispatcher.h"
+#include "ClientSession.h"
 
 #include "../Core/GameCore.h"
 #include "../Diagnostics/ClientTestMode.h"
 #include "../UI/UIManager.h"
 
-#include "../ClientPacketEvent.h"
+#include "ClientPacketEvent.h"
 #include "../Gameplay/Player.h"
 
 #include "../Scenes/OtherScenes.h"

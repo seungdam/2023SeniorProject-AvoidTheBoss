@@ -1,5 +1,5 @@
 ﻿#include "../Platform/pch.h"
-#include "../CGenerator.h"
+#include "CGenerator.h"
 
 CGenerator::CGenerator()
 {

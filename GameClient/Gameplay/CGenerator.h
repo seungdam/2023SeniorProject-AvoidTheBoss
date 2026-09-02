@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "../Rendering/GameObject.h"
-#include "../GeneratorState.h"
+#include "GeneratorState.h"
 
 class CGenerator : public CGameObject
 {

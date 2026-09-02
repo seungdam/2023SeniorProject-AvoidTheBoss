@@ -2,7 +2,7 @@
 
 #include "../../Shared/Types.h"
 #include "../Network/ClientNetworker.h"
-#include "../ClientPacketDispatcher.h"
+#include "Network/ClientPacketDispatcher.h"
 #include "../Rendering/D2DRenderer.h"
 #include "../Rendering/D3D12Renderer.h"
 #include "../Core/GameCore.h"
