@@ -7,7 +7,9 @@
 
 #include "CScene.h"
 #include "ClientPacketEvent.h"
+#include "FixedStepScheduler.h"
 #include "GameUiSnapshot.h"
+#include "MovementInputState.h"
 
 
 class ClientEventScheduler;
@@ -28,7 +30,7 @@ class CGameScene : public CScene
 public:
 	CGameScene(atb::GameCore& gameCore, atb::ClientNetworker& networker, UIManager& ui);
 	~CGameScene();
-	virtual void InitScene() { _timer.Reset(); }
+	void InitScene();
 	//씬에서 마우스와 키보드 메시지를 처리한다.
 	virtual void OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM	lParam);
 	virtual void OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
@@ -70,6 +72,7 @@ public:
 	void StartTimer() { _timer.Start(); }
 	void AddEvent(ClientEvent event, float afterMilliseconds);
 	bool SendPacket(void* packet);
+	void MarkInputDirty() noexcept { _movementInput.Invalidate(); }
 	[[nodiscard]] bool IsActive() const noexcept;
 
 	void ExitReady();
@@ -86,6 +89,8 @@ private:
 	atb::ClientNetworker& _networker;
 	UIManager& _ui;
 	Timer _timer;
+	atb::FixedStepScheduler _fixedStepScheduler;
+	atb::MovementInputState _movementInput;
 	CCamera _camera;
 	CResultScene* _resultScene = nullptr;
 // ========== 서버 처리를 위해 사용하는 변수들 ==============
@@ -93,7 +98,6 @@ public:
 	// 씬에 있는 오브젝트 관련 변수
 	CPlayer* _players[4] = {};
 	int16 _localPlayerIndex = -1;
-	int16 _lastKeyInput = 0;
 
 	// 발전기
 	int _generatorCount = 3;
@@ -119,6 +123,9 @@ public:
 	void ReleaseObjects() override;
 
 private:
+	void FixedUpdate(float fixedDeltaSeconds);
+	void UpdatePresentation(HWND hWnd, float frameDeltaSeconds);
+	void TrySendMovementInput();
 	void HandleGeneratorActivated(int32 index, bool notifyServer);
 };
 

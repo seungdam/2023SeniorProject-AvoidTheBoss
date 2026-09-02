@@ -32,6 +32,13 @@ CGameScene::~CGameScene()
 	delete _jobQueue;
 }
 
+void CGameScene::InitScene()
+{
+	_timer.Reset();
+	_fixedStepScheduler.Reset();
+	MarkInputDirty();
+}
+
 void CGameScene::ReleaseUploadBuffers()
 {
 	CScene::ReleaseUploadBuffers();
@@ -353,7 +360,6 @@ void CGameScene::ProcessInput(HWND& hWnd)
 
 	//if (hWnd != ::GetActiveWindow()) return;
 
-	uint8 keyInput = 0;
 	InputManager::GetInstance().InputStatusUpdate();
 	InputManager::GetInstance().MouseInputStatusUpdate();
 
@@ -380,77 +386,102 @@ void CGameScene::ProcessInput(HWND& hWnd)
 	}
 
 	//============  플레이어에게 최종 키입력 처리 ============
-	keyInput = localPlayer->ProcessInput(); // 입력된 키를 기반으로 인풋 처리 진행
+	const uint8 keyInput = localPlayer->ProcessInput(); // action edge는 render frame당 한 번만 처리한다.
 	if (InputManager::GetInstance().GetKeyBuffer(KEY_TYPE::G) == static_cast<uint8>(KEY_STATUS::KEY_PRESS))
 	{
 		ToggleFog();
 	}
 
-	// ============ 패킷 송신 파트 ===================
-	// 이동 키 입력에 변화가 있거나 키 입력 중 회전을 수행하는 경우에만.. 이동 관련 패킷을 전송한다.
-	if (_lastKeyInput != keyInput || (keyInput && cxDelta != 0))
-	{
-		C2S_KEY packet{}; // 키 입력 + 방향 정보를 보낸다.
-		packet.size = sizeof(C2S_KEY);
-		packet.type = (uint8)C_GAME_PACKET_TYPE::CKEY;
-		packet.key = keyInput;
-		const XMFLOAT3 look = localPlayer->GetLookVector();
-		packet.x = look.x;
-		packet.z = look.z;
-		_networker.Send(&packet);
-	}
-	_lastKeyInput = keyInput;
+	const XMFLOAT3 look = localPlayer->GetLookVector();
+	_movementInput.Sample(keyInput, look.x, look.z);
 }
 
 void CGameScene::Update(HWND& hWnd)
-
 {
 	_timer.Tick(0);
+	const std::size_t fixedSteps = _fixedStepScheduler.ConsumeDueSteps(
+		atb::FixedStepScheduler::Clock::now());
+	if (fixedSteps > 0)
+	{
+		// C2S_KEY가 zero-delay attack event보다 먼저 등록되는 기존 전송 순서를 유지한다.
+		TrySendMovementInput();
+		_jobQueue->DoTasks();
+		for (std::size_t step = 0; step < fixedSteps; ++step)
+		{
+			FixedUpdate(atb::FixedStepScheduler::FixedDeltaSeconds);
+		}
+	}
 
-	_jobQueue->DoTasks();
+	UpdatePresentation(hWnd, _timer.GetTimeElapsed());
+}
+
+void CGameScene::FixedUpdate(const float fixedDeltaSeconds)
+{
+	const atb::MovementInputSample& input = _movementInput.Current();
+	(void)ApplyPlayerMove(_localPlayerIndex, input.key, XMFLOAT3(input.aimX, 0.0f, input.aimZ));
+
 	CPlayer* localPlayer = GetLocalPlayer();
-
 	for (int k = 0; k < PLAYERNUM; ++k)
 	{
 		_players[k]->m_IsFirst = _players[k] == localPlayer && _camera.GetMode() == CCamera::FirstPersonMode;
 		if (k == _localPlayerIndex)
 		{
-			_players[k]->Update(_timer.GetTimeElapsed(), CLIENT_TYPE::OWNER);
+			_players[k]->Update(fixedDeltaSeconds, CLIENT_TYPE::OWNER);
 		}
 		else
 		{
-			_players[k]->Update(_timer.GetTimeElapsed(), CLIENT_TYPE::OTHER_PLAYER);
+			_players[k]->Update(fixedDeltaSeconds, CLIENT_TYPE::OTHER_PLAYER);
 		}
-	}
-	if (localPlayer)
-	{
-		_camera.Update(*localPlayer, _timer.GetTimeElapsed());
-		_camera.RegenerateViewMatrix();
 	}
 	for (int k = 0; k < _generatorCount; ++k)
 	{
-		if (_generators[k]->TickState(_timer.GetTimeElapsed()) == GeneratorTransition::Activated)
+		if (_generators[k]->TickState(fixedDeltaSeconds) == GeneratorTransition::Activated)
 		{
 			HandleGeneratorActivated(k, true);
 		}
 	}
+}
 
-
-
+void CGameScene::UpdatePresentation(HWND hWnd, const float frameDeltaSeconds)
+{
+	if (CPlayer* localPlayer = GetLocalPlayer())
+	{
+		_camera.Update(*localPlayer, frameDeltaSeconds);
+		_camera.RegenerateViewMatrix();
+	}
 	_ui.UpdateGameSceneUI(CreateUiSnapshot());
 
 	if (_employeeExitReady)
 	{
 		ExitReady();
 	}
-	// 평균 프레임 레이트 출력
+
 	std::wstring str = L"[";
 	str.append(std::to_wstring(_sid));
 	str.append(L"] ");
 	str.append(L"- WorldFrame: ");
 	str.append(std::to_wstring(_currentFrame));
-
 	::SetWindowText(hWnd, str.c_str());
+}
+
+void CGameScene::TrySendMovementInput()
+{
+	if (!_movementInput.Pending() || !GetLocalPlayer())
+	{
+		return;
+	}
+
+	const atb::MovementInputSample& input = _movementInput.Current();
+	C2S_KEY packet{};
+	packet.size = sizeof(packet);
+	packet.type = static_cast<uint8>(C_GAME_PACKET_TYPE::CKEY);
+	packet.key = input.key;
+	packet.x = input.aimX;
+	packet.z = input.aimZ;
+	if (_networker.Send(&packet))
+	{
+		_movementInput.CommitSent();
+	}
 }
 
 void CGameScene::AnimateObjects()
@@ -1017,6 +1048,9 @@ bool CGameScene::InitGame(const S2C_GAMESTART* packet, int32 sid)
 	_camera.SetFogEnabled(true);
 	SetCameraMode(CCamera::FirstPersonMode);
 	localPlayer->SetClientType(CLIENT_TYPE::OWNER);
+	const XMFLOAT3 look = localPlayer->GetLookVector();
+	_movementInput.Sample(0, look.x, look.z);
+	MarkInputDirty();
 	return true;
 }
 
@@ -1121,7 +1155,9 @@ bool CGameScene::ResetGame()
 	_localPlayerIndex = -1;
 	_employeeExitReady = false;
 	_exitSoundActive = false;
-	_lastKeyInput = 0;
+	_movementInput.Sample(0, 0.0f, 1.0f);
+	MarkInputDirty();
+	_fixedStepScheduler.Reset();
 	ApplyWorldFrame(0);
 	_exitedPlayerCount = 0;
 	_remainingPlayerCount = 0;

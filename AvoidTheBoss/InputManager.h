@@ -55,7 +55,7 @@ public:
 	static int GetKeyBuffer(int32 key) { return _keyBuffer[(int32)key]; }
 
 private:
-	InputManager() = delete;
+	InputManager() = default;
 	~InputManager() = default;
 	InputManager(const InputManager& ref) = default;
 	InputManager& operator=(const InputManager& ref) = delete;
@@ -65,11 +65,8 @@ private:
 
 	static constexpr std::array<int, 256> InitKeyBuffer()
 	{
-		std::array<int8, 256> arr{};
-		for (auto& val : arr)
-		{
-			val = (int8)KEY_STATUS::KEY_NONE;
-		}
+		std::array<int, 256> arr{};
+		arr.fill(static_cast<int>(KEY_STATUS::KEY_NONE));
 		return arr;
 	}
 private:

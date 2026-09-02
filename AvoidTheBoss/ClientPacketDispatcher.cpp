@@ -88,15 +88,20 @@ void ClientPacketDispatcher::Apply(ClientSession& session, char* packet) const
 		{
 			break;
 		}
-		if (resume->oldSid == session.GetResumeSid())
+		if (resume->oldSid != session.GetResumeSid())
 		{
-			session.SetSid(resume->newSid);
-			session._resumeSid.store(-1, std::memory_order_release);
-			CScene::_sid = resume->newSid;
+			break;
 		}
+		session.SetSid(resume->newSid);
+		session._resumeSid.store(-1, std::memory_order_release);
+		CScene::_sid = resume->newSid;
 		if (CPlayer *player = pGameScene->GetScenePlayerByIdx(resume->playerIndex))
 		{
 			player->SetPlayerSid(resume->newSid);
+		}
+		if (pGameScene->GetLocalPlayerIndex() == resume->playerIndex)
+		{
+			pGameScene->MarkInputDirty();
 		}
 	}
 	break;
