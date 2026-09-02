@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.26)
 
-project(GameClient LANGUAGES CXX RC)
+project(AvoidTheBoss LANGUAGES CXX RC)
 
 include(CTest)
 
@@ -158,7 +158,7 @@ target_compile_definitions(GameClient PRIVATE
     _WIN32_WINNT=0x0A00
 )
 target_precompile_headers(GameClient PRIVATE
-    "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss/pch.h>"
+    "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/GameClient/Platform/pch.h>"
 )
 target_link_libraries(GameClient PRIVATE
     SharedRuntime
@@ -179,7 +179,7 @@ target_link_options(GameClient PRIVATE
 )
 
 set_target_properties(GameClient PROPERTIES
-    OUTPUT_NAME GameClient
+    OUTPUT_NAME AvoidTheBoss
     JOB_POOL_LINK msvc_link_pool
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/client/$<CONFIG>"
     VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/GameClient"
@@ -190,18 +190,12 @@ set(client_asset_output "$<TARGET_FILE_DIR:GameClient>/Assets")
 add_custom_target(GameClientAssets
     COMMAND "${CMAKE_COMMAND}" -E make_directory "${client_asset_output}"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-        "GameClient/Rendering/Shaders.hlsl"
-        "GameClient/Rendering/Light.hlsl"
+        "${CMAKE_CURRENT_SOURCE_DIR}/GameClient/Rendering/Shaders.hlsl"
+        "${CMAKE_CURRENT_SOURCE_DIR}/GameClient/Rendering/Light.hlsl"
         "${client_asset_output}"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory_if_different
-        "GameClient/Assets/Model"
-        "${client_asset_output}/Model"
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory_if_different
-        "GameClient/Assets/Skybox"
-        "${client_asset_output}/Skybox"
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory_if_different
-        "GameClient/Assets/UI"
-        "${client_asset_output}/UI"
+        "${CMAKE_CURRENT_SOURCE_DIR}/GameClient/Assets"
+        "${client_asset_output}"
     VERBATIM
 )
 add_dependencies(GameClient GameClientAssets)
