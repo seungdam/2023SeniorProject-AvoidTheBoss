@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.26)
 
-project(AvoidTheBoss LANGUAGES CXX RC)
+project(GameClient LANGUAGES CXX RC)
 
 include(CTest)
 
@@ -104,54 +104,53 @@ add_custom_command(TARGET GameServer POST_BUILD
 )
 
 add_executable(GameClient WIN32
-    AvoidTheBoss/AvoidTheBoss.cpp
-    AvoidTheBoss/Camera.cpp
-    AvoidTheBoss/CBoss.cpp
-    AvoidTheBoss/CBullet.cpp
-    AvoidTheBoss/CEmployee.cpp
-    AvoidTheBoss/CGenerator.cpp
-        AvoidTheBoss/clientIocpCore.cpp
-    AvoidTheBoss/ClientPacketDispatcher.cpp
-    AvoidTheBoss/ClientPacketEvent.cpp
-	AvoidTheBoss/ClientNetworker.cpp
-    AvoidTheBoss/ClientSession.cpp
-    AvoidTheBoss/ClientTestMode.cpp
-    AvoidTheBoss/CollisionDetector.cpp
-    AvoidTheBoss/CScene.cpp
-    AvoidTheBoss/CSound.cpp
-    AvoidTheBoss/DDSTextureLoader12.cpp
-	AvoidTheBoss/D2DRenderer.cpp
-    AvoidTheBoss/D3D12Renderer.cpp
-    AvoidTheBoss/DXSampleHelper.cpp
-    AvoidTheBoss/GameFramework.cpp
-	AvoidTheBoss/GameCore.cpp
-    AvoidTheBoss/GameObject.cpp
-    AvoidTheBoss/GameScene.cpp
-        AvoidTheBoss/ClientEventScheduler.cpp
-    AvoidTheBoss/InputManager.cpp
-    AvoidTheBoss/Mesh.cpp
-    AvoidTheBoss/OtherScenes.cpp
-    AvoidTheBoss/pch.cpp
-    AvoidTheBoss/Player.cpp
-    AvoidTheBoss/SceneManager.cpp
-    AvoidTheBoss/Shader.cpp
-    AvoidTheBoss/SoundManager.cpp
-	AvoidTheBoss/TracerVisualState.cpp
-    AvoidTheBoss/UIManager.cpp
-	AvoidTheBoss/Window.cpp
-    AvoidTheBoss/AvoidTheBoss.rc
-    AvoidTheBoss/Light.hlsl
-    AvoidTheBoss/Shaders.hlsl
+		GameClient/App/AvoidTheBoss.cpp
+		GameClient/Rendering/Camera.cpp
+		GameClient/Gameplay/CBoss.cpp
+		GameClient/Gameplay/CBullet.cpp
+		GameClient/Gameplay/CEmployee.cpp
+		GameClient/Gameplay/CGenerator.cpp
+		GameClient/Network/clientIocpCore.cpp
+		GameClient/Network/ClientPacketDispatcher.cpp
+		GameClient/Network/ClientPacketEvent.cpp
+		GameClient/Network/ClientNetworker.cpp
+		GameClient/Network/ClientSession.cpp
+		GameClient/Diagnostics/ClientTestMode.cpp
+		GameClient/Scenes/CScene.cpp
+		GameClient/Audio/CSound.cpp
+		GameClient/Platform/DDSTextureLoader12.cpp
+		GameClient/Rendering/D2DRenderer.cpp
+		GameClient/Rendering/D3D12Renderer.cpp
+		GameClient/Platform/DXSampleHelper.cpp
+		GameClient/App/GameFramework.cpp
+		GameClient/Core/GameCore.cpp
+		GameClient/Rendering/GameObject.cpp
+		GameClient/Scenes/GameScene.cpp
+		GameClient/Network/ClientEventScheduler.cpp
+		GameClient/Gameplay/InputManager.cpp
+		GameClient/Rendering/Mesh.cpp
+		GameClient/Scenes/OtherScenes.cpp
+		GameClient/Platform/pch.cpp
+		GameClient/Gameplay/Player.cpp
+		GameClient/Core/SceneManager.cpp
+		GameClient/Rendering/Shader.cpp
+		GameClient/Audio/SoundManager.cpp
+		GameClient/Gameplay/TracerVisualState.cpp
+		GameClient/UI/UIManager.cpp
+		GameClient/App/Window.cpp
+		GameClient/App/AvoidTheBoss.rc
+		GameClient/Rendering/Light.hlsl
+		GameClient/Rendering/Shaders.hlsl
 )
 
 set_source_files_properties(
-    AvoidTheBoss/Light.hlsl
-    AvoidTheBoss/Shaders.hlsl
+		GameClient/Rendering/Light.hlsl
+		GameClient/Rendering/Shaders.hlsl
     PROPERTIES HEADER_FILE_ONLY ON
 )
 
 target_include_directories(GameClient PRIVATE
-    AvoidTheBoss
+        GameClient
 )
 target_compile_definitions(GameClient PRIVATE
     _WINDOWS
@@ -180,10 +179,10 @@ target_link_options(GameClient PRIVATE
 )
 
 set_target_properties(GameClient PROPERTIES
-    OUTPUT_NAME AvoidTheBoss
+    OUTPUT_NAME GameClient
     JOB_POOL_LINK msvc_link_pool
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/client/$<CONFIG>"
-    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss"
+    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/GameClient"
 )
 
 set(client_asset_output "$<TARGET_FILE_DIR:GameClient>/Assets")
@@ -191,17 +190,17 @@ set(client_asset_output "$<TARGET_FILE_DIR:GameClient>/Assets")
 add_custom_target(GameClientAssets
     COMMAND "${CMAKE_COMMAND}" -E make_directory "${client_asset_output}"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss/Shaders.hlsl"
-        "${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss/Light.hlsl"
+        "GameClient/Rendering/Shaders.hlsl"
+        "GameClient/Rendering/Light.hlsl"
         "${client_asset_output}"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss/Model"
+        "GameClient/Assets/Model"
         "${client_asset_output}/Model"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss/Skybox"
+        "GameClient/Assets/Skybox"
         "${client_asset_output}/Skybox"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/AvoidTheBoss/UI"
+        "GameClient/Assets/UI"
         "${client_asset_output}/UI"
     VERBATIM
 )
@@ -218,10 +217,10 @@ set_target_properties(ProtocolScenarioHarness PROPERTIES
 )
 
 add_executable(ProjectileLogicTests
-	AvoidTheBoss/TracerVisualState.cpp
+		GameClient/Gameplay/TracerVisualState.cpp
 	tests/ProjectileLogicTests.cpp
 )
-target_include_directories(ProjectileLogicTests PRIVATE AvoidTheBoss)
+target_include_directories(ProjectileLogicTests PRIVATE GameClient)
 set_target_properties(ProjectileLogicTests PROPERTIES
 	JOB_POOL_LINK msvc_link_pool
 	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
@@ -230,7 +229,7 @@ set_target_properties(ProjectileLogicTests PROPERTIES
 add_executable(GameObjectOwnershipTests
 	tests/GameObjectOwnershipTests.cpp
 )
-target_include_directories(GameObjectOwnershipTests PRIVATE AvoidTheBoss)
+target_include_directories(GameObjectOwnershipTests PRIVATE GameClient)
 set_target_properties(GameObjectOwnershipTests PROPERTIES
 	JOB_POOL_LINK msvc_link_pool
 	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
@@ -239,17 +238,17 @@ set_target_properties(GameObjectOwnershipTests PROPERTIES
 add_executable(PlayerStateTests
 	tests/PlayerStateTests.cpp
 )
-target_include_directories(PlayerStateTests PRIVATE AvoidTheBoss)
+target_include_directories(PlayerStateTests PRIVATE GameClient)
 set_target_properties(PlayerStateTests PROPERTIES
 	JOB_POOL_LINK msvc_link_pool
 	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/$<CONFIG>"
 )
 
 add_executable(SchedulerTests
-        AvoidTheBoss/ClientEventScheduler.cpp
+		GameClient/Network/ClientEventScheduler.cpp
 	tests/SchedulerTests.cpp
 )
-target_include_directories(SchedulerTests PRIVATE AvoidTheBoss)
+target_include_directories(SchedulerTests PRIVATE GameClient)
 target_link_libraries(SchedulerTests PRIVATE SharedHeaders)
 set_target_properties(SchedulerTests PROPERTIES
 	JOB_POOL_LINK msvc_link_pool

@@ -11,6 +11,9 @@
       "hidden": true,
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "environment": {
+        "VSLANG": "1033"
+      },
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
