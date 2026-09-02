@@ -72,7 +72,7 @@ private:
 	void AddEventAfterTime(float time, QueueEvent* event);
 	void AddEvent(QueueEvent* event);
 	void Update(Room& room, float elapsedTime);
-	void LateUpdate(float elapsedTime);
+	void LateUpdate();
 	void ClearQueuedEvents();
 	GAMESTATE CheckGameState();
 

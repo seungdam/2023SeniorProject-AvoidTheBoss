@@ -95,8 +95,8 @@ public:
 
 	void ProcessInput(const int16& input, const XMFLOAT3& lookVec);
 	void Move(const int16& dwDirection, float fDistance);
-	void Update(float fTimeElapsed, OcTree& collisionTree);
-	void LateUpdate(float fTimeElapsed, OcTree& collisionTree);
+	void Update(float fTimeElapsed);
+	void LateUpdate(OcTree& collisionTree);
 
 	void ResetState();
 };

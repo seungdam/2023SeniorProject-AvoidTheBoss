@@ -3,7 +3,22 @@
 #include "FixedStepScheduler.h"
 #include "JobQueue.h"
 
+#include <cstdint>
 #include <stdexcept>
+
+namespace
+{
+	constexpr std::uint32_t PositionBroadcastRate = 45;
+	static_assert(PositionBroadcastRate <= atb::FixedStepScheduler::TickRate);
+
+	[[nodiscard]] bool AdvancePositionBroadcastPhase(std::uint32_t& phase) noexcept
+	{
+		phase += PositionBroadcastRate;
+		if (phase < atb::FixedStepScheduler::TickRate) return false;
+		phase -= atb::FixedStepScheduler::TickRate;
+		return true;
+	}
+}
 
 MatchState::MatchState(OcTree& collisionTree)
 	: _collisionTree(collisionTree)
@@ -46,14 +61,13 @@ uint64 MatchState::Start(const std::array<int16, PLAYERNUM>& playerSids)
 MatchTickResult MatchState::Tick(Room& room, const float fixedDeltaSeconds)
 {
 	Update(room, fixedDeltaSeconds);
-	LateUpdate(fixedDeltaSeconds);
+	LateUpdate();
 
 	MatchTickResult result{};
 	result.state = _state;
 	_history.AddHistory(_players.data());
 	result.frame = _history.GetCurFrame();
-	result.broadcastPositions =
-		ServerSimulation::AdvancePositionBroadcastPhase(_positionBroadcastPhase);
+	result.broadcastPositions = AdvancePositionBroadcastPhase(_positionBroadcastPhase);
 	return result;
 }
 
@@ -106,15 +120,15 @@ void MatchState::Update(Room& room, const float elapsedTime)
 	if (_state != GAMESTATE::IN_GAME) return;
 	_jobQueue->DoTasks(room, *this);
 	for (SPlayer& player : _players)
-		if (!player.m_hide) player.Update(elapsedTime, _collisionTree);
+		if (!player.m_hide) player.Update(elapsedTime);
 }
 
-void MatchState::LateUpdate(const float elapsedTime)
+void MatchState::LateUpdate()
 {
 	if (_state != GAMESTATE::IN_GAME) return;
 	int32 activeGeneratorCount = 0;
 	for (SPlayer& player : _players)
-		if (!player.m_hide) player.LateUpdate(elapsedTime, _collisionTree);
+		if (!player.m_hide) player.LateUpdate(_collisionTree);
 	for (const SGenerator& generator : _generators)
 		if (generator._IsActive) ++activeGeneratorCount;
 	if (activeGeneratorCount >= GENCNT) _exitReady = true;

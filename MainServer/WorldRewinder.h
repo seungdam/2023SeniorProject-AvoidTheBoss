@@ -21,14 +21,16 @@ public:
 	WorldStatus() { ResetWorldState(); }
 	void ResetWorldState()
 	{
+		for (POS& position : _pPos) position = {};
 		_myWorldFrame = 0;
+		_bossDir = XMFLOAT3(0.f, 0.f, 1.f);
 	}
 	XMFLOAT3 GetPos(int32 idx) { return XMFLOAT3(_pPos[idx].x, 0.f, _pPos[idx].z); }
 	void PrintWorldInfo() {}
 public:
 	POS			_pPos[4];		//  플레이어 위치
 	uint32		_myWorldFrame; //  자기 자신의 월드 프레임
-	XMFLOAT3	_bossDir;
+	XMFLOAT3	_bossDir{ 0.f, 0.f, 1.f };
 };
 
 template <uint32 MAX_REWIND>
@@ -124,6 +126,7 @@ public:
 		_worldHistory.fill(WorldStatus());
 		_curFrame = 0;
 		_frameIndex = 0;
+		_lastWorldStatus.ResetWorldState();
 	}
 
 	uint32 GetCurFrameIdx() const
