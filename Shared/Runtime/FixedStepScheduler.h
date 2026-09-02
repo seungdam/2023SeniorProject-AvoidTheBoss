@@ -5,30 +5,26 @@
 #include <cstdint>
 #include <ratio>
 
-namespace ServerSimulation
+namespace atb
 {
-	inline constexpr std::uint32_t TickRate = 60;
-	inline constexpr float FixedDeltaSeconds = 1.0f / static_cast<float>(TickRate);
-	inline constexpr std::uint32_t PositionBroadcastRate = 45;
-	inline constexpr std::size_t MaxCatchUpSteps = 4;
-
-	static_assert(PositionBroadcastRate <= TickRate);
-
-	[[nodiscard]] inline bool AdvancePositionBroadcastPhase(std::uint32_t& phase) noexcept
-	{
-		phase += PositionBroadcastRate;
-		if (phase < TickRate) return false;
-		phase -= TickRate;
-		return true;
-	}
-
-	class FixedStepScheduler
+	class FixedStepScheduler final
 	{
 	public:
 		using Clock = std::chrono::steady_clock;
 		using TimePoint = Clock::time_point;
 
+		static constexpr std::uint32_t TickRate = 60;
+		static constexpr float FixedDeltaSeconds = 1.0f / static_cast<float>(TickRate);
+		static constexpr std::size_t MaxCatchUpSteps = 4;
+
+		FixedStepScheduler() noexcept : FixedStepScheduler(Clock::now()) {}
 		explicit FixedStepScheduler(const TimePoint epoch) noexcept : _epoch(epoch) {}
+
+		void Reset(const TimePoint epoch = Clock::now()) noexcept
+		{
+			_epoch = epoch;
+			_nextTick = 1;
+		}
 
 		[[nodiscard]] std::size_t ConsumeDueSteps(const TimePoint now) noexcept
 		{
@@ -41,8 +37,7 @@ namespace ServerSimulation
 
 			if (now >= NextDeadline())
 			{
-				_epoch = now;
-				_nextTick = 1;
+				Reset(now);
 			}
 			return steps;
 		}
